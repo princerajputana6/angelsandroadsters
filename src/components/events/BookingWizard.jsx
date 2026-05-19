@@ -1,0 +1,315 @@
+'use client';
+import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useCreateRegistrationMutation, useMeQuery } from '@/store/api';
+import toast from 'react-hot-toast';
+
+const TYPES = [
+  { id: 'individual', label: 'Individual', icon: '🧍', tag: 'Solo registration' },
+  { id: 'group', label: 'Group', icon: '👥', tag: '2–20 members' },
+  { id: 'visitor', label: 'Visitor', icon: '👁️', tag: 'Spectator pass' },
+];
+
+export default function BookingWizard({ event, onDone }) {
+  const router = useRouter();
+  const { data: meData } = useMeQuery();
+  const [register, { isLoading }] = useCreateRegistrationMutation();
+  const [step, setStep] = useState(1);
+  const [type, setType] = useState('individual');
+  const [confirmation, setConfirmation] = useState(null);
+  const [form, setForm] = useState({
+    name: '', email: '', phone: '', age: '', emergencyContact: '',
+    experienceLevel: '', bikeDetails: '', visitDate: '',
+    groupName: '', groupLeader: { name: '', email: '', phone: '' }, members: [], groupSize: 2,
+  });
+
+  const price = useMemo(() => {
+    if (type === 'individual') return event.pricing?.individual || 0;
+    if (type === 'visitor') return event.pricing?.visitor || 0;
+    const size = Number(form.groupSize || 2);
+    return (event.pricing?.groupBase || 0) + (event.pricing?.groupPerHead || 0) * size;
+  }, [type, form.groupSize, event]);
+
+  const setMember = (i, key, val) => {
+    const members = [...form.members];
+    members[i] = { ...members[i], [key]: val };
+    setForm({ ...form, members });
+  };
+
+  const setGroupSize = (n) => {
+    const size = Math.max(2, Math.min(20, n));
+    const members = Array.from({ length: size - 1 }, (_, i) => form.members?.[i] || { name: '', email: '' });
+    setForm({ ...form, groupSize: size, members });
+  };
+
+  const stepValid = () => {
+    if (step === 1) return !!type;
+    if (step === 2) {
+      if (type === 'individual') return form.name && form.email && form.phone;
+      if (type === 'visitor') return form.name && form.email && form.phone;
+      if (type === 'group') return form.groupName && form.groupLeader?.name && form.groupLeader?.email && form.groupSize >= 2;
+    }
+    return true;
+  };
+
+  const submit = async () => {
+    try {
+      const payload = {
+        eventId: event._id,
+        registrationType: type,
+        ...form,
+        age: form.age ? Number(form.age) : undefined,
+      };
+      const res = await register(payload).unwrap();
+      toast.success(`Booked! Ticket: ${res.registration.ticketId}`);
+      onDone?.(res.registration);
+      setConfirmation(res.registration);
+    } catch (err) {
+      toast.error(err?.data?.message || 'Booking failed');
+    }
+  };
+
+  if (confirmation) {
+    return (
+      <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="card-glass p-6 sm:p-8 text-center">
+        <div className="w-14 h-14 mx-auto rounded-full bg-terra-500 flex items-center justify-center text-2xl mb-3">✓</div>
+        <h3 className="font-display text-3xl">You're in.</h3>
+        <p className="text-sm text-charcoal-300 mt-1">Your QR ticket is ready.</p>
+
+        {confirmation.qrCode && (
+          <div className="bg-white p-3 inline-block rounded-xl mt-5">
+            <img src={confirmation.qrCode} alt="QR Ticket" className="w-44 h-44" />
+          </div>
+        )}
+
+        <div className="text-xs text-charcoal-400 mt-3">Ticket ID</div>
+        <div className="font-mono text-terra-400 font-bold tracking-wider">{confirmation.ticketId}</div>
+
+        <div className="flex flex-col sm:flex-row gap-2 mt-6">
+          {meData?.user ? (
+            <button onClick={() => router.push('/dashboard/registrations')} className="btn btn-gold flex-1">View My Tickets</button>
+          ) : (
+            <button onClick={() => router.push('/register')} className="btn btn-gold flex-1">Save to Account</button>
+          )}
+          <button
+            onClick={() => { setConfirmation(null); setStep(1); setForm({ ...form, name: '', email: '', phone: '' }); }}
+            className="btn btn-outline flex-1"
+          >Book another</button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <div className="card-glass p-5 sm:p-7">
+      {/* Step indicator */}
+      <div className="flex items-center gap-1 mb-6">
+        {[1, 2, 3].map((s) => (
+          <div key={s} className="flex-1 flex items-center gap-2">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition ${
+              step >= s ? 'bg-terra-500 text-white' : 'bg-charcoal-800 text-charcoal-400'
+            }`}>{s}</div>
+            <div className="hidden sm:block text-xs text-charcoal-300">
+              {s === 1 ? 'Type' : s === 2 ? 'Details' : 'Confirm'}
+            </div>
+            {s < 3 && <div className={`flex-1 h-px ${step > s ? 'bg-terra-500' : 'bg-charcoal-800'}`} />}
+          </div>
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        {step === 1 && (
+          <motion.div key="s1" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
+            <h3 className="font-display text-2xl mb-1">Pick a pass</h3>
+            <p className="text-xs text-charcoal-400 mb-4">Choose how you'd like to register for this event.</p>
+            <div className="space-y-3">
+              {TYPES.map((t) => {
+                const p = t.id === 'individual' ? event.pricing?.individual
+                  : t.id === 'visitor' ? event.pricing?.visitor
+                  : `${event.pricing?.groupBase || 0} + ${event.pricing?.groupPerHead || 0}/head`;
+                const active = type === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setType(t.id)}
+                    className={`w-full text-left flex items-center gap-4 p-4 rounded-xl border transition ${
+                      active ? 'border-terra-500 bg-terra-500/10' : 'border-charcoal-800 hover:border-charcoal-700'
+                    }`}
+                  >
+                    <span className="text-3xl">{t.icon}</span>
+                    <div className="flex-1">
+                      <div className="font-display text-xl">{t.label}</div>
+                      <div className="text-xs text-charcoal-400">{t.tag}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-charcoal-500">From</div>
+                      <div className="text-terra-400 font-bold text-sm">{typeof p === 'number' ? (p ? `₹${p}` : 'Free') : `₹${p}`}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
+        {step === 2 && (
+          <motion.div key="s2" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
+            <h3 className="font-display text-2xl mb-1">Your details</h3>
+            <p className="text-xs text-charcoal-400 mb-4 capitalize">{type} registration</p>
+
+            {(type === 'individual' || type === 'visitor') && (
+              <div className="space-y-3">
+                <div>
+                  <label className="label">Full name</label>
+                  <input className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">Email</label>
+                    <input className="input" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="label">Phone</label>
+                    <input className="input" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                  </div>
+                </div>
+                {type === 'individual' && (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="label">Age</label>
+                        <input className="input" type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="label">Emergency contact</label>
+                        <input className="input" value={form.emergencyContact} onChange={(e) => setForm({ ...form, emergencyContact: e.target.value })} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="label">Experience level</label>
+                      <select className="input" value={form.experienceLevel} onChange={(e) => setForm({ ...form, experienceLevel: e.target.value })}>
+                        <option value="">Select...</option>
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                        <option value="expert">Expert</option>
+                      </select>
+                    </div>
+                    {(event.eventType === 'rally' || event.eventType === 'expedition') && (
+                      <div>
+                        <label className="label">Bike details</label>
+                        <input className="input" placeholder="Make / Model / Year" value={form.bikeDetails} onChange={(e) => setForm({ ...form, bikeDetails: e.target.value })} />
+                      </div>
+                    )}
+                  </>
+                )}
+                {type === 'visitor' && (
+                  <div>
+                    <label className="label">Date of visit</label>
+                    <input className="input" type="date" value={form.visitDate} onChange={(e) => setForm({ ...form, visitDate: e.target.value })} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {type === 'group' && (
+              <div className="space-y-3">
+                <div>
+                  <label className="label">Group name</label>
+                  <input className="input" required value={form.groupName} onChange={(e) => setForm({ ...form, groupName: e.target.value })} />
+                </div>
+                <div className="card border-charcoal-800/70 p-4 space-y-3">
+                  <div className="text-xs font-bold text-terra-400 uppercase tracking-wider">Group leader</div>
+                  <input className="input" placeholder="Leader name" required value={form.groupLeader.name} onChange={(e) => setForm({ ...form, groupLeader: { ...form.groupLeader, name: e.target.value } })} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input className="input" type="email" placeholder="Email" required value={form.groupLeader.email} onChange={(e) => setForm({ ...form, groupLeader: { ...form.groupLeader, email: e.target.value } })} />
+                    <input className="input" placeholder="Phone" required value={form.groupLeader.phone} onChange={(e) => setForm({ ...form, groupLeader: { ...form.groupLeader, phone: e.target.value } })} />
+                  </div>
+                </div>
+                <div>
+                  <label className="label">Group size (incl. leader)</label>
+                  <div className="flex items-center gap-3">
+                    <button type="button" className="btn btn-outline w-10 h-10 p-0" onClick={() => setGroupSize(form.groupSize - 1)}>−</button>
+                    <span className="text-2xl font-display w-12 text-center">{form.groupSize}</span>
+                    <button type="button" className="btn btn-outline w-10 h-10 p-0" onClick={() => setGroupSize(form.groupSize + 1)}>+</button>
+                  </div>
+                </div>
+                {form.members.length > 0 && (
+                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    <div className="text-xs font-bold text-terra-400 uppercase tracking-wider">Members</div>
+                    {form.members.map((m, i) => (
+                      <div key={i} className="grid grid-cols-2 gap-2">
+                        <input className="input py-2" placeholder={`Member ${i + 2} name`} value={m.name || ''} onChange={(e) => setMember(i, 'name', e.target.value)} />
+                        <input className="input py-2" type="email" placeholder="Email" value={m.email || ''} onChange={(e) => setMember(i, 'email', e.target.value)} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {step === 3 && (
+          <motion.div key="s3" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
+            <h3 className="font-display text-2xl mb-1">Review &amp; confirm</h3>
+            <p className="text-xs text-charcoal-400 mb-4">Double-check your booking before locking it in.</p>
+
+            <div className="card p-4 space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-charcoal-400">Event</span><span className="text-right">{event.title}</span></div>
+              <div className="flex justify-between"><span className="text-charcoal-400">Type</span><span className="capitalize">{type}</span></div>
+              {type !== 'group' ? (
+                <>
+                  <div className="flex justify-between"><span className="text-charcoal-400">Name</span><span>{form.name || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-charcoal-400">Email</span><span className="text-right break-all">{form.email || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-charcoal-400">Phone</span><span>{form.phone || '—'}</span></div>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between"><span className="text-charcoal-400">Group</span><span>{form.groupName || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-charcoal-400">Leader</span><span>{form.groupLeader?.name || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-charcoal-400">Size</span><span>{form.groupSize}</span></div>
+                </>
+              )}
+              <div className="border-t border-charcoal-800 my-2" />
+              <div className="flex justify-between text-base font-bold">
+                <span>Total payable</span>
+                <span className="text-terra-400">{price > 0 ? `₹${price.toLocaleString()}` : 'Free'}</span>
+              </div>
+            </div>
+            <p className="text-[11px] text-charcoal-500 mt-3">
+              By confirming you agree to the event terms. Tickets are non-transferable. Your QR ticket is generated instantly.
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Footer actions */}
+      <div className="flex items-center justify-between mt-6 pt-4 border-t border-charcoal-800">
+        <button
+          onClick={() => setStep((s) => Math.max(1, s - 1))}
+          disabled={step === 1}
+          className="btn btn-ghost text-sm disabled:opacity-30"
+        >← Back</button>
+
+        <div className="text-right mr-3 hidden sm:block">
+          <div className="text-[10px] text-charcoal-500 uppercase tracking-wider">Total</div>
+          <div className="text-terra-400 font-bold">{price > 0 ? `₹${price.toLocaleString()}` : 'Free'}</div>
+        </div>
+
+        {step < 3 ? (
+          <button
+            onClick={() => stepValid() && setStep((s) => s + 1)}
+            disabled={!stepValid()}
+            className="btn btn-gold disabled:opacity-40"
+          >Continue →</button>
+        ) : (
+          <button onClick={submit} disabled={isLoading} className="btn btn-gold disabled:opacity-40">
+            {isLoading ? 'Booking...' : `Confirm — ${price > 0 ? `₹${price.toLocaleString()}` : 'Free'}`}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
