@@ -170,24 +170,75 @@ export default function BookingWizard({ event, onDone }) {
         <div className="card bg-charcoal-900/50 p-4 mt-5 text-left">
           <div className="text-xs text-charcoal-400 uppercase tracking-wider mb-3">Registration Details</div>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-charcoal-400">Name:</span>
-              <span className="font-semibold">{confirmation.name}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-charcoal-400">Email:</span>
-              <span className="font-semibold">{confirmation.email}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-charcoal-400">Phone:</span>
-              <span className="font-semibold">{confirmation.phone}</span>
-            </div>
-            <div className="flex justify-between">
+            {confirmation.registrationType === 'individual' && (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-charcoal-400">Name:</span>
+                  <span className="font-semibold">{confirmation.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-charcoal-400">Email:</span>
+                  <span className="font-semibold">{confirmation.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-charcoal-400">Phone:</span>
+                  <span className="font-semibold">{confirmation.phone}</span>
+                </div>
+              </>
+            )}
+            {confirmation.registrationType === 'visitor' && (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-charcoal-400">Name:</span>
+                  <span className="font-semibold">{confirmation.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-charcoal-400">Email:</span>
+                  <span className="font-semibold">{confirmation.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-charcoal-400">Phone:</span>
+                  <span className="font-semibold">{confirmation.phone}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-charcoal-400">Tickets:</span>
+                  <span className="font-semibold">{confirmation.visitorCount || 1}</span>
+                </div>
+              </>
+            )}
+            {confirmation.registrationType === 'group' && (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-charcoal-400">Group Name:</span>
+                  <span className="font-semibold">{confirmation.groupName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-charcoal-400">Total Members:</span>
+                  <span className="font-semibold">{confirmation.groupSize || confirmation.members?.length || 0}</span>
+                </div>
+                {confirmation.members && confirmation.members.length > 0 && (
+                  <div className="border-t border-charcoal-800 pt-2 mt-2">
+                    <div className="text-xs text-charcoal-500 mb-2">All Members:</div>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {confirmation.members.map((member, i) => (
+                        <div key={i} className="bg-charcoal-950/50 p-2 rounded text-xs">
+                          <div className="font-semibold text-terra-400">Member {i + 1}</div>
+                          <div className="text-charcoal-300">{member.name}</div>
+                          <div className="text-charcoal-400">{member.email}</div>
+                          {member.phone && <div className="text-charcoal-400">{member.phone}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+            <div className="flex justify-between border-t border-charcoal-800 pt-2 mt-2">
               <span className="text-charcoal-400">Type:</span>
               <span className="font-semibold capitalize">{confirmation.registrationType}</span>
             </div>
             {confirmation.amount > 0 && (
-              <div className="flex justify-between border-t border-charcoal-800 pt-2 mt-2">
+              <div className="flex justify-between">
                 <span className="text-charcoal-400">Amount:</span>
                 <span className="font-bold text-terra-400">₹{confirmation.amount}</span>
               </div>
