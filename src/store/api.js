@@ -58,6 +58,10 @@ export const api = createApi({
       query: (slug) => `/events/${slug}`,
       providesTags: (_r, _e, slug) => [{ type: 'Event', id: slug }],
     }),
+    getEventSlots: b.query({
+      query: (slug) => `/events/${slug}/slots`,
+      providesTags: (_r, _e, slug) => [{ type: 'Event', id: `slots-${slug}` }],
+    }),
     createEvent: b.mutation({
       query: (body) => ({ url: '/events', method: 'POST', body }),
       invalidatesTags: ['Events'],
@@ -74,7 +78,7 @@ export const api = createApi({
     // Registrations
     createRegistration: b.mutation({
       query: (body) => ({ url: '/registrations', method: 'POST', body }),
-      invalidatesTags: ['Registrations'],
+      invalidatesTags: ['Registrations', 'Event'],
     }),
     myRegistrations: b.query({ query: () => '/registrations/my', providesTags: ['Registrations'] }),
 
@@ -110,7 +114,7 @@ export const {
   useMeQuery, useLoginMutation, useRegisterMutation, useLogoutMutation,
   useListProductsQuery, useGetProductQuery, useCreateProductMutation, useUpdateProductMutation, useDeleteProductMutation,
   useListCategoriesQuery, useCreateCategoryMutation,
-  useListEventsQuery, useGetEventQuery, useCreateEventMutation, useUpdateEventMutation, useDeleteEventMutation,
+  useListEventsQuery, useGetEventQuery, useGetEventSlotsQuery, useCreateEventMutation, useUpdateEventMutation, useDeleteEventMutation,
   useCreateRegistrationMutation, useMyRegistrationsQuery,
   useCreateOrderMutation, useMyOrdersQuery, useListOrdersQuery, useUpdateOrderMutation,
   useAdminStatsQuery, useListUsersQuery, useUpdateUserMutation,

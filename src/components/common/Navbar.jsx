@@ -8,11 +8,12 @@ import { useMeQuery, useLogoutMutation } from '@/store/api';
 import { selectCartCount } from '@/store/cartSlice';
 import toast from 'react-hot-toast';
 import BrandMark from './BrandMark';
+import TrailstormMark from './TrailstormMark';
 
+const TRAILSTORM_HREF = '/trailstorm/2026-jaisailmer-trailstorm-event';
 const NAV = [
   { href: '/', label: 'Home' },
   { href: '/shop', label: 'Shop' },
-  { href: '/events', label: 'Events' },
   { href: '/about', label: 'About' },
   { href: '/contact', label: 'Contact' },
 ];
@@ -27,6 +28,7 @@ export default function Navbar() {
   const [logout] = useLogoutMutation();
   const cartCount = useSelector(selectCartCount);
   const user = data?.user;
+  const isTrailstormPage = pathname?.startsWith('/trailstorm');
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 12);
@@ -49,7 +51,7 @@ export default function Navbar() {
         scrolled ? 'bg-charcoal-950/85 backdrop-blur-xl border-b border-charcoal-800/70' : 'bg-transparent'
       }`}>
         <div className="container-x flex items-center justify-between h-16 sm:h-20">
-          <BrandMark size="md" />
+          {isTrailstormPage ? <TrailstormMark size="md" /> : <BrandMark size="md" />}
 
           <nav className="hidden lg:flex items-center gap-1">
             {NAV.map((n) => {
@@ -72,6 +74,9 @@ export default function Navbar() {
                 </Link>
               );
             })}
+            <Link href={TRAILSTORM_HREF} className="btn btn-gold text-sm h-9 px-5 ml-2">
+              Trailstorm
+            </Link>
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
@@ -129,10 +134,7 @@ export default function Navbar() {
                 </AnimatePresence>
               </div>
             ) : (
-              <div className="hidden sm:flex items-center gap-2">
-                <Link href="/login" className="btn btn-ghost text-sm h-10">Sign In</Link>
-                <Link href="/register" className="btn btn-gold text-sm h-10">Join Now</Link>
-              </div>
+              <Link href="/login" className="hidden sm:block btn btn-ghost text-sm h-10">Sign In</Link>
             )}
 
             <button
@@ -161,7 +163,7 @@ export default function Navbar() {
               className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-charcoal-950 border-l border-charcoal-800 z-[70] lg:hidden flex flex-col"
             >
               <div className="flex items-center justify-between p-4 border-b border-charcoal-800">
-                <BrandMark size="sm" href={null} />
+                {isTrailstormPage ? <TrailstormMark size="sm" href={null} /> : <BrandMark size="sm" href={null} />}
                 <button onClick={() => setMenu(false)} className="w-10 h-10 rounded-full border border-charcoal-800 text-xl">✕</button>
               </div>
 
@@ -197,7 +199,7 @@ export default function Navbar() {
                   ) : (
                     <div className="space-y-2 p-2">
                       <Link href="/login" className="btn btn-outline w-full">Sign In</Link>
-                      <Link href="/register" className="btn btn-gold w-full">Join Now</Link>
+                      <Link href={TRAILSTORM_HREF} className="btn btn-gold w-full">🏜 Join Trailstorm</Link>
                     </div>
                   )}
                 </div>

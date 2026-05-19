@@ -3,6 +3,7 @@ import Order from '@/lib/models/Order';
 import Product from '@/lib/models/Product';
 import { requireUser, requireAdmin } from '@/lib/auth';
 import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
+import { sendOrderConfirmation } from '@/lib/email';
 
 export async function POST(req) {
   return handler(async () => {
@@ -45,6 +46,13 @@ export async function POST(req) {
       couponCode,
       statusHistory: [{ status: 'placed', note: 'Order placed' }],
     });
+
+    sendOrderConfirmation({
+      order: toJSON(order),
+      userEmail: user.email,
+      userName: user.name,
+    }).catch(err => console.error('[Order] Email send failed:', err.message));
+
     return ok({ order: toJSON(order) }, 201);
   });
 }

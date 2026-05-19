@@ -1,8 +1,9 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useCreateRegistrationMutation, useMeQuery } from '@/store/api';
+import { useCreateRegistrationMutation, useMeQuery, useGetEventSlotsQuery } from '@/store/api';
+import { payWithRazorpay } from '@/lib/razorpayClient';
 import toast from 'react-hot-toast';
 
 const TYPES = [
@@ -14,10 +15,28 @@ const TYPES = [
 export default function BookingWizard({ event, onDone }) {
   const router = useRouter();
   const { data: meData } = useMeQuery();
+  const { data: slotData, refetch: refetchSlots } = useGetEventSlotsQuery(event.slug, { pollingInterval: 30000 });
   const [register, { isLoading }] = useCreateRegistrationMutation();
   const [step, setStep] = useState(1);
   const [type, setType] = useState('individual');
   const [confirmation, setConfirmation] = useState(null);
+
+  const slots = slotData?.slots || {};
+  const slotsFor = (t) => slots[t] || { capacity: 0, booked: 0, remaining: 0 };
+  const isSoldOut = (t) => {
+    const s = slotsFor(t);
+    return s.capacity > 0 && s.remaining <= 0;
+  };
+  const allSoldOut = ['individual', 'group', 'visitor'].every(isSoldOut);
+
+  // If currently selected type is sold out, switch to first available type
+  useEffect(() => {
+    if (!slotData) return;
+    if (isSoldOut(type)) {
+      const fallback = ['individual', 'group', 'visitor'].find((t) => !isSoldOut(t));
+      if (fallback) setType(fallback);
+    }
+  }, [slotData]); // eslint-disable-line react-hooks/exhaustive-deps
   const [form, setForm] = useState({
     name: '', email: '', phone: '', age: '', emergencyContact: '',
     experienceLevel: '', bikeDetails: '', visitDate: '',
@@ -44,7 +63,7 @@ export default function BookingWizard({ event, onDone }) {
   };
 
   const stepValid = () => {
-    if (step === 1) return !!type;
+    if (step === 1) return !!type && !isSoldOut(type);
     if (step === 2) {
       if (type === 'individual') return form.name && form.email && form.phone;
       if (type === 'visitor') return form.name && form.email && form.phone;
@@ -54,6 +73,10 @@ export default function BookingWizard({ event, onDone }) {
   };
 
   const submit = async () => {
+    if (isSoldOut(type)) {
+      toast.error(`${type} slots are sold out. Pick a different pass.`);
+      return;
+    }
     try {
       const payload = {
         eventId: event._id,
@@ -62,11 +85,50 @@ export default function BookingWizard({ event, onDone }) {
         age: form.age ? Number(form.age) : undefined,
       };
       const res = await register(payload).unwrap();
-      toast.success(`Booked! Ticket: ${res.registration.ticketId}`);
-      onDone?.(res.registration);
-      setConfirmation(res.registration);
+      const reg = res.registration;
+      refetchSlots();
+
+      // Free registration — confirm immediately
+      if (!price || price <= 0) {
+        toast.success(`Booked! Ticket: ${reg.ticketId}`);
+        onDone?.(reg);
+        setConfirmation(reg);
+        return;
+      }
+
+      // Paid registration — open Razorpay
+      await payWithRazorpay({
+        amount: price,
+        receipt: reg.ticketId,
+        notes: { eventId: event._id, type, ticketId: reg.ticketId },
+        name: 'Angeles & Roadsters',
+        description: `${event.title} · ${type}`,
+        prefill: {
+          name: form.name || form.groupLeader?.name || '',
+          email: form.email || form.groupLeader?.email || '',
+          contact: form.phone || form.groupLeader?.phone || '',
+        },
+        kind: 'registration',
+        referenceId: reg._id,
+        onSuccess: () => {
+          toast.success(`Payment confirmed! Ticket: ${reg.ticketId}`);
+          onDone?.(reg);
+          setConfirmation({ ...reg, paymentStatus: 'paid', status: 'confirmed' });
+        },
+        onFailure: (err) => {
+          toast.error(err.message || 'Payment failed. You can retry from your dashboard.');
+          onDone?.(reg);
+          setConfirmation(reg);
+        },
+      });
     } catch (err) {
-      toast.error(err?.data?.message || 'Booking failed');
+      if (err?.data?.soldOut) {
+        toast.error(err.data.message);
+        refetchSlots();
+        setStep(1);
+      } else {
+        toast.error(err?.data?.message || 'Booking failed');
+      }
     }
   };
 
@@ -123,26 +185,48 @@ export default function BookingWizard({ event, onDone }) {
           <motion.div key="s1" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
             <h3 className="font-display text-2xl mb-1">Pick a pass</h3>
             <p className="text-xs text-charcoal-400 mb-4">Choose how you'd like to register for this event.</p>
+
+            {allSoldOut && (
+              <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-sm text-red-300">
+                🚫 All passes for this event are sold out. Stay tuned for the next edition.
+              </div>
+            )}
+
             <div className="space-y-3">
               {TYPES.map((t) => {
                 const p = t.id === 'individual' ? event.pricing?.individual
                   : t.id === 'visitor' ? event.pricing?.visitor
                   : `${event.pricing?.groupBase || 0} + ${event.pricing?.groupPerHead || 0}/head`;
                 const active = type === t.id;
+                const soldOut = isSoldOut(t.id);
+                const s = slotsFor(t.id);
+                const lowStock = !soldOut && s.capacity > 0 && s.remaining <= Math.max(5, Math.ceil(s.capacity * 0.1));
+
                 return (
                   <button
                     key={t.id}
-                    onClick={() => setType(t.id)}
+                    onClick={() => !soldOut && setType(t.id)}
+                    disabled={soldOut}
                     className={`w-full text-left flex items-center gap-4 p-4 rounded-xl border transition ${
+                      soldOut ? 'border-charcoal-800 bg-charcoal-900/40 opacity-60 cursor-not-allowed' :
                       active ? 'border-terra-500 bg-terra-500/10' : 'border-charcoal-800 hover:border-charcoal-700'
                     }`}
                   >
                     <span className="text-3xl">{t.icon}</span>
-                    <div className="flex-1">
-                      <div className="font-display text-xl">{t.label}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-display text-xl">{t.label}</span>
+                        {soldOut && <span className="badge bg-red-500/20 text-red-400 border border-red-500/30">Sold out</span>}
+                        {lowStock && <span className="badge bg-amber-500/20 text-amber-300 border border-amber-500/30">Only {s.remaining} left</span>}
+                      </div>
                       <div className="text-xs text-charcoal-400">{t.tag}</div>
+                      {s.capacity > 0 && (
+                        <div className="text-[10px] text-charcoal-500 mt-1 uppercase tracking-wider">
+                          {s.remaining} / {s.capacity} {t.id === 'group' ? 'groups' : 'slots'} available
+                        </div>
+                      )}
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <div className="text-xs text-charcoal-500">From</div>
                       <div className="text-terra-400 font-bold text-sm">{typeof p === 'number' ? (p ? `₹${p}` : 'Free') : `₹${p}`}</div>
                     </div>

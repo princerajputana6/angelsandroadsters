@@ -4,6 +4,9 @@ import Event from '@/lib/models/Event';
 import { getCurrentUser } from '@/lib/auth';
 import { generateQRDataUrl } from '@/lib/qr';
 import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
+import { sendEventRegistrationConfirmation } from '@/lib/email';
+
+const ACTIVE = ['confirmed', 'pending', 'attended'];
 
 export async function POST(req) {
   return handler(async () => {
@@ -15,6 +18,22 @@ export async function POST(req) {
 
     const event = await Event.findById(eventId);
     if (!event) return fail('Event not found', 404);
+
+    // Slot availability check
+    const used = await Registration.countDocuments({
+      event: event._id,
+      registrationType,
+      status: { $in: ACTIVE },
+    });
+    const capForType =
+      registrationType === 'individual' ? (event.capacity?.individual || 0) :
+      registrationType === 'group' ? (event.capacity?.group || 0) :
+      (event.capacity?.visitor || 0);
+
+    const remaining = Math.max(0, capForType - used);
+    if (capForType > 0 && remaining <= 0) {
+      return fail(`Sorry — all ${registrationType} slots are full. Please pick a different type.`, 409, { soldOut: true });
+    }
 
     let amount = 0;
     if (registrationType === 'individual') amount = event.pricing.individual || 0;
@@ -48,7 +67,14 @@ export async function POST(req) {
     reg.qrCode = await generateQRDataUrl({ ticketId: reg.ticketId, eventId: event._id.toString() });
     await reg.save();
 
-    return ok({ registration: toJSON(reg) }, 201);
+    sendEventRegistrationConfirmation({
+      registration: toJSON(reg),
+      event: toJSON(event),
+      userEmail: body.email,
+      userName: body.name,
+    }).catch(err => console.error('[Registration] Email send failed:', err.message));
+
+    return ok({ registration: toJSON(reg), remainingAfter: remaining - 1 }, 201);
   });
 }
 

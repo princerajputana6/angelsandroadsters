@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCreateOrderMutation, useMeQuery } from '@/store/api';
 import { clearCart, selectCartTotal } from '@/store/cartSlice';
+import { payWithRazorpay } from '@/lib/razorpayClient';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
@@ -47,14 +48,45 @@ export default function CheckoutPage() {
 
   const submit = async () => {
     try {
-      await createOrder({
+      const res = await createOrder({
         items: items.map((i) => ({ product: i.product, quantity: i.quantity, size: i.size, color: i.color })),
         shippingAddress: addr,
         paymentMethod,
       }).unwrap();
-      dispatch(clearCart());
-      toast.success('Order placed! 🎉');
-      router.push('/dashboard/orders');
+      const order = res.order;
+
+      if (paymentMethod === 'cod') {
+        dispatch(clearCart());
+        toast.success('Order placed! 🎉 Pay on delivery.');
+        router.push('/dashboard/orders');
+        return;
+      }
+
+      // Razorpay flow
+      await payWithRazorpay({
+        amount: order.totalPrice,
+        receipt: `ord_${order._id.slice(-12)}`,
+        notes: { orderId: order._id },
+        name: 'Angeles & Roadsters',
+        description: `Order ${order._id.slice(-8).toUpperCase()} · ${items.length} item(s)`,
+        prefill: {
+          name: addr.name,
+          email: meData.user.email,
+          contact: addr.phone,
+        },
+        kind: 'order',
+        referenceId: order._id,
+        onSuccess: () => {
+          dispatch(clearCart());
+          toast.success('Payment confirmed! 🎉');
+          router.push('/dashboard/orders');
+        },
+        onFailure: (err) => {
+          toast.error(err.message || 'Payment failed. Your order is saved — retry from dashboard.');
+          dispatch(clearCart());
+          router.push('/dashboard/orders');
+        },
+      });
     } catch (err) {
       toast.error(err?.data?.message || 'Failed to place order');
     }
