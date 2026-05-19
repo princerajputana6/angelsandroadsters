@@ -39,7 +39,7 @@ export default function BookingWizard({ event, onDone }) {
   }, [slotData]); // eslint-disable-line react-hooks/exhaustive-deps
   const [form, setForm] = useState({
     name: '', email: '', phone: '', age: '', emergencyContact: '',
-    experienceLevel: '', bikeDetails: '', visitDate: '',
+    bikeDetails: '', visitDate: '',
     groupName: '', members: [], groupSize: 2, visitorCount: 1,
   });
 
@@ -302,16 +302,6 @@ export default function BookingWizard({ event, onDone }) {
                         <label className="label">Emergency contact</label>
                         <input className="input" value={form.emergencyContact} onChange={(e) => setForm({ ...form, emergencyContact: e.target.value })} />
                       </div>
-                    </div>
-                    <div>
-                      <label className="label">Experience level</label>
-                      <select className="input" value={form.experienceLevel} onChange={(e) => setForm({ ...form, experienceLevel: e.target.value })}>
-                        <option value="">Select...</option>
-                        <option value="beginner">Beginner</option>
-                        <option value="intermediate">Intermediate</option>
-                        <option value="advanced">Advanced</option>
-                        <option value="expert">Expert</option>
-                      </select>
                     </div>
                     {(event.eventType === 'rally' || event.eventType === 'expedition') && (
                       <div>

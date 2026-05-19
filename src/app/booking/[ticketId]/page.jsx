@@ -114,12 +114,6 @@ export default function BookingDetailsPage() {
                   <span className="font-semibold text-right">{booking.bikeDetails}</span>
                 </div>
               )}
-              {booking.experienceLevel && (
-                <div className="flex justify-between">
-                  <span className="text-charcoal-400">Experience:</span>
-                  <span className="font-semibold capitalize">{booking.experienceLevel}</span>
-                </div>
-              )}
             </div>
           </div>
         )}

@@ -115,7 +115,7 @@ export default function TrailstormEventPage() {
           <img 
             src="/logos/trailstorm.png" 
             alt="Trailstorm" 
-            className="h-48 sm:h-56 w-auto object-contain drop-shadow-2xl opacity-90" 
+            className="h-full sm:h-56 w-auto object-contain drop-shadow-2xl opacity-90" 
           />
         </motion.div>
 
