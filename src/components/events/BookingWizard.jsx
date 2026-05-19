@@ -40,8 +40,20 @@ export default function BookingWizard({ event, onDone }) {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', age: '', emergencyContact: '',
     bikeDetails: '', visitDate: '',
-    groupName: '', members: [], groupSize: 2, visitorCount: 1,
+    groupName: '', members: Array.from({ length: 2 }, () => ({ name: '', email: '', phone: '', bikeDetails: '' })), 
+    groupSize: 2, 
+    visitorCount: 1,
   });
+
+  // Initialize members array when group type is selected
+  useEffect(() => {
+    if (type === 'group' && form.members.length === 0) {
+      setForm(prev => ({
+        ...prev,
+        members: Array.from({ length: 2 }, () => ({ name: '', email: '', phone: '', bikeDetails: '' }))
+      }));
+    }
+  }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const price = useMemo(() => {
     if (type === 'individual') return event.pricing?.individual || 0;
@@ -121,9 +133,11 @@ export default function BookingWizard({ event, onDone }) {
           setConfirmation({ ...reg, paymentStatus: 'paid', status: 'confirmed' });
         },
         onFailure: (err) => {
-          toast.error(err.message || 'Payment failed. You can retry from your dashboard.');
+          toast.error(err.message || 'Payment cancelled. Your booking is saved but pending payment.');
           onDone?.(reg);
-          setConfirmation(reg);
+          // Don't show confirmation on payment failure - user can retry from dashboard
+          setStep(1);
+          setForm({ name: '', email: '', phone: '', age: '', emergencyContact: '', bikeDetails: '', visitDate: '', groupName: '', members: [], groupSize: 2, visitorCount: 1 });
         },
       });
     } catch (err) {
