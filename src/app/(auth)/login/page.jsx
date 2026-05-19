@@ -1,11 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLoginMutation } from '@/store/api';
 import toast from 'react-hot-toast';
 
-export default function LoginPage() {
+function LoginForm() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [login, { isLoading }] = useLoginMutation();
   const router = useRouter();
@@ -37,12 +37,20 @@ export default function LoginPage() {
         <label className="label">Password</label>
         <input className="input" type="password" required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
       </div>
-      <button type="submit" disabled={isLoading} className="btn btn-primary w-full">
+      <button type="submit" disabled={isLoading} className="btn btn-gold w-full h-12">
         {isLoading ? 'Signing in...' : 'Sign In'}
       </button>
       <p className="text-sm text-charcoal-400">
         No account? <Link href="/register" className="text-terra-400">Sign up</Link>
       </p>
     </form>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="w-full max-w-md animate-pulse text-charcoal-400">Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

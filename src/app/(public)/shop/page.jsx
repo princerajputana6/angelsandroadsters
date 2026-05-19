@@ -1,10 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useListProductsQuery, useListCategoriesQuery } from '@/store/api';
 import ProductCard from '@/components/shop/ProductCard';
 
-export default function ShopPage() {
+function ShopContent() {
   const sp = useSearchParams();
   const [filters, setFilters] = useState({
     q: sp.get('q') || '',
@@ -59,7 +59,6 @@ export default function ShopPage() {
         <p className="text-charcoal-400 mt-2 max-w-xl">Riding, travel, and adventure essentials — curated by Angeles & Roadsters.</p>
       </div>
 
-      {/* Mobile filter toggle */}
       <button
         onClick={() => setFiltersOpen(true)}
         className="lg:hidden btn btn-outline mb-5 w-full"
@@ -95,7 +94,6 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* Mobile filter sheet */}
       {filtersOpen && (
         <div className="fixed inset-0 z-50 bg-charcoal-950/80 backdrop-blur lg:hidden" onClick={() => setFiltersOpen(false)}>
           <div className="absolute inset-x-0 bottom-0 bg-charcoal-950 rounded-t-3xl p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]" onClick={(e) => e.stopPropagation()}>
@@ -110,5 +108,13 @@ export default function ShopPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense fallback={<div className="container-x pt-32 pb-16 text-charcoal-400">Loading shop...</div>}>
+      <ShopContent />
+    </Suspense>
   );
 }

@@ -9,7 +9,7 @@ export async function handler(fn) {
     return await fn();
   } catch (err) {
     const status = err.status || 500;
-    console.error('[API error]', err.message);
+    if (status >= 500) console.error('[API error]', err.message);
     return fail(err.message || 'Server error', status);
   }
 }
