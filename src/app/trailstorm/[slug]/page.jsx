@@ -110,12 +110,12 @@ export default function TrailstormEventPage() {
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="absolute right-8 top-1/2 -translate-y-1/2 z-20 hidden lg:block"
+          className="absolute right-8 top-1/3 -translate-y-1/2 z-20 hidden lg:block"
         >
           <img 
             src="/logos/trailstorm.png" 
             alt="Trailstorm" 
-            className="h-full sm:h-56 w-auto object-contain drop-shadow-2xl opacity-90" 
+            className="h-96 sm:h-[28rem] w-auto object-contain drop-shadow-2xl opacity-90" 
           />
         </motion.div>
 
