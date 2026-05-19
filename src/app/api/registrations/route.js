@@ -64,7 +64,8 @@ export async function POST(req) {
       status: amount === 0 ? 'confirmed' : 'pending',
     });
     await reg.save();
-    reg.qrCode = await generateQRDataUrl({ ticketId: reg.ticketId, eventId: event._id.toString() });
+    const bookingUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/booking/${reg.ticketId}`;
+    reg.qrCode = await generateQRDataUrl(bookingUrl);
     await reg.save();
 
     sendEventRegistrationConfirmation({

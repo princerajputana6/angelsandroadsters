@@ -40,15 +40,20 @@ export default function BookingWizard({ event, onDone }) {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', age: '', emergencyContact: '',
     experienceLevel: '', bikeDetails: '', visitDate: '',
-    groupName: '', groupLeader: { name: '', email: '', phone: '' }, members: [], groupSize: 2,
+    groupName: '', members: [], groupSize: 2, visitorCount: 1,
   });
 
   const price = useMemo(() => {
     if (type === 'individual') return event.pricing?.individual || 0;
-    if (type === 'visitor') return event.pricing?.visitor || 0;
-    const size = Number(form.groupSize || 2);
-    return (event.pricing?.groupBase || 0) + (event.pricing?.groupPerHead || 0) * size;
-  }, [type, form.groupSize, event]);
+    if (type === 'visitor') {
+      const count = Number(form.visitorCount || 1);
+      return (event.pricing?.visitor || 0) * count;
+    }
+    if (type === 'group') {
+      return event.pricing?.groupBase || event.pricing?.individual || 0;
+    }
+    return 0;
+  }, [type, form.visitorCount, event]);
 
   const setMember = (i, key, val) => {
     const members = [...form.members];
@@ -57,8 +62,8 @@ export default function BookingWizard({ event, onDone }) {
   };
 
   const setGroupSize = (n) => {
-    const size = Math.max(2, Math.min(20, n));
-    const members = Array.from({ length: size - 1 }, (_, i) => form.members?.[i] || { name: '', email: '' });
+    const size = Math.max(2, Math.min(4, n));
+    const members = Array.from({ length: size }, (_, i) => form.members?.[i] || { name: '', email: '', phone: '', bikeDetails: '' });
     setForm({ ...form, groupSize: size, members });
   };
 
@@ -66,8 +71,8 @@ export default function BookingWizard({ event, onDone }) {
     if (step === 1) return !!type && !isSoldOut(type);
     if (step === 2) {
       if (type === 'individual') return form.name && form.email && form.phone;
-      if (type === 'visitor') return form.name && form.email && form.phone;
-      if (type === 'group') return form.groupName && form.groupLeader?.name && form.groupLeader?.email && form.groupSize >= 2;
+      if (type === 'visitor') return form.name && form.email && form.phone && form.visitorCount >= 1;
+      if (type === 'group') return form.groupName && form.groupSize >= 2 && form.members.every(m => m.name && m.email);
     }
     return true;
   };
@@ -104,9 +109,9 @@ export default function BookingWizard({ event, onDone }) {
         name: 'Angeles & Roadsters',
         description: `${event.title} · ${type}`,
         prefill: {
-          name: form.name || form.groupLeader?.name || '',
-          email: form.email || form.groupLeader?.email || '',
-          contact: form.phone || form.groupLeader?.phone || '',
+          name: form.name || form.members?.[0]?.name || '',
+          email: form.email || form.members?.[0]?.email || '',
+          contact: form.phone || form.members?.[0]?.phone || '',
         },
         kind: 'registration',
         referenceId: reg._id,
@@ -317,10 +322,24 @@ export default function BookingWizard({ event, onDone }) {
                   </>
                 )}
                 {type === 'visitor' && (
-                  <div>
-                    <label className="label">Date of visit</label>
-                    <input className="input" type="date" value={form.visitDate} onChange={(e) => setForm({ ...form, visitDate: e.target.value })} />
-                  </div>
+                  <>
+                    <div>
+                      <label className="label">Number of tickets (max 100)</label>
+                      <input 
+                        className="input" 
+                        type="number" 
+                        min="1" 
+                        max="100" 
+                        value={form.visitorCount} 
+                        onChange={(e) => setForm({ ...form, visitorCount: Math.max(1, Math.min(100, Number(e.target.value))) })} 
+                      />
+                      <p className="text-xs text-charcoal-400 mt-1">₹{(event.pricing?.visitor || 0).toLocaleString()} per ticket</p>
+                    </div>
+                    <div>
+                      <label className="label">Date of visit</label>
+                      <input className="input" type="date" value={form.visitDate} onChange={(e) => setForm({ ...form, visitDate: e.target.value })} />
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -331,33 +350,29 @@ export default function BookingWizard({ event, onDone }) {
                   <label className="label">Group name</label>
                   <input className="input" required value={form.groupName} onChange={(e) => setForm({ ...form, groupName: e.target.value })} />
                 </div>
-                <div className="card border-charcoal-800/70 p-4 space-y-3">
-                  <div className="text-xs font-bold text-terra-400 uppercase tracking-wider">Group leader</div>
-                  <input className="input" placeholder="Leader name" required value={form.groupLeader.name} onChange={(e) => setForm({ ...form, groupLeader: { ...form.groupLeader, name: e.target.value } })} />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <input className="input" type="email" placeholder="Email" required value={form.groupLeader.email} onChange={(e) => setForm({ ...form, groupLeader: { ...form.groupLeader, email: e.target.value } })} />
-                    <input className="input" placeholder="Phone" required value={form.groupLeader.phone} onChange={(e) => setForm({ ...form, groupLeader: { ...form.groupLeader, phone: e.target.value } })} />
-                  </div>
-                </div>
                 <div>
-                  <label className="label">Group size (incl. leader)</label>
+                  <label className="label">Group size (2-4 members)</label>
                   <div className="flex items-center gap-3">
                     <button type="button" className="btn btn-outline w-10 h-10 p-0" onClick={() => setGroupSize(form.groupSize - 1)}>−</button>
                     <span className="text-2xl font-display w-12 text-center">{form.groupSize}</span>
                     <button type="button" className="btn btn-outline w-10 h-10 p-0" onClick={() => setGroupSize(form.groupSize + 1)}>+</button>
                   </div>
+                  <p className="text-xs text-charcoal-400 mt-1">Flat rate: ₹{(event.pricing?.groupBase || event.pricing?.individual || 0).toLocaleString()} for entire group</p>
                 </div>
-                {form.members.length > 0 && (
-                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                    <div className="text-xs font-bold text-terra-400 uppercase tracking-wider">Members</div>
-                    {form.members.map((m, i) => (
-                      <div key={i} className="grid grid-cols-2 gap-2">
-                        <input className="input py-2" placeholder={`Member ${i + 2} name`} value={m.name || ''} onChange={(e) => setMember(i, 'name', e.target.value)} />
-                        <input className="input py-2" type="email" placeholder="Email" value={m.email || ''} onChange={(e) => setMember(i, 'email', e.target.value)} />
+                <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                  <div className="text-xs font-bold text-terra-400 uppercase tracking-wider">All Members</div>
+                  {form.members.map((m, i) => (
+                    <div key={i} className="card border-charcoal-800/70 p-3 space-y-2">
+                      <div className="text-xs font-semibold text-charcoal-300">Member {i + 1}</div>
+                      <input className="input py-2" placeholder="Full name" required value={m.name || ''} onChange={(e) => setMember(i, 'name', e.target.value)} />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input className="input py-2" type="email" placeholder="Email" required value={m.email || ''} onChange={(e) => setMember(i, 'email', e.target.value)} />
+                        <input className="input py-2" placeholder="Phone" value={m.phone || ''} onChange={(e) => setMember(i, 'phone', e.target.value)} />
                       </div>
-                    ))}
-                  </div>
-                )}
+                      <input className="input py-2" placeholder="Bike details (optional)" value={m.bikeDetails || ''} onChange={(e) => setMember(i, 'bikeDetails', e.target.value)} />
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </motion.div>
@@ -371,17 +386,28 @@ export default function BookingWizard({ event, onDone }) {
             <div className="card p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-charcoal-400">Event</span><span className="text-right">{event.title}</span></div>
               <div className="flex justify-between"><span className="text-charcoal-400">Type</span><span className="capitalize">{type}</span></div>
-              {type !== 'group' ? (
+              {type === 'individual' && (
                 <>
                   <div className="flex justify-between"><span className="text-charcoal-400">Name</span><span>{form.name || '—'}</span></div>
                   <div className="flex justify-between"><span className="text-charcoal-400">Email</span><span className="text-right break-all">{form.email || '—'}</span></div>
                   <div className="flex justify-between"><span className="text-charcoal-400">Phone</span><span>{form.phone || '—'}</span></div>
                 </>
-              ) : (
+              )}
+              {type === 'visitor' && (
+                <>
+                  <div className="flex justify-between"><span className="text-charcoal-400">Name</span><span>{form.name || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-charcoal-400">Email</span><span className="text-right break-all">{form.email || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-charcoal-400">Phone</span><span>{form.phone || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-charcoal-400">Tickets</span><span>{form.visitorCount}</span></div>
+                </>
+              )}
+              {type === 'group' && (
                 <>
                   <div className="flex justify-between"><span className="text-charcoal-400">Group</span><span>{form.groupName || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-charcoal-400">Leader</span><span>{form.groupLeader?.name || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-charcoal-400">Size</span><span>{form.groupSize}</span></div>
+                  <div className="flex justify-between"><span className="text-charcoal-400">Members</span><span>{form.groupSize}</span></div>
+                  <div className="text-xs text-charcoal-500 mt-2">
+                    {form.members.map((m, i) => m.name).filter(Boolean).join(', ') || 'No members added'}
+                  </div>
                 </>
               )}
               <div className="border-t border-charcoal-800 my-2" />

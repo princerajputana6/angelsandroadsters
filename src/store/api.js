@@ -81,6 +81,10 @@ export const api = createApi({
       invalidatesTags: ['Registrations', 'Event'],
     }),
     myRegistrations: b.query({ query: () => '/registrations/my', providesTags: ['Registrations'] }),
+    getRegistrationByTicket: b.query({ 
+      query: (ticketId) => `/registrations/ticket/${ticketId}`,
+      providesTags: (result, error, ticketId) => [{ type: 'Registrations', id: ticketId }],
+    }),
 
     // Orders
     createOrder: b.mutation({
@@ -115,7 +119,7 @@ export const {
   useListProductsQuery, useGetProductQuery, useCreateProductMutation, useUpdateProductMutation, useDeleteProductMutation,
   useListCategoriesQuery, useCreateCategoryMutation,
   useListEventsQuery, useGetEventQuery, useGetEventSlotsQuery, useCreateEventMutation, useUpdateEventMutation, useDeleteEventMutation,
-  useCreateRegistrationMutation, useMyRegistrationsQuery,
+  useCreateRegistrationMutation, useMyRegistrationsQuery, useGetRegistrationByTicketQuery,
   useCreateOrderMutation, useMyOrdersQuery, useListOrdersQuery, useUpdateOrderMutation,
   useAdminStatsQuery, useListUsersQuery, useUpdateUserMutation,
   useCreateReviewMutation,

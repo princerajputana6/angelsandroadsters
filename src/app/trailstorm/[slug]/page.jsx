@@ -112,7 +112,11 @@ export default function TrailstormEventPage() {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="absolute right-8 top-1/2 -translate-y-1/2 z-20 hidden lg:block"
         >
-          <TrailstormMark size="xl" href={null} className="drop-shadow-2xl" />
+          <img 
+            src="/logos/trailstorm.png" 
+            alt="Trailstorm" 
+            className="h-48 sm:h-56 w-auto object-contain drop-shadow-2xl opacity-90" 
+          />
         </motion.div>
 
         <div className="relative z-10 container-x h-full flex flex-col justify-end pb-12 sm:pb-20">
