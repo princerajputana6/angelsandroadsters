@@ -1,23 +1,20 @@
-import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/db';
-import Registration from '@/models/Registration';
+import { connectDB } from '@/lib/db';
+import Registration from '@/lib/models/Registration';
+import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
 
-export async function GET(req, { params }) {
-  try {
-    await dbConnect();
-    const { ticketId } = params;
+async function getHandler(req, { params }) {
+  await connectDB();
+  const { ticketId } = params;
 
-    const registration = await Registration.findOne({ ticketId })
-      .populate('event', 'title location startDate endDate')
-      .lean();
+  const registration = await Registration.findOne({ ticketId })
+    .populate('event', 'title location startDate endDate')
+    .lean();
 
-    if (!registration) {
-      return NextResponse.json({ message: 'Registration not found' }, { status: 404 });
-    }
-
-    return NextResponse.json({ registration });
-  } catch (error) {
-    console.error('Error fetching registration:', error);
-    return NextResponse.json({ message: 'Server error' }, { status: 500 });
+  if (!registration) {
+    return fail('Registration not found', 404);
   }
+
+  return ok({ registration: toJSON(registration) });
 }
+
+export const GET = handler(getHandler);
