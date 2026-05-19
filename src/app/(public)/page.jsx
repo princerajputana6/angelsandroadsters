@@ -10,7 +10,7 @@ import LastRidesGallery from '@/components/common/LastRidesGallery';
 
 const HERO_VIDEO = 'https://cdn.pixabay.com/video/2020/05/26/40478-422717417_large.mp4';
 const HERO_FALLBACK = 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=1920';
-const TRAILSTORM_HREF = '/trailstorm/2026-jaisailmer-trailstorm-event';
+const TRAILSTORM_HREF = '/trailstorm/2026-jaisalmer-trailstorm-event';
 
 const CATEGORY_TILES = [
   { name: 'Helmets', img: 'https://images.unsplash.com/photo-1577128321998-da8fae0b9a0d?w=900', href: '/shop?q=helmet', count: '40+' },

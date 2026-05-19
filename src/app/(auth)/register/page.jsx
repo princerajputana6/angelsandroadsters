@@ -25,7 +25,7 @@ export default function RegisterPage() {
     <form onSubmit={submit} className="w-full max-w-md space-y-5">
       <div>
         <h1 className="text-4xl font-display">JOIN THE CREW</h1>
-        <p className="text-charcoal-400 mt-2">Create your TerraRider account.</p>
+        <p className="text-charcoal-400 mt-2">Create your account.</p>
       </div>
       <div>
         <label className="label">Name</label>

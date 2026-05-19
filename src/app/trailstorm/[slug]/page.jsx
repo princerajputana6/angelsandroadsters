@@ -22,15 +22,51 @@ const STATS = [
 ];
 
 const EVENT_HIGHLIGHTS = [
-  { icon: '🏍️', name: 'Offroad Racing', desc: 'Competitive desert racing' },
+  { icon: '🏍️', name: 'Offroad Racing', desc: 'Dakar-style desert experience' },
   { icon: '💪', name: 'Biker Strength Challenge', desc: 'Test your endurance' },
   { icon: '🤸', name: 'Stunt Arena', desc: 'Professional stunt shows' },
-  { icon: '🎵', name: 'Concert Night', desc: 'Live music performances' },
-  { icon: '🏪', name: 'Expo Zone', desc: 'Gear and bike exhibitions' },
-  { icon: '🎓', name: 'Training Workshops', desc: 'Learn from experts' },
+  { icon: '🎵', name: 'Concert Night', desc: 'Live music & camping vibes' },
+  { icon: '🏪', name: 'Expo Zone', desc: '60+ adventure brand booths' },
+  { icon: '🎓', name: 'Training Workshops', desc: 'Riding sessions & workshops' },
   { icon: '🍔', name: 'Food & Music Festival', desc: 'Culinary delights' },
-  { icon: '👥', name: 'Rider Community', desc: 'Network with riders' },
+  { icon: '👥', name: 'Rider Community', desc: 'Biker networking & clubs' },
   { icon: '💬', name: 'Adventure Talks', desc: 'Inspiring stories' },
+  { icon: '🌅', name: 'Desert Sunsets', desc: 'Cinematic landscapes' },
+];
+
+const WHY_ATTEND = [
+  'Dakar-style desert experience',
+  'Off-road racing tracks',
+  'Motorcycle stunt arena',
+  'Rider fitness & endurance challenges',
+  'Concert nights & camping vibes',
+  'Biker networking & clubs',
+  'Workshops & riding sessions',
+  'Adventure tourism experience',
+  'Brand expo zone',
+  'Desert sunsets & cinematic landscapes',
+];
+
+const SAFETY_FEATURES = [
+  { icon: '🏥', title: 'Medical Support Teams', desc: 'On-site medical professionals' },
+  { icon: '🚑', title: 'Recovery Vehicles', desc: '24/7 emergency response' },
+  { icon: '🔧', title: 'Technical Assistance', desc: 'Mechanical support crew' },
+  { icon: '💧', title: 'Hydration & Rest Zones', desc: 'Multiple pit stops' },
+  { icon: '👮', title: 'Route Marshals', desc: 'Experienced guides' },
+  { icon: '📡', title: 'Emergency Response', desc: 'Rapid response team' },
+];
+
+const FAQS = [
+  { q: 'Who can participate in Trailstorm?', a: 'Trailstorm is open to all motorcycle riders aged 18+ with a valid riding license. Beginners are welcome in the touring track, while the expert track requires off-road experience.' },
+  { q: 'Is off-road experience required?', a: 'Not for all tracks. We have three categories: Touring Track (beginners welcome), Expert Off-Road (experience required), and Visitor Convoy (no riding required).' },
+  { q: 'What motorcycles are allowed?', a: 'All motorcycles 150cc and above are allowed. Adventure bikes, dual-sport, and dirt bikes are recommended for off-road tracks.' },
+  { q: 'Can beginners join?', a: 'Absolutely! The Touring Track is designed for everyday riders and beginners. You\'ll ride with the main convoy on manageable terrain.' },
+  { q: 'Is accommodation included?', a: 'Camping facilities are available at the base camp. Hotel options in Jaisalmer city are also nearby. Details provided upon registration.' },
+  { q: 'Are riding gears mandatory?', a: 'Yes. Helmet, riding jacket, gloves, and boots are mandatory for all participants. Knee guards recommended for off-road tracks.' },
+  { q: 'Is camping available?', a: 'Yes! Desert camping is part of the Trailstorm experience. Tents, bonfire, and music under the stars.' },
+  { q: 'Can clubs register as teams?', a: 'Yes! We encourage riding clubs to register as groups. Special club packages and team competitions available.' },
+  { q: 'What are the competition categories?', a: 'Off-road racing, stunt competitions, endurance challenges, and biker strength events. Prizes for top performers.' },
+  { q: 'How do I reach Jaisalmer?', a: 'Jaisalmer is accessible by train, bus, and air. Nearest airport is Jodhpur (285km). We\'ll share detailed travel guides after registration.' },
 ];
 
 export default function TrailstormEventPage() {
@@ -69,16 +105,29 @@ export default function TrailstormEventPage() {
         <div className="absolute inset-0 hero-veil" />
         <div className="absolute inset-0 bg-grain opacity-[0.08] mix-blend-overlay pointer-events-none" />
 
+        {/* Large Trailstorm Logo - Right Side */}
+        <motion.div
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="absolute right-8 top-1/2 -translate-y-1/2 z-20 hidden lg:block"
+        >
+          <TrailstormMark size="xl" href={null} className="drop-shadow-2xl" />
+        </motion.div>
+
         <div className="relative z-10 container-x h-full flex flex-col justify-end pb-12 sm:pb-20">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="max-w-4xl">
             <p className="eyebrow mb-2">FLAGSHIP EVENT · POWERED BY ANGELES &amp; ROADSTERS</p>
-            <h1 className="text-5xl sm:text-7xl md:text-8xl font-display leading-[0.9] max-w-4xl">
-              THE DESERT IS <br /><span className="gradient-text">CALLING.</span>
+            <h1 className="text-4xl sm:text-6xl md:text-7xl font-display leading-[0.95] max-w-4xl">
+              INDIA'S MOST IMMERSIVE<br />
+              <span className="gradient-text">DESERT MOTORSPORT EXPERIENCE</span>
             </h1>
-            <p className="mt-5 text-base sm:text-lg text-charcoal-200 max-w-2xl">
-              Everyday Riders. Chase the Adrenaline. Forge Your Legacy.
-              <br />
-              October 30<sup>th</sup> & 31<sup>st</sup> 2026 · Jaisalmer, Rajasthan
+            <p className="mt-5 text-base sm:text-xl text-charcoal-200 max-w-3xl leading-relaxed">
+              2 Days. Endless Dunes. Adrenaline Challenges. Concert Nights. Brotherhood.<br />
+              <span className="text-terra-400 font-semibold">TRAILSTORM 2026</span> brings everyday riders into the heart of Rajasthan's desert battlefield.
+            </p>
+            <p className="mt-3 text-sm sm:text-base text-charcoal-300">
+              📍 October 30<sup>th</sup> & 31<sup>st</sup> 2026 · Jaisalmer, Rajasthan
             </p>
 
             <div className="mt-7 flex flex-col sm:flex-row gap-3">
@@ -107,7 +156,17 @@ export default function TrailstormEventPage() {
           <div>
             <p className="eyebrow mb-3">WHAT IS TRAILSTORM</p>
             <h2 className="section-title mb-5">2ND ANNUAL TRAILSTORM 2026<br /><span className="gradient-text">JAISALMER - DESERT EDITION</span></h2>
-            <p className="text-charcoal-200 whitespace-pre-line leading-relaxed text-base sm:text-lg">{event.description}</p>
+            <div className="text-charcoal-200 leading-relaxed text-base sm:text-lg space-y-4">
+              <p>
+                <strong className="text-terra-400">TRAILSTORM</strong> is India's ultimate amateur rider motorsport and adventure festival created for everyday riders who dream of experiencing the thrill of desert racing, off-road challenges, stunt arenas, endurance activities, and biker brotherhood — all in one massive destination event.
+              </p>
+              <p>
+                Built by riders, for riders. Whether you're a weekend warrior, an adventure seeker, or part of a riding club — Trailstorm is your stage.
+              </p>
+              <p className="text-charcoal-300 text-sm italic">
+                {event.description}
+              </p>
+            </div>
           </div>
           <div className="aspect-[4/5] rounded-3xl overflow-hidden border border-charcoal-800">
             <img src={event.gallery?.[0] || HERO_BG} alt="" className="w-full h-full object-cover" />
@@ -166,6 +225,114 @@ export default function TrailstormEventPage() {
               </div>
               <BookingWizard event={event} />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* WHY YOU SHOULD ATTEND */}
+      <section className="bg-charcoal-950 py-16 sm:py-20">
+        <div className="container-x">
+          <p className="eyebrow mb-2 text-center">WHY RIDERS LOVE TRAILSTORM</p>
+          <h2 className="section-title text-center mb-10">Why You Should Attend</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {WHY_ATTEND.map((reason, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.05 }}
+                className="card p-4 text-center"
+              >
+                <div className="text-terra-400 text-2xl mb-2">✓</div>
+                <div className="text-sm font-semibold">{reason}</div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* EVENT EXPERIENCE STORY */}
+      <section className="container-x py-16 sm:py-20">
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="eyebrow mb-3">THE EXPERIENCE</p>
+          <h2 className="section-title mb-6">Feel The Desert Calling</h2>
+          <div className="text-lg sm:text-xl text-charcoal-200 leading-relaxed space-y-4">
+            <p>
+              Imagine riding through endless golden dunes with hundreds of riders around you. Engines roaring. Sand flying. Sunset hitting the desert horizon.
+            </p>
+            <p>
+              Music echoing through the night while riders from across India celebrate one shared passion — <span className="text-terra-400 font-semibold">motorcycles, adventure, and freedom</span>.
+            </p>
+            <p className="text-base text-charcoal-300 mt-6">
+              TRAILSTORM isn't just an event. It's a memory that outlives the miles. A story you'll tell for years. A brotherhood forged in sand and adrenaline.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* CLUB PARTICIPATION */}
+      <section className="bg-gradient-to-br from-terra-900/20 to-charcoal-950 py-16 sm:py-20 border-y border-terra-500/20">
+        <div className="container-x">
+          <div className="max-w-3xl mx-auto text-center">
+            <p className="eyebrow mb-3">CALLING RIDING CLUBS ACROSS INDIA</p>
+            <h2 className="section-title mb-5">Bring Your Club. Represent Your City.</h2>
+            <p className="text-lg text-charcoal-200 mb-8">
+              TRAILSTORM is not just an event. It's a battleground for riding communities.<br />
+              Bring your club. Compete. Collaborate. Create memories together.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <a href="#book" className="btn btn-gold px-8 h-12">Register Your Club</a>
+              <a href="/contact" className="btn btn-outline px-8 h-12">Become a Club Partner</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SAFETY & TRUST */}
+      <section className="container-x py-16 sm:py-20">
+        <p className="eyebrow mb-2 text-center">RIDER SAFETY & SUPPORT</p>
+        <h2 className="section-title text-center mb-10">Your Safety is Our Priority</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {SAFETY_FEATURES.map((feature, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              className="card p-6"
+            >
+              <div className="text-4xl mb-3">{feature.icon}</div>
+              <h3 className="font-display text-xl mb-2">{feature.title}</h3>
+              <p className="text-sm text-charcoal-400">{feature.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* FAQs */}
+      <section className="bg-charcoal-950 py-16 sm:py-20">
+        <div className="container-x max-w-4xl">
+          <p className="eyebrow mb-2 text-center">GOT QUESTIONS?</p>
+          <h2 className="section-title text-center mb-10">Frequently Asked Questions</h2>
+          <div className="space-y-4">
+            {FAQS.map((faq, i) => (
+              <motion.details
+                key={i}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.05 }}
+                className="card p-5 group"
+              >
+                <summary className="cursor-pointer font-semibold text-base sm:text-lg list-none flex items-center justify-between">
+                  <span>{faq.q}</span>
+                  <span className="text-terra-400 group-open:rotate-180 transition-transform">▼</span>
+                </summary>
+                <p className="text-charcoal-300 text-sm sm:text-base mt-3 leading-relaxed">{faq.a}</p>
+              </motion.details>
+            ))}
           </div>
         </div>
       </section>

@@ -25,7 +25,7 @@ const eventSchema = new mongoose.Schema({
 
 const Event = mongoose.models.Event || mongoose.model('Event', eventSchema);
 
-const SLUG = '2026-jaisailmer-trailstorm-event';
+const SLUG = '2026-jaisalmer-trailstorm-event';
 
 const data = {
   title: 'Trailstorm 2026 — Jaisalmer Edition',
@@ -88,9 +88,9 @@ Whether you ride in solo, roll deep with your crew, or come as a visitor to soak
   await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 20000 });
   console.log('✅ Connected:', mongoose.connection.host);
 
-  // Clean up the old misspelled slug if it exists
-  const old = await Event.deleteMany({ slug: { $in: ['2026-jaisailmer-trailstrome-event'] } });
-  if (old.deletedCount) console.log(`🧹 Removed ${old.deletedCount} legacy 'trailstrome' record(s)`);
+  // Clean up the old misspelled slugs if they exist
+  const old = await Event.deleteMany({ slug: { $in: ['2026-jaisailmer-trailstorme-event', '2026-jaisailmer-trailstorm-event'] } });
+  if (old.deletedCount) console.log(`🧹 Removed ${old.deletedCount} legacy misspelled record(s)`);
 
   const existing = await Event.findOne({ slug: SLUG });
   if (existing) {

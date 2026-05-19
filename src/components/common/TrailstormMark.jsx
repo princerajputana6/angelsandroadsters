@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-export default function TrailstormMark({ size = 'md', className = '', href = '/trailstorm/2026-jaisailmer-trailstorm-event' }) {
+export default function TrailstormMark({ size = 'md', className = '', href = '/trailstorm/2026-jaisalmer-trailstorm-event' }) {
   const heights = {
     sm: 'h-12 sm:h-14',
     md: 'h-16 sm:h-20',

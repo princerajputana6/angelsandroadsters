@@ -148,6 +148,34 @@ export default function BookingWizard({ event, onDone }) {
         <div className="text-xs text-charcoal-400 mt-3">Ticket ID</div>
         <div className="font-mono text-terra-400 font-bold tracking-wider">{confirmation.ticketId}</div>
 
+        <div className="card bg-charcoal-900/50 p-4 mt-5 text-left">
+          <div className="text-xs text-charcoal-400 uppercase tracking-wider mb-3">Registration Details</div>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-charcoal-400">Name:</span>
+              <span className="font-semibold">{confirmation.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-charcoal-400">Email:</span>
+              <span className="font-semibold">{confirmation.email}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-charcoal-400">Phone:</span>
+              <span className="font-semibold">{confirmation.phone}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-charcoal-400">Type:</span>
+              <span className="font-semibold capitalize">{confirmation.registrationType}</span>
+            </div>
+            {confirmation.amount > 0 && (
+              <div className="flex justify-between border-t border-charcoal-800 pt-2 mt-2">
+                <span className="text-charcoal-400">Amount:</span>
+                <span className="font-bold text-terra-400">₹{confirmation.amount}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-2 mt-6">
           {meData?.user ? (
             <button onClick={() => router.push('/dashboard/registrations')} className="btn btn-gold flex-1">View My Tickets</button>
