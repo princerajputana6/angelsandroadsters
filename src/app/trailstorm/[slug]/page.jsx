@@ -172,8 +172,12 @@ export default function TrailstormEventPage() {
               </p>
             </div>
           </div>
-          <div className="aspect-[4/5] rounded-3xl overflow-hidden border border-charcoal-800">
-            <img src={event.gallery?.[0] || HERO_BG} alt="" className="w-full h-full object-cover" />
+          <div className="w-full aspect-[4/3] sm:aspect-[4/5] rounded-3xl overflow-hidden border border-charcoal-800">
+            <img
+              src="/images/trailstorm-l.jpg"
+              alt="Trailstorm 2026 — Jaisalmer Desert Edition"
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
       </section>
