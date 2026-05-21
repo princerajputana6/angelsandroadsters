@@ -2,6 +2,26 @@ import Link from 'next/link';
 import BrandMark from './BrandMark';
 import NewsletterForm from './NewsletterForm';
 
+const InstagramIcon = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+    <rect x="2" y="2" width="20" height="20" rx="5" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+const YouTubeIcon = (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+    <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.3 31.3 0 0 0 0 12a31.3 31.3 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.3 31.3 0 0 0 24 12a31.3 31.3 0 0 0-.5-5.8ZM9.6 15.6V8.4l6.2 3.6-6.2 3.6Z" />
+  </svg>
+);
+
+const SOCIALS = [
+  { label: 'Instagram — Angels & Roadsters', href: 'https://www.instagram.com/angels_roadsters', icon: InstagramIcon },
+  { label: 'Instagram — Trailstorm Official', href: 'https://www.instagram.com/trailstormofficial', icon: InstagramIcon },
+  { label: 'YouTube — Angels & Roadsters', href: 'https://www.youtube.com/@angels_roadsters', icon: YouTubeIcon },
+];
+
 export default function Footer() {
   return (
     <footer className="relative bg-charcoal-950 border-t border-charcoal-800/50 mt-24">
@@ -18,17 +38,18 @@ export default function Footer() {
           <NewsletterForm />
 
           <div className="flex items-center gap-3 pt-2">
-            {[
-              { label: 'Instagram', href: 'https://www.instagram.com/angelsandroadsters' },
-              { label: 'YouTube', href: 'https://www.youtube.com/@angelsandroadsters' },
-            ].map((s) => (
+            {SOCIALS.map((s) => (
               <a
                 key={s.label}
                 href={s.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="chip hover:border-terra-500 hover:text-terra-400 transition"
-              >{s.label}</a>
+                aria-label={s.label}
+                title={s.label}
+                className="w-10 h-10 rounded-full border border-charcoal-800 flex items-center justify-center text-charcoal-300 hover:border-terra-500 hover:text-terra-400 transition"
+              >
+                {s.icon}
+              </a>
             ))}
           </div>
         </div>

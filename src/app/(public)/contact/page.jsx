@@ -17,9 +17,10 @@ export default function ContactPage() {
           info@angelsandroadsters.com
         </a>
       </p>
-      <div className="flex items-center gap-3 mt-3">
-        <a href="https://www.instagram.com/angelsandroadsters" target="_blank" rel="noopener noreferrer" className="chip hover:border-terra-500 hover:text-terra-400 transition">Instagram</a>
-        <a href="https://www.youtube.com/@angelsandroadsters" target="_blank" rel="noopener noreferrer" className="chip hover:border-terra-500 hover:text-terra-400 transition">YouTube</a>
+      <div className="flex flex-wrap items-center gap-3 mt-3">
+        <a href="https://www.instagram.com/angels_roadsters" target="_blank" rel="noopener noreferrer" className="chip hover:border-terra-500 hover:text-terra-400 transition">Instagram</a>
+        <a href="https://www.instagram.com/trailstormofficial" target="_blank" rel="noopener noreferrer" className="chip hover:border-terra-500 hover:text-terra-400 transition">Trailstorm Instagram</a>
+        <a href="https://www.youtube.com/@angels_roadsters" target="_blank" rel="noopener noreferrer" className="chip hover:border-terra-500 hover:text-terra-400 transition">YouTube</a>
       </div>
       <form className="card p-6 mt-6 space-y-4" onSubmit={submit}>
         <div><label className="label">Name</label><input className="input" required /></div>

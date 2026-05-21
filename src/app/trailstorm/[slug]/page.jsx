@@ -16,9 +16,15 @@ const RIDE_TRACKS = [
 
 const STATS = [
   { v: '2', l: 'Days Event' },
-  { v: '1K+', l: 'Riders expected' },
-  { v: '2K+', l: 'Visitors' },
-  { v: '60+', l: 'Brand booths' },
+  { v: '2500+', l: 'Riders expected' },
+  { v: '5000+', l: 'Visitors' },
+  { v: '100+', l: 'Brand booths' },
+];
+
+const MOMENTS = [
+  '/images/moment-1.jpg',
+  '/images/moment-2.jpg',
+  '/images/moment-3.png',
 ];
 
 const EVENT_HIGHLIGHTS = [
@@ -124,7 +130,7 @@ export default function TrailstormEventPage() {
             <p className="eyebrow mb-2">FLAGSHIP EVENT · POWERED BY ANGELS &amp; ROADSTERS</p>
             <h1 className="text-4xl sm:text-6xl md:text-7xl font-display leading-[0.95] max-w-4xl">
               INDIA'S MOST IMMERSIVE<br />
-              <span className="gradient-text">DESERT MOTORSPORT EXPERIENCE</span>
+              <span className="gradient-text">MOTORSPORT EXPERIENCE</span>
             </h1>
             <p className="mt-5 text-base sm:text-xl text-charcoal-200 max-w-3xl leading-relaxed">
               2 Days. Endless Dunes. Adrenaline Challenges. Concert Nights. Brotherhood.<br />
@@ -172,11 +178,11 @@ export default function TrailstormEventPage() {
               </p>
             </div>
           </div>
-          <div className="w-full aspect-[4/3] sm:aspect-[4/5] rounded-3xl overflow-hidden border border-charcoal-800">
+          <div className="w-full rounded-3xl overflow-hidden border border-charcoal-800 bg-charcoal-950">
             <img
               src="/images/trailstorm-l.jpg"
               alt="Trailstorm 2026 — Jaisalmer Desert Edition"
-              className="w-full h-full object-cover"
+              className="w-full h-auto object-contain"
             />
           </div>
         </div>
@@ -346,19 +352,17 @@ export default function TrailstormEventPage() {
       </section>
 
       {/* GALLERY */}
-      {event.gallery?.length > 0 && (
-        <section className="container-x py-12 sm:py-16">
-          <p className="eyebrow mb-2">FROM PREVIOUS EDITIONS</p>
-          <h3 className="section-title mb-6">Trailstorm moments</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-            {event.gallery.map((g, i) => (
-              <div key={i} className="aspect-square rounded-2xl overflow-hidden border border-charcoal-800">
-                <img src={g} alt="" className="w-full h-full object-cover hover:scale-110 transition duration-700" />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      <section className="container-x py-12 sm:py-16">
+        <p className="eyebrow mb-2">FROM PREVIOUS EDITIONS</p>
+        <h3 className="section-title mb-6">Trailstorm moments</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          {MOMENTS.map((g, i) => (
+            <div key={i} className="aspect-square rounded-2xl overflow-hidden border border-charcoal-800">
+              <img src={g} alt={`Trailstorm moment ${i + 1}`} className="w-full h-full object-cover hover:scale-110 transition duration-700" />
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

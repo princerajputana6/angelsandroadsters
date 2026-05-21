@@ -390,11 +390,6 @@ export default function BookingWizard({ event, onDone }) {
                         {lowStock && <span className="badge bg-amber-500/20 text-amber-300 border border-amber-500/30">Only {s.remaining} left</span>}
                       </div>
                       <div className="text-xs text-charcoal-400">{t.tag}</div>
-                      {s.capacity > 0 && (
-                        <div className="text-[10px] text-charcoal-500 mt-1 uppercase tracking-wider">
-                          {s.remaining} / {s.capacity} {t.id === 'group' ? 'groups' : 'slots'} available
-                        </div>
-                      )}
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-xs text-charcoal-500">{t.id === 'visitor' ? 'Per day' : 'From'}</div>
@@ -662,6 +657,18 @@ export default function BookingWizard({ event, onDone }) {
           </button>
         )}
       </div>
+
+      <p className="text-center text-[11px] text-charcoal-500 mt-3">
+        Tickets powered by{' '}
+        <a
+          href="https://trylinqr.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-terra-400 hover:underline"
+        >
+          Trylinqr.com
+        </a>
+      </p>
     </div>
   );
 }
