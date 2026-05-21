@@ -35,7 +35,7 @@ export default function AdminDashboard() {
       <div>
         <p className="eyebrow mb-2">CONSOLE OVERVIEW</p>
         <h1 className="text-3xl sm:text-5xl font-display">Welcome back, Captain.</h1>
-        <p className="text-charcoal-400 mt-1 text-sm">Here's everything happening across Angeles &amp; Roadsters.</p>
+        <p className="text-charcoal-400 mt-1 text-sm">Here's everything happening across Angels &amp; Roadsters.</p>
       </div>
 
       {/* Stat cards */}

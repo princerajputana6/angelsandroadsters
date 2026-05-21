@@ -35,12 +35,29 @@ export async function POST(req) {
       return fail(`Sorry — all ${registrationType} slots are full. Please pick a different type.`, 409, { soldOut: true });
     }
 
+    const pricing = event.pricing || {};
+    const isEarlyBird = event.earlyBirdDeadline && new Date() < new Date(event.earlyBirdDeadline);
+
     let amount = 0;
-    if (registrationType === 'individual') amount = event.pricing.individual || 0;
-    if (registrationType === 'visitor') amount = event.pricing.visitor || 0;
+    if (registrationType === 'individual') {
+      amount = isEarlyBird
+        ? (pricing.individualEarlyBird || pricing.individual || 0)
+        : (pricing.individual || 0);
+    }
     if (registrationType === 'group') {
       const size = Number(body.groupSize || (body.members?.length || 1));
-      amount = (event.pricing.groupBase || 0) + (event.pricing.groupPerHead || 0) * size;
+      const base = isEarlyBird
+        ? (pricing.groupEarlyBird || pricing.groupBase || 0)
+        : (pricing.groupBase || 0);
+      amount = base + (pricing.groupPerHead || 0) * size;
+    }
+    if (registrationType === 'visitor') {
+      const perDay = isEarlyBird
+        ? (pricing.visitorEarlyBird || pricing.visitor || 0)
+        : (pricing.visitor || 0);
+      const numDays = Math.max(1, Array.isArray(body.visitDays) ? body.visitDays.length : 1);
+      const count = Math.max(1, Number(body.visitorCount || 1));
+      amount = perDay * numDays * count;
     }
 
     const reg = new Registration({
@@ -55,6 +72,12 @@ export async function POST(req) {
       experienceLevel: body.experienceLevel,
       bikeDetails: body.bikeDetails,
       visitDate: body.visitDate,
+      visitDays: Array.isArray(body.visitDays)
+        ? body.visitDays.filter(Boolean)
+        : undefined,
+      visitorCount: registrationType === 'visitor'
+        ? Math.max(1, Number(body.visitorCount || 1))
+        : undefined,
       groupName: body.groupName,
       groupLeader: body.groupLeader,
       members: body.members,

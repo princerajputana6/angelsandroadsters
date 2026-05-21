@@ -18,14 +18,14 @@ export const metadata = {
     'enduro event India',
     'motorcycle lifestyle festival',
     'Trailstorm 2026',
-    'Angeles and Roadsters',
+    'Angels and Roadsters',
   ],
   openGraph: {
     title: 'TRAILSTORM 2026 - India\'s Most Immersive Desert Motorsport Experience',
     description: '2 Days. Endless Dunes. Adrenaline Challenges. Concert Nights. Brotherhood. Join 1000+ riders in Jaisalmer for India\'s ultimate motorcycle adventure festival.',
     type: 'event',
     locale: 'en_IN',
-    siteName: 'Angeles & Roadsters',
+    siteName: 'Angels & Roadsters',
   },
   twitter: {
     card: 'summary_large_image',

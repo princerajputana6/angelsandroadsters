@@ -67,7 +67,7 @@ export default function CheckoutPage() {
         amount: order.totalPrice,
         receipt: `ord_${order._id.slice(-12)}`,
         notes: { orderId: order._id },
-        name: 'Angeles & Roadsters',
+        name: 'Angels & Roadsters',
         description: `Order ${order._id.slice(-8).toUpperCase()} · ${items.length} item(s)`,
         prefill: {
           name: addr.name,

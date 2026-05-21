@@ -261,7 +261,7 @@ export default function HomePage() {
       <ProductCarousel
         eyebrow="HAND-PICKED FOR YOU"
         title="RECOMMENDED FOR THE ROAD"
-        subtitle="Top-rated gear from the Angeles & Roadsters crew — built, tested, and crew-approved on real rides."
+        subtitle="Top-rated gear from the Angels & Roadsters crew — built, tested, and crew-approved on real rides."
         products={recommended.length ? recommended : featuredProducts}
         viewAllHref="/shop"
       />
@@ -285,7 +285,7 @@ export default function HomePage() {
           <p className="eyebrow mb-3">OUR STORY</p>
           <h2 className="section-title">BUILT BY THE CREW. <br /><span className="gradient-text">RIDDEN BY THE CREW.</span></h2>
           <p className="text-charcoal-300 mt-5 text-base sm:text-lg">
-            Angeles & Roadsters started in a garage in Bangalore — three friends and a borrowed welder, fed up with gear that promised the world but quit at 4,000 meters.
+            Angels & Roadsters started in a garage in Bangalore — three friends and a borrowed welder, fed up with gear that promised the world but quit at 4,000 meters.
           </p>
           <p className="text-charcoal-400 mt-3">
             Today, we curate gear from brands we ride with personally and host events the wider community shows up for. Nothing on this site has been shipped without being tested on a real ride.
@@ -333,7 +333,7 @@ export default function HomePage() {
       {/* LAST RIDES — clickable gallery */}
       <LastRidesGallery />
 
-      {/* TRAILSTROME CTA — replaces the old "Join Angeles & Roadsters" block */}
+      {/* TRAILSTROME CTA — replaces the old "Join Angels & Roadsters" block */}
       <section className="container-x py-20">
         <div className="relative rounded-3xl overflow-hidden card border-terra-500/30">
           <img src="https://images.unsplash.com/photo-1542367592-8849eb950fd8?w=1800" className="absolute inset-0 w-full h-full object-cover opacity-30" alt="" />

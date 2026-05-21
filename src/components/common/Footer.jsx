@@ -18,8 +18,17 @@ export default function Footer() {
           <NewsletterForm />
 
           <div className="flex items-center gap-3 pt-2">
-            {['Instagram', 'YouTube', 'X', 'Discord'].map((s) => (
-              <a key={s} href="#" className="chip hover:border-terra-500 hover:text-terra-400 transition">{s}</a>
+            {[
+              { label: 'Instagram', href: 'https://www.instagram.com/angelsandroadsters' },
+              { label: 'YouTube', href: 'https://www.youtube.com/@angelsandroadsters' },
+            ].map((s) => (
+              <a
+                key={s.label}
+                href={s.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="chip hover:border-terra-500 hover:text-terra-400 transition"
+              >{s.label}</a>
             ))}
           </div>
         </div>
@@ -47,15 +56,16 @@ export default function Footer() {
           <ul className="space-y-2.5 text-sm text-charcoal-300">
             <li><Link href="/about" className="hover:text-terra-400">About</Link></li>
             <li><Link href="/contact" className="hover:text-terra-400">Contact</Link></li>
+            <li><Link href="/liability-waiver" className="hover:text-terra-400">Liability Waiver</Link></li>
             <li><Link href="/dashboard" className="hover:text-terra-400">My Account</Link></li>
-            <li className="text-charcoal-500 text-xs pt-2">crew@angelesandroadsters.com</li>
+            <li className="text-charcoal-500 text-xs pt-2">info@angelsandroadsters.com</li>
           </ul>
         </div>
       </div>
 
       <div className="border-t border-charcoal-800/60">
         <div className="container-x py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-charcoal-500">
-          <div>© {new Date().getFullYear()} Angeles & Roadsters Co. — all roads reserved.</div>
+          <div>© {new Date().getFullYear()} Angels & Roadsters — all rights reserved.</div>
           <div className="flex items-center gap-4">
             <Link href="#" className="hover:text-terra-400">Privacy</Link>
             <Link href="#" className="hover:text-terra-400">Terms</Link>

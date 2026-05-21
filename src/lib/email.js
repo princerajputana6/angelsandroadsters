@@ -6,13 +6,13 @@ const transporter = nodemailer.createTransport({
   secure: process.env.EMAIL_SECURE === 'true',
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
+    pass: process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS,
   },
 });
 
 const FROM_EMAIL = process.env.EMAIL_FROM || process.env.EMAIL_USER;
-const COMPANY_NAME = 'Angeles & Roadsters';
-const COMPANY_WEBSITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://angelesroadsters.com';
+const COMPANY_NAME = 'Angels & Roadsters';
+const COMPANY_WEBSITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://angelsandroadsters.com';
 
 export async function sendEmail({ to, subject, html, text }) {
   try {
@@ -114,7 +114,7 @@ export async function sendOrderConfirmation({ order, userEmail, userName }) {
         </div>
 
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 14px;">
-          <p>Need help? Contact us at <a href="mailto:support@angelesroadsters.com" style="color: #d97706;">support@angelesroadsters.com</a></p>
+          <p>Need help? Contact us at <a href="mailto:info@angelsandroadsters.com" style="color: #d97706;">info@angelsandroadsters.com</a></p>
           <p style="margin-top: 15px;">&copy; ${new Date().getFullYear()} ${COMPANY_NAME}. All rights reserved.</p>
         </div>
       </div>
@@ -168,7 +168,7 @@ export async function sendOrderStatusUpdate({ order, userEmail, userName, newSta
         </div>
 
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 14px;">
-          <p>Need help? Contact us at <a href="mailto:support@angelesroadsters.com" style="color: #d97706;">support@angelesroadsters.com</a></p>
+          <p>Need help? Contact us at <a href="mailto:info@angelsandroadsters.com" style="color: #d97706;">info@angelsandroadsters.com</a></p>
           <p style="margin-top: 15px;">&copy; ${new Date().getFullYear()} ${COMPANY_NAME}. All rights reserved.</p>
         </div>
       </div>
@@ -180,7 +180,8 @@ export async function sendOrderStatusUpdate({ order, userEmail, userName, newSta
 }
 
 export async function sendEventRegistrationConfirmation({ registration, event, userEmail, userName }) {
-  const subject = `Event Registration Confirmed - ${event.name}`;
+  const eventName = event.title || event.name;
+  const subject = `Event Registration Confirmed - ${eventName}`;
 
   const html = `
     <!DOCTYPE html>
@@ -192,13 +193,13 @@ export async function sendEventRegistrationConfirmation({ registration, event, u
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
         <h1 style="margin: 0; font-size: 28px;">🎉 Registration Confirmed!</h1>
-        <p style="margin: 10px 0 0 0; opacity: 0.9;">You're all set for ${event.name}!</p>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">You're all set for ${eventName}!</p>
       </div>
       
       <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
         <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
           <h2 style="margin-top: 0; color: #d97706;">Event Details</h2>
-          <p><strong>Event:</strong> ${event.name}</p>
+          <p><strong>Event:</strong> ${eventName}</p>
           <p><strong>Ticket ID:</strong> ${registration.ticketId}</p>
           <p><strong>Registration Type:</strong> ${registration.registrationType?.toUpperCase()}</p>
           <p><strong>Date:</strong> ${new Date(event.startDate).toLocaleDateString('en-IN', { 
@@ -231,6 +232,8 @@ export async function sendEventRegistrationConfirmation({ registration, event, u
           <p><strong>Phone:</strong> ${registration.phone}</p>
           ${registration.bikeDetails ? `<p><strong>Bike:</strong> ${registration.bikeDetails}</p>` : ''}
           ${registration.experienceLevel ? `<p><strong>Experience:</strong> ${registration.experienceLevel}</p>` : ''}
+          ${registration.visitorCount ? `<p><strong>Tickets:</strong> ${registration.visitorCount}</p>` : ''}
+          ${registration.visitDays?.length ? `<p><strong>Pass:</strong> ${registration.visitDays.map(d => new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })).join(', ')}</p>` : ''}
         </div>
 
         ${registration.registrationType === 'group' && registration.members?.length > 0 ? `
@@ -251,7 +254,7 @@ export async function sendEventRegistrationConfirmation({ registration, event, u
         </div>
 
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 14px;">
-          <p>Need help? Contact us at <a href="mailto:support@angelesroadsters.com" style="color: #d97706;">support@angelesroadsters.com</a></p>
+          <p>Need help? Contact us at <a href="mailto:info@angelsandroadsters.com" style="color: #d97706;">info@angelsandroadsters.com</a></p>
           <p style="margin-top: 15px;">&copy; ${new Date().getFullYear()} ${COMPANY_NAME}. All rights reserved.</p>
         </div>
       </div>
@@ -263,6 +266,7 @@ export async function sendEventRegistrationConfirmation({ registration, event, u
 }
 
 export async function sendEventRegistrationUpdate({ registration, event, userEmail, userName, newStatus, note }) {
+  const eventName = event.title || event.name;
   const statusEmojis = {
     pending: '⏳',
     confirmed: '✅',
@@ -270,7 +274,7 @@ export async function sendEventRegistrationUpdate({ registration, event, userEma
     cancelled: '❌',
   };
 
-  const subject = `Event Registration ${statusEmojis[newStatus] || '📋'} ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)} - ${event.name}`;
+  const subject = `Event Registration ${statusEmojis[newStatus] || '📋'} ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)} - ${eventName}`;
 
   const html = `
     <!DOCTYPE html>
@@ -287,7 +291,7 @@ export async function sendEventRegistrationUpdate({ registration, event, userEma
       
       <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
         <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-          <h2 style="margin-top: 0; color: #d97706;">${event.name}</h2>
+          <h2 style="margin-top: 0; color: #d97706;">${eventName}</h2>
           <p><strong>Ticket ID:</strong> ${registration.ticketId}</p>
           <p style="font-size: 18px;"><strong>New Status:</strong> <span style="color: #059669; font-weight: bold;">${newStatus.toUpperCase()}</span></p>
           ${note ? `<p style="background: #fef3c7; padding: 15px; border-left: 4px solid #d97706; border-radius: 4px; margin-top: 15px;"><strong>Note:</strong> ${note}</p>` : ''}
@@ -298,7 +302,7 @@ export async function sendEventRegistrationUpdate({ registration, event, userEma
         </div>
 
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 14px;">
-          <p>Need help? Contact us at <a href="mailto:support@angelesroadsters.com" style="color: #d97706;">support@angelesroadsters.com</a></p>
+          <p>Need help? Contact us at <a href="mailto:info@angelsandroadsters.com" style="color: #d97706;">info@angelsandroadsters.com</a></p>
           <p style="margin-top: 15px;">&copy; ${new Date().getFullYear()} ${COMPANY_NAME}. All rights reserved.</p>
         </div>
       </div>

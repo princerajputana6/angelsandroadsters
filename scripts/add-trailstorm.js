@@ -13,9 +13,13 @@ const eventSchema = new mongoose.Schema({
   title: String, slug: { type: String, unique: true }, description: String,
   coverImage: String, gallery: [String], eventType: String,
   location: { venue: String, city: String, state: String, coordinates: { lat: Number, lng: Number } },
-  startDate: Date, endDate: Date, registrationDeadline: Date,
+  startDate: Date, endDate: Date, registrationDeadline: Date, earlyBirdDeadline: Date,
   capacity: { individual: Number, group: Number, visitor: Number },
-  pricing: { individual: Number, groupBase: Number, groupPerHead: Number, visitor: Number },
+  pricing: {
+    individual: Number, individualEarlyBird: Number,
+    groupBase: Number, groupEarlyBird: Number, groupPerHead: Number,
+    visitor: Number, visitorEarlyBird: Number,
+  },
   schedule: [{ time: String, activity: String, speaker: String }],
   highlights: [String], eligibility: String,
   sponsors: [{ name: String, logo: String, link: String }],
@@ -30,7 +34,7 @@ const SLUG = '2026-jaisalmer-trailstorm-event';
 const data = {
   title: 'Trailstorm 2026 — Jaisalmer Edition',
   slug: SLUG,
-  description: `Trailstorm is the flagship Angeles & Roadsters event — a 5-day desert riding & adventure festival in the heart of Jaisalmer.
+  description: `Trailstorm is the flagship Angels & Roadsters event — a 5-day desert riding & adventure festival in the heart of Jaisalmer.
 
 Sand dunes, sunrise rides, camel-trail expeditions, riverbed off-roading, live music nights under a thousand stars, and the largest gathering of riders and travelers in Rajasthan.
 
@@ -51,12 +55,16 @@ Whether you ride in solo, roll deep with your crew, or come as a visitor to soak
   startDate: new Date('2026-10-30'),
   endDate: new Date('2026-10-31'),
   registrationDeadline: new Date('2026-10-15'),
+  earlyBirdDeadline: new Date('2026-06-30T23:59:59'),
   capacity: { individual: 300, group: 40, visitor: 2000 },
   pricing: {
-    individual: 1,
-    groupBase: 1,
-    groupPerHead: 1,
-    visitor: 1,
+    individual: 4000,
+    individualEarlyBird: 3200,
+    groupBase: 10000,
+    groupEarlyBird: 8000,
+    groupPerHead: 0,
+    visitor: 800,          // per day
+    visitorEarlyBird: 600, // per day
   },
   schedule: [
     { time: 'Day 1 · 6 AM',  activity: 'Convoy roll-out from Jaisalmer Fort', speaker: 'Lead marshal: Karan' },

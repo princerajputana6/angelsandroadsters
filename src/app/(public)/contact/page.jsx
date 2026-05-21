@@ -11,6 +11,16 @@ export default function ContactPage() {
       <p className="eyebrow mb-2">CONTACT</p>
       <h1 className="section-title">GET IN TOUCH</h1>
       <p className="text-charcoal-400 mt-3">Have a question, a partnership idea, or want to host an event with us?</p>
+      <p className="mt-4 text-sm text-charcoal-300">
+        Email us at{' '}
+        <a href="mailto:info@angelsandroadsters.com" className="text-terra-400 hover:underline">
+          info@angelsandroadsters.com
+        </a>
+      </p>
+      <div className="flex items-center gap-3 mt-3">
+        <a href="https://www.instagram.com/angelsandroadsters" target="_blank" rel="noopener noreferrer" className="chip hover:border-terra-500 hover:text-terra-400 transition">Instagram</a>
+        <a href="https://www.youtube.com/@angelsandroadsters" target="_blank" rel="noopener noreferrer" className="chip hover:border-terra-500 hover:text-terra-400 transition">YouTube</a>
+      </div>
       <form className="card p-6 mt-6 space-y-4" onSubmit={submit}>
         <div><label className="label">Name</label><input className="input" required /></div>
         <div><label className="label">Email</label><input className="input" type="email" required /></div>

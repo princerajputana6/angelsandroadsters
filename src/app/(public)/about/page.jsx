@@ -4,7 +4,7 @@ export default function AboutPage() {
       <p className="eyebrow mb-2">ABOUT US</p>
       <h1 className="section-title">BUILT FOR THE <br /><span className="gradient-text">WILD AT HEART.</span></h1>
       <p className="text-charcoal-200 max-w-3xl mt-5 text-lg">
-        Angeles & Roadsters is a riding and travel collective for those who measure life in miles.
+        Angels & Roadsters is a riding and travel collective for those who measure life in miles.
         We curate gear that survives the road and host events that turn weekends into stories.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">

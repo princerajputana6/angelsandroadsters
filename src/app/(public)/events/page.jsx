@@ -22,7 +22,7 @@ export default function EventsPage() {
     <div className="container-x pt-28 sm:pt-32 pb-16">
       <p className="eyebrow mb-2">EVENTS</p>
       <h1 className="section-title mb-2">ADVENTURES AWAIT</h1>
-      <p className="text-charcoal-400 mb-8 max-w-xl">Curated rallies, treks, expos, and meetups for the Angeles & Roadsters crew.</p>
+      <p className="text-charcoal-400 mb-8 max-w-xl">Curated rallies, treks, expos, and meetups for the Angels & Roadsters crew.</p>
 
       <div className="flex gap-2 mb-8 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 pb-2">
         {types.map((t) => (

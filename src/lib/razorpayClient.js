@@ -20,7 +20,7 @@ export async function payWithRazorpay({
   currency = 'INR',
   receipt,
   notes = {},
-  name = 'Angeles & Roadsters',
+  name = 'Angels & Roadsters',
   description = '',
   prefill = {},
   kind,

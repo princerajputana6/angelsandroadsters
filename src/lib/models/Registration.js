@@ -21,6 +21,8 @@ const registrationSchema = new mongoose.Schema({
   experienceLevel: { type: String, enum: ['beginner', 'intermediate', 'advanced', 'expert'] },
   bikeDetails: String,
   visitDate: Date,
+  visitDays: [Date],
+  visitorCount: { type: Number, default: 1 },
 
   groupName: String,
   groupLeader: { name: String, email: String, phone: String },

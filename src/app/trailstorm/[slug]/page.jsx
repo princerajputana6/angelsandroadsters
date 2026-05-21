@@ -22,16 +22,16 @@ const STATS = [
 ];
 
 const EVENT_HIGHLIGHTS = [
-  { icon: '🏍️', name: 'Offroad Racing', desc: 'Dakar-style desert experience' },
-  { icon: '💪', name: 'Biker Strength Challenge', desc: 'Test your endurance' },
-  { icon: '🤸', name: 'Stunt Arena', desc: 'Professional stunt shows' },
-  { icon: '🎵', name: 'Concert Night', desc: 'Live music & camping vibes' },
-  { icon: '🏪', name: 'Expo Zone', desc: '60+ adventure brand booths' },
-  { icon: '🎓', name: 'Training Workshops', desc: 'Riding sessions & workshops' },
-  { icon: '🍔', name: 'Food & Music Festival', desc: 'Culinary delights' },
-  { icon: '👥', name: 'Rider Community', desc: 'Biker networking & clubs' },
-  { icon: '💬', name: 'Adventure Talks', desc: 'Inspiring stories' },
-  { icon: '🌅', name: 'Desert Sunsets', desc: 'Cinematic landscapes' },
+  { icon: '/images/1.svg', name: 'Offroad Racing', desc: 'Dakar-style desert experience' },
+  { icon: '/images/2.svg', name: 'Biker Strength Challenge', desc: 'Test your endurance' },
+  { icon: '/images/3.svg', name: 'Stunt Arena', desc: 'Professional stunt shows' },
+  { icon: '/images/4.svg', name: 'Concert Night', desc: 'Live music & camping vibes' },
+  { icon: '/images/5.svg', name: 'Expo Zone', desc: '60+ adventure brand booths' },
+  { icon: '/images/6.svg', name: 'Training Workshops', desc: 'Riding sessions & workshops' },
+  { icon: '/images/7.svg', name: 'Food & Music Festival', desc: 'Culinary delights' },
+  { icon: '/images/8.svg', name: 'Rider Community', desc: 'Biker networking & clubs' },
+  { icon: '/images/9.svg', name: 'Adventure Talks', desc: 'Inspiring stories' },
+  { icon: '/images/10.svg', name: 'Desert Sunsets', desc: 'Cinematic landscapes' },
 ];
 
 const WHY_ATTEND = [
@@ -121,7 +121,7 @@ export default function TrailstormEventPage() {
 
         <div className="relative z-10 container-x h-full flex flex-col justify-end pb-12 sm:pb-20">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="max-w-4xl">
-            <p className="eyebrow mb-2">FLAGSHIP EVENT · POWERED BY ANGELES &amp; ROADSTERS</p>
+            <p className="eyebrow mb-2">FLAGSHIP EVENT · POWERED BY ANGELS &amp; ROADSTERS</p>
             <h1 className="text-4xl sm:text-6xl md:text-7xl font-display leading-[0.95] max-w-4xl">
               INDIA'S MOST IMMERSIVE<br />
               <span className="gradient-text">DESERT MOTORSPORT EXPERIENCE</span>
@@ -208,7 +208,7 @@ export default function TrailstormEventPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {EVENT_HIGHLIGHTS.map((h, i) => (
                   <div key={i} className="card p-4 text-center">
-                    <div className="text-3xl mb-2">{h.icon}</div>
+                    <img src={h.icon} alt={h.name} className="w-14 h-14 mx-auto mb-2 object-contain" />
                     <div className="font-semibold text-sm">{h.name}</div>
                     <div className="text-xs text-charcoal-400 mt-1">{h.desc}</div>
                   </div>
@@ -287,7 +287,7 @@ export default function TrailstormEventPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a href="#book" className="btn btn-gold px-8 h-12">Register Your Club</a>
-              <a href="/contact" className="btn btn-outline px-8 h-12">Become a Club Partner</a>
+              <a href="/contact" className="btn btn-outline px-8 h-12">PARTNER WITH US <span className="text-charcoal-400">(for Brands)</span></a>
             </div>
           </div>
         </div>

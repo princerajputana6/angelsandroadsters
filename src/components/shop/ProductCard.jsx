@@ -56,7 +56,7 @@ export default function ProductCard({ product, variant = 'default' }) {
 
         <div className="pt-4 px-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-charcoal-400 uppercase tracking-[0.2em]">{product.brand || 'Angeles & Roadsters'}</span>
+            <span className="text-[10px] text-charcoal-400 uppercase tracking-[0.2em]">{product.brand || 'Angels & Roadsters'}</span>
             <span className="text-[11px] text-yellow-400">★ {(product.ratings?.average || 0).toFixed(1)}</span>
           </div>
           <h3 className="font-semibold mt-1 line-clamp-2 group-hover:text-terra-400 transition text-[15px]">{product.name}</h3>

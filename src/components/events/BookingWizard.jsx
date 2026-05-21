@@ -20,6 +20,7 @@ export default function BookingWizard({ event, onDone }) {
   const [step, setStep] = useState(1);
   const [type, setType] = useState('individual');
   const [confirmation, setConfirmation] = useState(null);
+  const [agreedWaiver, setAgreedWaiver] = useState(false);
 
   const slots = slotData?.slots || {};
   const slotsFor = (t) => slots[t] || { capacity: 0, booked: 0, remaining: 0 };
@@ -40,9 +41,11 @@ export default function BookingWizard({ event, onDone }) {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', age: '', emergencyContact: '',
     bikeDetails: '', visitDate: '',
-    groupName: '', members: Array.from({ length: 2 }, () => ({ name: '', email: '', phone: '', bikeDetails: '' })), 
-    groupSize: 2, 
+    groupName: '', members: Array.from({ length: 2 }, () => ({ name: '', email: '', phone: '', bikeDetails: '' })),
+    groupSize: 2,
     visitorCount: 1,
+    passDuration: 'all',  // 'all' = every event day, 'single' = one day
+    visitDay: '',         // ISO date string when passDuration === 'single'
   });
 
   // Initialize members array when group type is selected
@@ -55,17 +58,54 @@ export default function BookingWizard({ event, onDone }) {
     }
   }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const isEarlyBird = useMemo(() => {
+    if (!event.earlyBirdDeadline) return false;
+    return new Date() < new Date(event.earlyBirdDeadline);
+  }, [event.earlyBirdDeadline]);
+
+  // All calendar days the event spans (capped at 14 for safety).
+  const eventDays = useMemo(() => {
+    const days = [];
+    const start = new Date(event.startDate);
+    const end = new Date(event.endDate);
+    if (isNaN(start) || isNaN(end)) return days;
+    const cur = new Date(start);
+    cur.setHours(0, 0, 0, 0);
+    const last = new Date(end);
+    last.setHours(0, 0, 0, 0);
+    while (cur <= last && days.length < 14) {
+      days.push(new Date(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
+    return days;
+  }, [event.startDate, event.endDate]);
+
+  const dayLabel = (d) =>
+    new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+
+  const visitorPerDay = isEarlyBird
+    ? (event.pricing?.visitorEarlyBird || event.pricing?.visitor || 0)
+    : (event.pricing?.visitor || 0);
+
+  const individualPrice = isEarlyBird
+    ? (event.pricing?.individualEarlyBird || event.pricing?.individual || 0)
+    : (event.pricing?.individual || 0);
+
+  const groupPrice = isEarlyBird
+    ? (event.pricing?.groupEarlyBird || event.pricing?.groupBase || 0)
+    : (event.pricing?.groupBase || event.pricing?.individual || 0);
+
+  const visitorNumDays = form.passDuration === 'single' ? 1 : Math.max(1, eventDays.length);
+
   const price = useMemo(() => {
-    if (type === 'individual') return event.pricing?.individual || 0;
+    if (type === 'individual') return individualPrice;
+    if (type === 'group') return groupPrice;
     if (type === 'visitor') {
       const count = Number(form.visitorCount || 1);
-      return (event.pricing?.visitor || 0) * count;
-    }
-    if (type === 'group') {
-      return event.pricing?.groupBase || event.pricing?.individual || 0;
+      return visitorPerDay * visitorNumDays * count;
     }
     return 0;
-  }, [type, form.visitorCount, event]);
+  }, [type, form.visitorCount, individualPrice, groupPrice, visitorPerDay, visitorNumDays]);
 
   const setMember = (i, key, val) => {
     const members = [...form.members];
@@ -83,7 +123,8 @@ export default function BookingWizard({ event, onDone }) {
     if (step === 1) return !!type && !isSoldOut(type);
     if (step === 2) {
       if (type === 'individual') return form.name && form.email && form.phone;
-      if (type === 'visitor') return form.name && form.email && form.phone && form.visitorCount >= 1;
+      if (type === 'visitor') return form.name && form.email && form.phone && form.visitorCount >= 1
+        && (form.passDuration !== 'single' || !!form.visitDay);
       if (type === 'group') return form.groupName && form.groupSize >= 2 && form.members.every(m => m.name && m.email);
     }
     return true;
@@ -94,11 +135,21 @@ export default function BookingWizard({ event, onDone }) {
       toast.error(`${type} slots are sold out. Pick a different pass.`);
       return;
     }
+    if (!agreedWaiver) {
+      toast.error('Please accept the liability waiver to continue.');
+      return;
+    }
     try {
+      const visitDays = type === 'visitor'
+        ? (form.passDuration === 'single'
+            ? [form.visitDay].filter(Boolean)
+            : eventDays.map((d) => d.toISOString()))
+        : undefined;
       const payload = {
         eventId: event._id,
         registrationType: type,
         ...form,
+        visitDays,
         age: form.age ? Number(form.age) : undefined,
       };
       const res = await register(payload).unwrap();
@@ -118,7 +169,7 @@ export default function BookingWizard({ event, onDone }) {
         amount: price,
         receipt: reg.ticketId,
         notes: { eventId: event._id, type, ticketId: reg.ticketId },
-        name: 'Angeles & Roadsters',
+        name: 'Angels & Roadsters',
         description: `${event.title} · ${type}`,
         prefill: {
           name: form.name || form.members?.[0]?.name || '',
@@ -137,7 +188,8 @@ export default function BookingWizard({ event, onDone }) {
           onDone?.(reg);
           // Don't show confirmation on payment failure - user can retry from dashboard
           setStep(1);
-          setForm({ name: '', email: '', phone: '', age: '', emergencyContact: '', bikeDetails: '', visitDate: '', groupName: '', members: [], groupSize: 2, visitorCount: 1 });
+          setAgreedWaiver(false);
+          setForm({ name: '', email: '', phone: '', age: '', emergencyContact: '', bikeDetails: '', visitDate: '', groupName: '', members: [], groupSize: 2, visitorCount: 1, passDuration: 'all', visitDay: '' });
         },
       });
     } catch (err) {
@@ -200,6 +252,14 @@ export default function BookingWizard({ event, onDone }) {
                   <span className="text-charcoal-400">Phone:</span>
                   <span className="font-semibold">{confirmation.phone}</span>
                 </div>
+                {confirmation.visitDays?.length > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-charcoal-400">Pass:</span>
+                    <span className="font-semibold text-right">
+                      {confirmation.visitDays.map((d) => dayLabel(d)).join(', ')}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-charcoal-400">Tickets:</span>
                   <span className="font-semibold">{confirmation.visitorCount || 1}</span>
@@ -253,7 +313,7 @@ export default function BookingWizard({ event, onDone }) {
             <button onClick={() => router.push('/register')} className="btn btn-gold flex-1">Save to Account</button>
           )}
           <button
-            onClick={() => { setConfirmation(null); setStep(1); setForm({ ...form, name: '', email: '', phone: '' }); }}
+            onClick={() => { setConfirmation(null); setStep(1); setAgreedWaiver(false); setForm({ ...form, name: '', email: '', phone: '' }); }}
             className="btn btn-outline flex-1"
           >Book another</button>
         </div>
@@ -290,11 +350,23 @@ export default function BookingWizard({ event, onDone }) {
               </div>
             )}
 
+            {isEarlyBird && !allSoldOut && (
+              <div className="mb-4 p-3 rounded-xl bg-terra-500/10 border border-terra-500/30 text-sm text-terra-300">
+                🐦 Early bird pricing is live! Book before{' '}
+                {new Date(event.earlyBirdDeadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                {' '}to lock in the discounted rate.
+              </div>
+            )}
+
             <div className="space-y-3">
               {TYPES.map((t) => {
-                const p = t.id === 'individual' ? event.pricing?.individual
+                const p = t.id === 'individual' ? individualPrice
+                  : t.id === 'visitor' ? visitorPerDay
+                  : groupPrice;
+                const regularP = t.id === 'individual' ? event.pricing?.individual
                   : t.id === 'visitor' ? event.pricing?.visitor
-                  : `${event.pricing?.groupBase || 0} + ${event.pricing?.groupPerHead || 0}/head`;
+                  : event.pricing?.groupBase;
+                const showStrike = isEarlyBird && regularP > p;
                 const active = type === t.id;
                 const soldOut = isSoldOut(t.id);
                 const s = slotsFor(t.id);
@@ -325,8 +397,11 @@ export default function BookingWizard({ event, onDone }) {
                       )}
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-xs text-charcoal-500">From</div>
-                      <div className="text-terra-400 font-bold text-sm">{typeof p === 'number' ? (p ? `₹${p}` : 'Free') : `₹${p}`}</div>
+                      <div className="text-xs text-charcoal-500">{t.id === 'visitor' ? 'Per day' : 'From'}</div>
+                      {showStrike && (
+                        <div className="text-[11px] text-charcoal-500 line-through">₹{regularP?.toLocaleString()}</div>
+                      )}
+                      <div className="text-terra-400 font-bold text-sm">{p ? `₹${p.toLocaleString()}` : 'Free'}</div>
                     </div>
                   </button>
                 );
@@ -378,21 +453,82 @@ export default function BookingWizard({ event, onDone }) {
                 )}
                 {type === 'visitor' && (
                   <>
+                    {eventDays.length > 1 && (
+                      <div>
+                        <label className="label">Choose your pass</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setForm({ ...form, passDuration: 'all', visitDay: '' })}
+                            className={`text-left p-3 rounded-xl border transition ${
+                              form.passDuration === 'all'
+                                ? 'border-terra-500 bg-terra-500/10'
+                                : 'border-charcoal-800 hover:border-charcoal-700'
+                            }`}
+                          >
+                            <div className="font-semibold text-sm">All {eventDays.length} Days</div>
+                            <div className="text-xs text-terra-400 font-bold mt-0.5">
+                              ₹{(visitorPerDay * eventDays.length).toLocaleString()}/ticket
+                            </div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setForm({ ...form, passDuration: 'single' })}
+                            className={`text-left p-3 rounded-xl border transition ${
+                              form.passDuration === 'single'
+                                ? 'border-terra-500 bg-terra-500/10'
+                                : 'border-charcoal-800 hover:border-charcoal-700'
+                            }`}
+                          >
+                            <div className="font-semibold text-sm">Single Day</div>
+                            <div className="text-xs text-terra-400 font-bold mt-0.5">
+                              ₹{visitorPerDay.toLocaleString()}/ticket
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {form.passDuration === 'single' && eventDays.length > 1 && (
+                      <div>
+                        <label className="label">Pick a day</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {eventDays.map((d) => {
+                            const iso = d.toISOString();
+                            const active = form.visitDay === iso;
+                            return (
+                              <button
+                                key={iso}
+                                type="button"
+                                onClick={() => setForm({ ...form, visitDay: iso })}
+                                className={`p-3 rounded-xl border text-sm font-semibold transition ${
+                                  active
+                                    ? 'border-terra-500 bg-terra-500/10 text-terra-400'
+                                    : 'border-charcoal-800 hover:border-charcoal-700'
+                                }`}
+                              >
+                                {dayLabel(d)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     <div>
                       <label className="label">Number of tickets (max 100)</label>
-                      <input 
-                        className="input" 
-                        type="number" 
-                        min="1" 
-                        max="100" 
-                        value={form.visitorCount} 
-                        onChange={(e) => setForm({ ...form, visitorCount: Math.max(1, Math.min(100, Number(e.target.value))) })} 
+                      <input
+                        className="input"
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={form.visitorCount}
+                        onChange={(e) => setForm({ ...form, visitorCount: Math.max(1, Math.min(100, Number(e.target.value))) })}
                       />
-                      <p className="text-xs text-charcoal-400 mt-1">₹{(event.pricing?.visitor || 0).toLocaleString()} per ticket</p>
-                    </div>
-                    <div>
-                      <label className="label">Date of visit</label>
-                      <input className="input" type="date" value={form.visitDate} onChange={(e) => setForm({ ...form, visitDate: e.target.value })} />
+                      <p className="text-xs text-charcoal-400 mt-1">
+                        ₹{visitorPerDay.toLocaleString()} per day · {visitorNumDays} day{visitorNumDays > 1 ? 's' : ''} = ₹{(visitorPerDay * visitorNumDays).toLocaleString()} per ticket
+                        {isEarlyBird && <span className="text-terra-400 font-semibold"> · Early bird</span>}
+                      </p>
                     </div>
                   </>
                 )}
@@ -453,6 +589,14 @@ export default function BookingWizard({ event, onDone }) {
                   <div className="flex justify-between"><span className="text-charcoal-400">Name</span><span>{form.name || '—'}</span></div>
                   <div className="flex justify-between"><span className="text-charcoal-400">Email</span><span className="text-right break-all">{form.email || '—'}</span></div>
                   <div className="flex justify-between"><span className="text-charcoal-400">Phone</span><span>{form.phone || '—'}</span></div>
+                  <div className="flex justify-between">
+                    <span className="text-charcoal-400">Pass</span>
+                    <span className="text-right">
+                      {form.passDuration === 'single'
+                        ? (form.visitDay ? dayLabel(form.visitDay) : 'Single day')
+                        : `All ${visitorNumDays} days`}
+                    </span>
+                  </div>
                   <div className="flex justify-between"><span className="text-charcoal-400">Tickets</span><span>{form.visitorCount}</span></div>
                 </>
               )}
@@ -471,8 +615,23 @@ export default function BookingWizard({ event, onDone }) {
                 <span className="text-terra-400">{price > 0 ? `₹${price.toLocaleString()}` : 'Free'}</span>
               </div>
             </div>
+            <label className="flex items-start gap-3 mt-4 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={agreedWaiver}
+                onChange={(e) => setAgreedWaiver(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-terra-500 shrink-0"
+              />
+              <span className="text-xs text-charcoal-300 leading-relaxed">
+                I have read and accept the{' '}
+                <a href="/liability-waiver" target="_blank" rel="noopener noreferrer" className="text-terra-400 underline">
+                  Trailstorm 2026 Liability Waiver
+                </a>{' '}
+                and agree to the event terms. Tickets are non-transferable.
+              </span>
+            </label>
             <p className="text-[11px] text-charcoal-500 mt-3">
-              By confirming you agree to the event terms. Tickets are non-transferable. Your QR ticket is generated instantly.
+              Your QR ticket is generated instantly after confirmation.
             </p>
           </motion.div>
         )}
@@ -498,7 +657,7 @@ export default function BookingWizard({ event, onDone }) {
             className="btn btn-gold disabled:opacity-40"
           >Continue →</button>
         ) : (
-          <button onClick={submit} disabled={isLoading} className="btn btn-gold disabled:opacity-40">
+          <button onClick={submit} disabled={isLoading || !agreedWaiver} className="btn btn-gold disabled:opacity-40">
             {isLoading ? 'Booking...' : `Confirm — ${price > 0 ? `₹${price.toLocaleString()}` : 'Free'}`}
           </button>
         )}

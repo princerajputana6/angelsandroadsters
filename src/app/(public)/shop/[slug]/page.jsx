@@ -65,7 +65,7 @@ export default function ProductDetailPage() {
 
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="chip">{product.brand || 'Angeles & Roadsters'}</span>
+              <span className="chip">{product.brand || 'Angels & Roadsters'}</span>
               {product.isFeatured && <span className="chip border-gold-500/40 text-gold-400">★ Featured</span>}
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-display leading-tight">{product.name}</h1>

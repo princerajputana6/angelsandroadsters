@@ -11,7 +11,7 @@ export default function BrandMark({ size = 'md', className = '', href = '/' }) {
   const inner = (
     <img
       src="/logos/angeles-roadsters.png"
-      alt="Angeles & Roadsters"
+      alt="Angels & Roadsters"
       className={`${heights} w-auto object-contain ${className}`}
     />
   );

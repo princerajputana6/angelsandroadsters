@@ -56,7 +56,7 @@ function ShopContent() {
       <div className="mb-8">
         <p className="eyebrow mb-2">CATALOG</p>
         <h1 className="section-title">SHOP ALL GEAR</h1>
-        <p className="text-charcoal-400 mt-2 max-w-xl">Riding, travel, and adventure essentials — curated by Angeles & Roadsters.</p>
+        <p className="text-charcoal-400 mt-2 max-w-xl">Riding, travel, and adventure essentials — curated by Angels & Roadsters.</p>
       </div>
 
       <button
