@@ -57,14 +57,15 @@ Whether you ride in solo, roll deep with your crew, or come as a visitor to soak
   registrationDeadline: new Date('2026-10-15'),
   earlyBirdDeadline: new Date('2026-06-30T23:59:59'),
   capacity: { individual: 300, group: 40, visitor: 2000 },
+  // TEMP: all prices set to ₹1 for live payment testing.
   pricing: {
-    individual: 4000,
-    individualEarlyBird: 3200,
-    groupBase: 10000,
-    groupEarlyBird: 8000,
+    individual: 1,
+    individualEarlyBird: 1,
+    groupBase: 1,
+    groupEarlyBird: 1,
     groupPerHead: 0,
-    visitor: 800,          // per day
-    visitorEarlyBird: 600, // per day
+    visitor: 1,          // per day
+    visitorEarlyBird: 1, // per day
   },
   schedule: [
     { time: 'Day 1 · 6 AM',  activity: 'Convoy roll-out from Jaisalmer Fort', speaker: 'Lead marshal: Karan' },
