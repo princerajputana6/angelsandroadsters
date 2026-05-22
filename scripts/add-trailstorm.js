@@ -32,7 +32,7 @@ const Event = mongoose.models.Event || mongoose.model('Event', eventSchema);
 const SLUG = '2026-jaisalmer-trailstorm-event';
 
 const data = {
-  title: 'Trailstorm 2026 — Jaisalmer Edition',
+  title: 'Trailstorm 2026 — Jaisalmer desert Edition',
   slug: SLUG,
   description: `Trailstorm is the flagship Angels & Roadsters event — a 5-day desert riding & adventure festival in the heart of Jaisalmer.
 

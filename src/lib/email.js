@@ -181,7 +181,21 @@ export async function sendOrderStatusUpdate({ order, userEmail, userName, newSta
 
 export async function sendEventRegistrationConfirmation({ registration, event, userEmail, userName }) {
   const eventName = event.title || event.name;
-  const subject = `Event Registration Confirmed - ${eventName}`;
+  const eventNameWithDesert = eventName.replace('Edition', 'Desert Edition');
+  const subject = `Event Registration Confirmed - ${eventNameWithDesert}`;
+
+  // Build participant details list
+  let participantsList = '';
+  if (registration.registrationType === 'group' && registration.members?.length > 0) {
+    participantsList = registration.members.map((member, index) => `
+      <div style="padding: 10px; border-bottom: 1px solid #f0f0f0;">
+        <p style="margin: 5px 0;"><strong>Participant ${index + 1}:</strong> ${member.name || 'N/A'}</p>
+        ${member.email ? `<p style="margin: 5px 0; font-size: 13px; color: #666;">Email: ${member.email}</p>` : ''}
+        ${member.phone ? `<p style="margin: 5px 0; font-size: 13px; color: #666;">Phone: ${member.phone}</p>` : ''}
+        ${member.bikeDetails ? `<p style="margin: 5px 0; font-size: 13px; color: #666;">Bike: ${member.bikeDetails}</p>` : ''}
+      </div>
+    `).join('');
+  }
 
   const html = `
     <!DOCTYPE html>
@@ -193,13 +207,13 @@ export async function sendEventRegistrationConfirmation({ registration, event, u
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
         <h1 style="margin: 0; font-size: 28px;">🎉 Registration Confirmed!</h1>
-        <p style="margin: 10px 0 0 0; opacity: 0.9;">You're all set for ${eventName}!</p>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">You're all set for ${eventNameWithDesert}!</p>
       </div>
       
       <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
         <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
           <h2 style="margin-top: 0; color: #d97706;">Event Details</h2>
-          <p><strong>Event:</strong> ${eventName}</p>
+          <p><strong>Event:</strong> ${eventNameWithDesert}</p>
           <p><strong>Ticket ID:</strong> ${registration.ticketId}</p>
           <p><strong>Registration Type:</strong> ${registration.registrationType?.toUpperCase()}</p>
           <p><strong>Date:</strong> ${new Date(event.startDate).toLocaleDateString('en-IN', { 
@@ -216,37 +230,39 @@ export async function sendEventRegistrationConfirmation({ registration, event, u
           <p><strong>Status:</strong> <span style="color: #059669; font-weight: bold;">${registration.status?.toUpperCase()}</span></p>
         </div>
 
-        ${registration.qrCode ? `
         <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
           <h3 style="margin-top: 0; color: #d97706;">Your Event Pass</h3>
-          <p style="color: #666; font-size: 14px;">Show this QR code at the event entrance</p>
-          <img src="${registration.qrCode}" alt="Event QR Code" style="max-width: 200px; margin: 15px auto; display: block;" />
+          <p style="color: #666; font-size: 14px;">Complete your profile to view your QR code</p>
+          <div style="margin: 20px 0;">
+            <a href="${COMPANY_WEBSITE}/booking/${registration.ticketId}" style="display: inline-block; background: #d97706; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">Complete Profile to View QR</a>
+          </div>
           <p style="font-size: 12px; color: #999;">Ticket ID: ${registration.ticketId}</p>
         </div>
-        ` : ''}
 
         <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
           <h3 style="margin-top: 0; color: #d97706;">Participant Information</h3>
-          <p><strong>Name:</strong> ${registration.name}</p>
-          <p><strong>Email:</strong> ${registration.email}</p>
-          <p><strong>Phone:</strong> ${registration.phone}</p>
-          ${registration.bikeDetails ? `<p><strong>Bike:</strong> ${registration.bikeDetails}</p>` : ''}
-          ${registration.experienceLevel ? `<p><strong>Experience:</strong> ${registration.experienceLevel}</p>` : ''}
-          ${registration.visitorCount ? `<p><strong>Tickets:</strong> ${registration.visitorCount}</p>` : ''}
-          ${registration.visitDays?.length ? `<p><strong>Pass:</strong> ${registration.visitDays.map(d => new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })).join(', ')}</p>` : ''}
+          ${registration.registrationType === 'group' && registration.groupName ? `
+            <p><strong>Group Name:</strong> ${registration.groupName}</p>
+            <p><strong>Total Members:</strong> ${registration.members?.length || 0}</p>
+            <div style="margin-top: 15px;">
+              ${participantsList}
+            </div>
+          ` : `
+            <p><strong>Name:</strong> ${registration.name}</p>
+            <p><strong>Email:</strong> ${registration.email}</p>
+            <p><strong>Phone:</strong> ${registration.phone}</p>
+            ${registration.age ? `<p><strong>Age:</strong> ${registration.age}</p>` : ''}
+            ${registration.bikeDetails ? `<p><strong>Bike:</strong> ${registration.bikeDetails}</p>` : ''}
+            ${registration.experienceLevel ? `<p><strong>Experience:</strong> ${registration.experienceLevel}</p>` : ''}
+            ${registration.emergencyContact ? `<p><strong>Emergency Contact:</strong> ${registration.emergencyContact}</p>` : ''}
+            ${registration.visitorCount ? `<p><strong>Tickets:</strong> ${registration.visitorCount}</p>` : ''}
+            ${registration.visitDays?.length ? `<p><strong>Pass:</strong> ${registration.visitDays.map(d => new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })).join(', ')}</p>` : ''}
+          `}
         </div>
-
-        ${registration.registrationType === 'group' && registration.members?.length > 0 ? `
-        <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-          <h3 style="margin-top: 0; color: #d97706;">Group Members</h3>
-          <p><strong>Group Name:</strong> ${registration.groupName}</p>
-          <p><strong>Group Leader:</strong> ${registration.groupLeader}</p>
-          <p><strong>Total Members:</strong> ${registration.members.length}</p>
-        </div>
-        ` : ''}
 
         <div style="text-align: center; margin-top: 30px;">
-          <a href="${COMPANY_WEBSITE}/dashboard/registrations" style="display: inline-block; background: #d97706; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">View Registration Details</a>
+          <a href="${COMPANY_WEBSITE}/dashboard/registrations" style="display: inline-block; background: #d97706; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 5px;">View Registration Details</a>
+          <a href="${COMPANY_WEBSITE}/booking/${registration.ticketId}" style="display: inline-block; background: #059669; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 5px;">Complete Profile</a>
         </div>
 
         <div style="background: #fef3c7; padding: 15px; border-left: 4px solid #d97706; border-radius: 4px; margin-top: 20px;">
@@ -254,7 +270,13 @@ export async function sendEventRegistrationConfirmation({ registration, event, u
         </div>
 
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 14px;">
-          <p>Need help? Contact us at <a href="mailto:info@angelsandroadsters.com" style="color: #d97706;">info@angelsandroadsters.com</a></p>
+          <p style="margin: 10px 0; font-size: 15px;"><strong>For any enquiry, feel free to reach us:</strong></p>
+          <p style="margin: 5px 0;">
+            <a href="mailto:info@angelsandroadsters.com" style="color: #d97706; text-decoration: none;">info@angelsandroadsters.com</a>
+          </p>
+          <p style="margin: 5px 0;">
+            <a href="tel:+918384099474" style="color: #d97706; text-decoration: none;">+91 8384099474</a>
+          </p>
           <p style="margin-top: 15px;">&copy; ${new Date().getFullYear()} ${COMPANY_NAME}. All rights reserved.</p>
         </div>
       </div>
