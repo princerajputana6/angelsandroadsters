@@ -10,7 +10,8 @@ function LoginForm() {
   const [login, { isLoading }] = useLoginMutation();
   const router = useRouter();
   const sp = useSearchParams();
-  const next = sp.get('next') || '/dashboard';
+  const next = sp.get('next') || sp.get('redirect') || '/dashboard';
+  const message = sp.get('message');
 
   const submit = async (e) => {
     e.preventDefault();
@@ -28,6 +29,11 @@ function LoginForm() {
       <div>
         <h1 className="text-4xl font-display">WELCOME BACK</h1>
         <p className="text-charcoal-400 mt-2">Sign in to continue your adventure.</p>
+        {message && (
+          <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded text-sm text-yellow-400">
+            {message}
+          </div>
+        )}
       </div>
       <div>
         <label className="label">Email</label>

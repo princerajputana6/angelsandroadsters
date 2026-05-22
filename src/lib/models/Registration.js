@@ -5,6 +5,60 @@ const memberSchema = new mongoose.Schema({
   name: String,
   email: String,
   phone: String,
+  
+  // Basic Details
+  nickname: String,
+  dateOfBirth: Date,
+  age: Number,
+  gender: { type: String, enum: ['male', 'female', 'other'] },
+  bloodGroup: String,
+  whatsappNumber: String,
+  city: String,
+  state: String,
+  instagramProfile: String,
+  youtubeChannel: String,
+  
+  // Identity Verification
+  governmentIdProof: String, // URL to uploaded file
+  riderPhoto: String, // URL to uploaded photo
+  
+  // Motorcycle Details
+  bikeDetails: String,
+  motorcycleBrand: String,
+  motorcycleModel: String,
+  engineCC: String,
+  registrationNumber: String,
+  experienceLevel: { type: String, enum: ['beginner', 'intermediate', 'advanced', 'expert'] },
+  
+  // Riding Information
+  previousOffRoadEvents: Boolean,
+  previousEventsDetails: String,
+  ridingClubName: String,
+  emergencyContact: String,
+  emergencyContactNumber: String,
+  
+  // Medical & Safety
+  medicalConditions: String,
+  allergies: String,
+  physicallyFit: Boolean,
+  hasHelmet: Boolean,
+  hasRidingJacket: Boolean,
+  hasGloves: Boolean,
+  hasKneeGuards: Boolean,
+  hasRidingBoots: Boolean,
+  hasHydrationPack: Boolean,
+  
+  // Consent
+  agreeToRules: Boolean,
+  understandsRisk: Boolean,
+  acceptsLiability: Boolean,
+  allowsMediaUsage: Boolean,
+  
+  // Additional Fields
+  address: String,
+  pincode: String,
+  
+  profileCompleted: { type: Boolean, default: false },
   status: { type: String, enum: ['pending', 'confirmed'], default: 'pending' },
 }, { _id: true });
 
@@ -16,16 +70,79 @@ const registrationSchema = new mongoose.Schema({
   name: String,
   email: String,
   phone: String,
+  
+  // Basic Details
+  nickname: String,
+  dateOfBirth: Date,
   age: Number,
-  emergencyContact: String,
-  experienceLevel: { type: String, enum: ['beginner', 'intermediate', 'advanced', 'expert'] },
+  gender: { type: String, enum: ['male', 'female', 'other'] },
+  bloodGroup: String,
+  whatsappNumber: String,
+  city: String,
+  state: String,
+  instagramProfile: String,
+  youtubeChannel: String,
+  
+  // Identity Verification
+  governmentIdProof: String,
+  riderPhoto: String,
+  
+  // Motorcycle Details
   bikeDetails: String,
+  motorcycleBrand: String,
+  motorcycleModel: String,
+  engineCC: String,
+  registrationNumber: String,
+  experienceLevel: { type: String, enum: ['beginner', 'intermediate', 'advanced', 'expert'] },
+  
+  // Riding Information
+  previousOffRoadEvents: Boolean,
+  previousEventsDetails: String,
+  ridingClubName: String,
+  emergencyContact: String,
+  emergencyContactNumber: String,
+  
+  // Medical & Safety
+  medicalConditions: String,
+  allergies: String,
+  physicallyFit: Boolean,
+  hasHelmet: Boolean,
+  hasRidingJacket: Boolean,
+  hasGloves: Boolean,
+  hasKneeGuards: Boolean,
+  hasRidingBoots: Boolean,
+  hasHydrationPack: Boolean,
+  
+  // Consent
+  agreeToRules: Boolean,
+  understandsRisk: Boolean,
+  acceptsLiability: Boolean,
+  allowsMediaUsage: Boolean,
+  
+  // Additional
+  address: String,
+  pincode: String,
+  
+  profileCompleted: { type: Boolean, default: false },
   visitDate: Date,
   visitDays: [Date],
   visitorCount: { type: Number, default: 1 },
 
   groupName: String,
   groupLeader: { name: String, email: String, phone: String },
+  teamMotto: String,
+  teamCity: String,
+  teamState: String,
+  teamCaptainName: String,
+  teamCaptainMobile: String,
+  teamCaptainEmail: String,
+  teamInstagram: String,
+  teamPhoto: String, // URL to uploaded team photo
+  teamAgreeToRules: Boolean,
+  teamAgreeToSafety: Boolean,
+  teamAgreeToDecisions: Boolean,
+  teamAgreeToMedia: Boolean,
+  teamAgreeToLiability: Boolean,
   members: [memberSchema],
   groupSize: Number,
 

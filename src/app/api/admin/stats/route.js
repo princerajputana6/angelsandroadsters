@@ -11,7 +11,7 @@ export async function GET() {
   return handler(async () => {
     await requireAdmin();
     await connectDB();
-    const [users, products, orders, events, registrations, revenueAgg] = await Promise.all([
+    const [users, products, orders, events, registrations, orderRevenueAgg, registrationRevenueAgg] = await Promise.all([
       User.countDocuments(),
       Product.countDocuments(),
       Order.countDocuments(),
@@ -21,17 +21,38 @@ export async function GET() {
         { $match: { status: { $nin: ['cancelled', 'returned'] } } },
         { $group: { _id: null, total: { $sum: '$totalPrice' } } },
       ]),
+      Registration.aggregate([
+        { $match: { paymentStatus: { $in: ['paid', 'free'] }, status: { $nin: ['cancelled'] } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
+      ]),
     ]);
+    
     const lowStock = await Product.find({ stock: { $lt: 5 } }).select('name stock').limit(10).lean();
     const recentOrders = await Order.find().sort('-createdAt').limit(5).populate('user', 'name').lean();
+    const recentRegistrations = await Registration.find()
+      .sort('-createdAt')
+      .limit(5)
+      .populate('event', 'title')
+      .lean();
+
+    const orderRevenue = orderRevenueAgg[0]?.total || 0;
+    const registrationRevenue = registrationRevenueAgg[0]?.total || 0;
+    const totalRevenue = orderRevenue + registrationRevenue;
 
     return ok({
       stats: {
-        users, products, orders, events, registrations,
-        revenue: revenueAgg[0]?.total || 0,
+        users, 
+        products, 
+        orders, 
+        events, 
+        registrations,
+        revenue: totalRevenue,
+        orderRevenue,
+        registrationRevenue,
       },
       lowStock,
       recentOrders: JSON.parse(JSON.stringify(recentOrders)),
+      recentRegistrations: JSON.parse(JSON.stringify(recentRegistrations)),
     });
   });
 }

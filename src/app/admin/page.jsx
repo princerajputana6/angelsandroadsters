@@ -12,13 +12,21 @@ export default function AdminDashboard() {
   const s = statsData?.stats || {};
   const lowStock = statsData?.lowStock || [];
   const recent = statsData?.recentOrders || [];
+  const recentRegistrations = statsData?.recentRegistrations || [];
   const products = prodData?.products || [];
   const events = (eventData?.events || []).slice(0, 5);
   const orders = (ordersData?.orders || []).slice(0, 5);
   const users = (usersData?.users || []).slice(0, 5);
 
   const cards = [
-    { label: 'Revenue', value: `₹${(s.revenue || 0).toLocaleString()}`, icon: '💰', tint: 'text-terra-400', href: '/admin/orders' },
+    { 
+      label: 'Total Revenue', 
+      value: `₹${(s.revenue || 0).toLocaleString()}`, 
+      icon: '💰', 
+      tint: 'text-terra-400', 
+      href: '/admin/orders',
+      subtitle: `Orders: ₹${(s.orderRevenue || 0).toLocaleString()} | Events: ₹${(s.registrationRevenue || 0).toLocaleString()}`
+    },
     { label: 'Orders', value: s.orders || 0, icon: '🧾', href: '/admin/orders' },
     { label: 'Products', value: s.products || 0, icon: '📦', href: '/admin/products' },
     { label: 'Events', value: s.events || 0, icon: '🎪', href: '/admin/events' },
@@ -48,6 +56,7 @@ export default function AdminDashboard() {
             </div>
             <p className={`text-2xl sm:text-3xl font-display mt-3 ${c.tint || 'text-white'}`}>{c.value}</p>
             <p className="text-[11px] text-charcoal-400 uppercase tracking-wider mt-1">{c.label}</p>
+            {c.subtitle && <p className="text-[10px] text-charcoal-500 mt-1">{c.subtitle}</p>}
           </Link>
         ))}
       </div>
@@ -63,11 +72,17 @@ export default function AdminDashboard() {
           ))}
         </Section>
 
-        <Section title="Low Stock Alerts" link="/admin/products" empty="All products stocked up.">
-          {lowStock.map((p) => (
-            <Row key={p._id}
-              left={<div className="font-semibold text-sm">{p.name}</div>}
-              right={<span className="badge bg-red-500/20 text-red-400 border border-red-500/30">{p.stock} left</span>}
+        <Section title="Recent Registrations" link="/admin/registrations" empty="No registrations yet.">
+          {recentRegistrations.map((r) => (
+            <Row key={r._id}
+              left={
+                <>
+                  <div className="font-mono text-xs text-charcoal-500">{r.ticketId}</div>
+                  <div className="font-semibold text-sm">{r.groupName || r.name}</div>
+                  <div className="text-xs text-charcoal-400">{r.event?.title}</div>
+                </>
+              }
+              right={<span className="text-terra-400 font-bold">₹{r.amount?.toLocaleString()}</span>}
             />
           ))}
         </Section>
@@ -88,6 +103,15 @@ export default function AdminDashboard() {
                 </div>
               }
               right={<span className="text-terra-400 text-sm font-bold">₹{(p.discountedPrice || p.price).toLocaleString()}</span>}
+            />
+          ))}
+        </Section>
+
+        <Section title="Low Stock Alerts" link="/admin/products" empty="All products stocked up.">
+          {lowStock.map((p) => (
+            <Row key={p._id}
+              left={<div className="font-semibold text-sm">{p.name}</div>}
+              right={<span className="badge bg-red-500/20 text-red-400 border border-red-500/30">{p.stock} left</span>}
             />
           ))}
         </Section>
@@ -121,20 +145,6 @@ export default function AdminDashboard() {
                 </div>
               }
               right={<span className={`badge ${u.role === 'admin' ? 'bg-terra-500/20 text-terra-400' : 'bg-charcoal-800 text-charcoal-300'}`}>{u.role}</span>}
-            />
-          ))}
-        </Section>
-
-        <Section title="Activity Pulse" link="/admin/orders" empty="Quiet so far today.">
-          {orders.map((o) => (
-            <Row key={o._id}
-              left={
-                <div className="min-w-0">
-                  <div className="text-sm">Order <span className="font-mono text-xs">#{o._id.slice(-6).toUpperCase()}</span></div>
-                  <div className="text-[11px] text-charcoal-500">{new Date(o.createdAt).toLocaleString()}</div>
-                </div>
-              }
-              right={<span className="badge bg-charcoal-800 text-charcoal-200 uppercase">{o.status}</span>}
             />
           ))}
         </Section>

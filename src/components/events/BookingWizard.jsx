@@ -207,14 +207,17 @@ export default function BookingWizard({ event, onDone }) {
     return (
       <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="card-glass p-6 sm:p-8 text-center">
         <div className="w-14 h-14 mx-auto rounded-full bg-terra-500 flex items-center justify-center text-2xl mb-3">✓</div>
-        <h3 className="font-display text-3xl">You're in.</h3>
-        <p className="text-sm text-charcoal-300 mt-1">Your QR ticket is ready.</p>
+        <h3 className="font-display text-3xl">Booking Confirmed!</h3>
+        <p className="text-sm text-charcoal-300 mt-1">Your registration is complete.</p>
 
-        {confirmation.qrCode && (
-          <div className="bg-white p-3 inline-block rounded-xl mt-5">
-            <img src={confirmation.qrCode} alt="QR Ticket" className="w-44 h-44" />
-          </div>
-        )}
+        {/* Profile Completion Required Message */}
+        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mt-5">
+          <div className="text-2xl mb-2">🔒</div>
+          <h4 className="font-semibold text-yellow-400 mb-2">Complete Your Profile to Get QR Code</h4>
+          <p className="text-xs text-charcoal-400">
+            Your booking is confirmed, but you need to complete your profile to receive your event pass and QR code.
+          </p>
+        </div>
 
         <div className="text-xs text-charcoal-400 mt-3">Ticket ID</div>
         <div className="font-mono text-terra-400 font-bold tracking-wider">{confirmation.ticketId}</div>
@@ -307,15 +310,15 @@ export default function BookingWizard({ event, onDone }) {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 mt-6">
-          {meData?.user ? (
-            <button onClick={() => router.push('/dashboard/registrations')} className="btn btn-gold flex-1">View My Tickets</button>
-          ) : (
-            <button onClick={() => router.push('/register')} className="btn btn-gold flex-1">Save to Account</button>
-          )}
           <button
-            onClick={() => router.push(meData?.user ? '/dashboard' : '/register')}
-            className="btn btn-outline flex-1"
-          >Complete Profile</button>
+            onClick={() => router.push(`/complete-profile/${confirmation.ticketId}`)}
+            className="btn btn-gold flex-1"
+          >Complete Profile Now</button>
+          {meData?.user ? (
+            <button onClick={() => router.push('/dashboard/registrations')} className="btn btn-outline flex-1">View My Tickets</button>
+          ) : (
+            <button onClick={() => router.push('/register')} className="btn btn-outline flex-1">Create Account</button>
+          )}
         </div>
         <p className="text-[11px] text-amber-300 mt-3 text-center leading-relaxed">
           ⚠ Mandatory — complete your profile within 48 hours to confirm your registration.

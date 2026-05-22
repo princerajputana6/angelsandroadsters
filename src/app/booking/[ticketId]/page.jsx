@@ -8,6 +8,17 @@ export default function BookingDetailsPage() {
   const { data, isLoading, error } = useGetRegistrationByTicketQuery(ticketId);
   const booking = data?.registration;
 
+  const isProfileComplete = () => {
+    if (!booking) return false;
+    if (booking.registrationType === 'individual' || booking.registrationType === 'visitor') {
+      return booking.profileCompleted === true;
+    }
+    if (booking.registrationType === 'group') {
+      return booking.members?.every(m => m.profileCompleted === true);
+    }
+    return false;
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen pt-32 pb-20">
@@ -43,13 +54,57 @@ export default function BookingDetailsPage() {
           <p className="text-charcoal-400">Ticket ID: <span className="text-terra-400 font-mono font-bold">{booking.ticketId}</span></p>
         </div>
 
-        {/* QR Code */}
-        {booking.qrCode && (
-          <div className="card p-6 mb-6 text-center">
-            <div className="bg-white p-4 inline-block rounded-xl">
+        {/* QR Code - Only show when profile is complete */}
+        {isProfileComplete() && booking.qrCode && (
+          <div className="card p-6 mb-6 text-center bg-green-500/10 border-2 border-green-500/30">
+            <div className="text-2xl mb-3">🎉</div>
+            <h3 className="font-display text-xl mb-4 text-green-400">Your Event Pass is Ready!</h3>
+            <div className="bg-white p-4 inline-block rounded-xl mb-4">
               <img src={booking.qrCode} alt="QR Code" className="w-48 h-48" />
             </div>
-            <p className="text-xs text-charcoal-500 mt-3">Scan this QR code at the event</p>
+            <p className="text-sm text-charcoal-400 mb-2">Scan this QR code at the event entrance</p>
+            <p className="text-xs text-charcoal-500">Keep this QR code safe and accessible on your phone</p>
+          </div>
+        )}
+
+        {/* Profile Incomplete - Prominent Call to Action */}
+        {!isProfileComplete() && (
+          <div className="card p-8 mb-6 text-center bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500/40">
+            <div className="text-6xl mb-4">🔒</div>
+            <h3 className="font-display text-2xl mb-3 text-yellow-400">Complete Your Profile to Access QR Code</h3>
+            <p className="text-charcoal-300 mb-6 max-w-md mx-auto">
+              Your booking is confirmed, but you need to complete your profile to receive your event pass and QR code for entry.
+            </p>
+            
+            {booking.registrationType === 'group' && (
+              <div className="bg-charcoal-900/50 rounded-lg p-4 mb-6">
+                <h4 className="font-semibold text-terra-400 mb-2">Group Profile Status</h4>
+                <div className="text-sm text-charcoal-300">
+                  {booking.members?.filter(m => m.profileCompleted).length || 0} of {booking.members?.length || 0} members completed
+                </div>
+                <div className="w-full bg-charcoal-800 rounded-full h-2 mt-2">
+                  <div 
+                    className="bg-terra-500 h-2 rounded-full transition-all duration-300" 
+                    style={{ 
+                      width: `${((booking.members?.filter(m => m.profileCompleted).length || 0) / (booking.members?.length || 1)) * 100}%` 
+                    }}
+                  ></div>
+                </div>
+              </div>
+            )}
+            
+            <Link href={`/complete-profile/${booking.ticketId}`} className="btn btn-gold text-lg px-8 py-3 inline-block">
+              <span className="flex items-center gap-2">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Complete Profile Now
+              </span>
+            </Link>
+            
+            <p className="text-xs text-charcoal-500 mt-4">
+              This will only take a few minutes and is required for event entry
+            </p>
           </div>
         )}
 
@@ -230,7 +285,12 @@ export default function BookingDetailsPage() {
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <Link href="/dashboard/registrations" className="btn btn-gold flex-1">View All My Bookings</Link>
+          {!isProfileComplete() && (
+            <Link href={`/complete-profile/${booking.ticketId}`} className="btn btn-gold flex-1">
+              Complete Profile First
+            </Link>
+          )}
+          <Link href="/dashboard/registrations" className="btn btn-outline flex-1">View All My Bookings</Link>
           <Link href="/" className="btn btn-outline flex-1">Go Home</Link>
         </div>
       </div>

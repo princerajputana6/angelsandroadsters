@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/db';
 import Registration from '@/lib/models/Registration';
+import Event from '@/lib/models/Event';
 import { getCurrentUser, requireAdmin } from '@/lib/auth';
 import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
 import { sendEventRegistrationUpdate } from '@/lib/email';
