@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 
 const TYPES = [
   { id: 'individual', label: 'Individual', icon: '🧍', tag: 'Solo registration' },
-  { id: 'group', label: 'Group', icon: '👥', tag: '2–20 members' },
+  { id: 'group', label: 'Group', icon: '👥', tag: '2–4 members' },
   { id: 'visitor', label: 'Visitor', icon: '👁️', tag: 'Spectator pass' },
 ];
 
@@ -313,10 +313,13 @@ export default function BookingWizard({ event, onDone }) {
             <button onClick={() => router.push('/register')} className="btn btn-gold flex-1">Save to Account</button>
           )}
           <button
-            onClick={() => { setConfirmation(null); setStep(1); setAgreedWaiver(false); setForm({ ...form, name: '', email: '', phone: '' }); }}
+            onClick={() => router.push(meData?.user ? '/dashboard' : '/register')}
             className="btn btn-outline flex-1"
-          >Book another</button>
+          >Complete Profile</button>
         </div>
+        <p className="text-[11px] text-amber-300 mt-3 text-center leading-relaxed">
+          ⚠ Mandatory — complete your profile within 48 hours to confirm your registration.
+        </p>
       </motion.div>
     );
   }
@@ -659,15 +662,7 @@ export default function BookingWizard({ event, onDone }) {
       </div>
 
       <p className="text-center text-[11px] text-charcoal-500 mt-3">
-        Tickets powered by{' '}
-        <a
-          href="https://trylinqr.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-terra-400 hover:underline"
-        >
-          Trylinqr.com
-        </a>
+        Tickets powered by <span className="text-terra-400">Trylinqr.com</span>
       </p>
     </div>
   );
