@@ -13,12 +13,12 @@ const CATEGORIES = [
 ];
 
 const FAQS = [
-  { q: 'How do I get my QR code?', a: 'Complete your profile from the booking confirmation page. Once your profile is 100% complete, your QR code will be generated automatically.' },
-  { q: 'I paid but my status still shows Pending.', a: 'Payment verification usually takes a few seconds. Try refreshing your booking page. If it persists beyond 10 minutes, raise a support ticket with your payment ID.' },
-  { q: 'Can I change my registration type?', a: 'Registration types cannot be changed after booking. Please raise a ticket and our team will assist you with cancellations or modifications.' },
-  { q: 'My image upload is failing.', a: 'Make sure your image is under 5 MB and in JPG, PNG, or WebP format. Avoid uploading PDFs for rider photos.' },
-  { q: 'How do I transfer my ticket to someone else?', a: 'Tickets are non-transferable as per our policy. Contact support if you have an exceptional circumstance.' },
-  { q: 'I didn't receive a confirmation email.', a: 'Check your spam/junk folder. If you still can\'t find it, raise a ticket and we\'ll resend the confirmation.' },
+  { q: "How do I get my QR code?", a: "Complete your profile from the booking confirmation page. Once your profile is 100% complete, your QR code will be generated automatically." },
+  { q: "I paid but my status still shows Pending.", a: "Payment verification usually takes a few seconds. Try refreshing your booking page. If it persists beyond 10 minutes, raise a support ticket with your payment ID." },
+  { q: "Can I change my registration type?", a: "Registration types cannot be changed after booking. Please raise a ticket and our team will assist you with cancellations or modifications." },
+  { q: "My image upload is failing.", a: "Make sure your image is under 5 MB and in JPG, PNG, or WebP format. Avoid uploading PDFs for rider photos." },
+  { q: "How do I transfer my ticket to someone else?", a: "Tickets are non-transferable as per our policy. Contact support if you have an exceptional circumstance." },
+  { q: "I didn't receive a confirmation email.", a: "Check your spam/junk folder. If you still can't find it, raise a ticket and we'll resend the confirmation." },
 ];
 
 export default function HelpPage() {
