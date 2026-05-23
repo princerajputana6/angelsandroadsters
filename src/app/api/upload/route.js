@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createHmac } from 'crypto';
+import { createHash } from 'crypto';
 import { getCurrentUser } from '@/lib/auth';
 
 const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
@@ -7,12 +7,12 @@ const API_KEY = process.env.CLOUDINARY_API_KEY;
 const API_SECRET = process.env.CLOUDINARY_API_SECRET;
 
 function generateSignature(paramsToSign) {
-  // Sort params alphabetically and join as key=value pairs
+  // Cloudinary uses SHA-1: SHA1(sorted_param_string + api_secret)
   const sorted = Object.keys(paramsToSign)
     .sort()
     .map((key) => `${key}=${paramsToSign[key]}`)
     .join('&');
-  return createHmac('sha256', API_SECRET).update(sorted + API_SECRET).digest('hex');
+  return createHash('sha1').update(sorted + API_SECRET).digest('hex');
 }
 
 async function uploadToCloudinary(fileBuffer, fileName, mimeType) {

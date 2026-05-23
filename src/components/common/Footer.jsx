@@ -77,6 +77,7 @@ export default function Footer() {
           <ul className="space-y-2.5 text-sm text-charcoal-300">
             <li><Link href="/about" className="hover:text-terra-400">About</Link></li>
             <li><Link href="/contact" className="hover:text-terra-400">Contact</Link></li>
+            <li><Link href="/help" className="hover:text-terra-400 font-medium text-terra-300">🆘 Help & Support</Link></li>
             <li><Link href="/liability-waiver" className="hover:text-terra-400">Liability Waiver</Link></li>
             <li><Link href="/dashboard" className="hover:text-terra-400">My Account</Link></li>
             <li className="text-charcoal-500 text-xs pt-2">info@angelsandroadsters.com</li>

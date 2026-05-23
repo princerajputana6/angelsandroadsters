@@ -15,6 +15,7 @@ const NAV = [
   { href: '/admin/events', label: 'Events', icon: '🎪' },
   { href: '/admin/registrations', label: 'Registrations', icon: '🎫' },
   { href: '/admin/users', label: 'Users', icon: '👥' },
+  { href: '/admin/support', label: 'Support Tickets', icon: '🆘' },
 ];
 
 function NavList({ pathname }) {

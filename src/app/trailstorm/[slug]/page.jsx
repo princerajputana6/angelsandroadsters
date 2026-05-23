@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useGetEventQuery, useGetEventSlotsQuery } from '@/store/api';
 import BookingWizard from '@/components/events/BookingWizard';
 import TrailstormMark from '@/components/common/TrailstormMark';
+import Link from 'next/link';
 
 const HERO_BG = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920';
 const HERO_VIDEO = 'https://cdn.pixabay.com/video/2022/04/05/113748-697003906_large.mp4';
@@ -347,6 +348,17 @@ export default function TrailstormEventPage() {
                 <p className="text-charcoal-300 text-sm sm:text-base mt-3 leading-relaxed">{faq.a}</p>
               </motion.details>
             ))}
+          </div>
+
+          {/* Help & Support CTA */}
+          <div className="mt-10 card p-6 bg-gradient-to-r from-terra-500/10 to-gold-500/5 border border-terra-500/25 text-center">
+            <p className="text-lg font-display mb-1">Still have questions?</p>
+            <p className="text-charcoal-400 text-sm mb-4">
+              Our support team is happy to help — reach out anytime and we'll respond within 24 hours.
+            </p>
+            <Link href="/help" className="btn btn-gold inline-flex items-center gap-2 px-6">
+              🆘 Help & Support
+            </Link>
           </div>
         </div>
       </section>

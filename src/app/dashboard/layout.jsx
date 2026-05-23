@@ -8,6 +8,7 @@ const items = [
   { href: '/dashboard', label: 'Overview', icon: '📊' },
   { href: '/dashboard/orders', label: 'My Orders', icon: '🧾' },
   { href: '/dashboard/registrations', label: 'My Tickets', icon: '🎫' },
+  { href: '/dashboard/support', label: 'Help & Support', icon: '🆘' },
 ];
 
 export default function DashLayout({ children }) {
