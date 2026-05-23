@@ -72,6 +72,14 @@ export default function CompleteProfilePage() {
           <h1 className="section-title mb-2">Complete Your Profile</h1>
           <p className="text-charcoal-400">Ticket ID: <span className="text-terra-400 font-mono">{ticketId}</span></p>
           <p className="text-charcoal-400 mt-2">{registration.event?.title}</p>
+          <div className="mt-4 flex justify-center">
+            <Link
+              href={`/help?bookingTicketId=${ticketId}`}
+              className="inline-flex items-center gap-2 text-sm text-charcoal-400 hover:text-terra-400 border border-charcoal-700 hover:border-terra-500/40 px-4 py-2 rounded-xl transition"
+            >
+              🆘 Need help? Contact Support
+            </Link>
+          </div>
         </div>
 
         {(registration.registrationType === 'individual' || registration.registrationType === 'visitor') && (

@@ -1,6 +1,6 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useMeQuery } from '@/store/api';
 import Link from 'next/link';
 
@@ -21,9 +21,19 @@ const FAQS = [
   { q: "I didn't receive a confirmation email.", a: "Check your spam/junk folder. If you still can't find it, raise a ticket and we'll resend the confirmation." },
 ];
 
-export default function HelpPage() {
+// Separated into its own component so it can be wrapped in <Suspense>
+// (useSearchParams() cannot run during static prerender without a boundary)
+function SearchParamPrefill({ onPrefill }) {
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const tid = searchParams.get('bookingTicketId');
+    if (tid) onPrefill(tid);
+  }, [searchParams, onPrefill]);
+  return null;
+}
+
+function HelpPageInner() {
   const { data: meData } = useMeQuery();
-  const router = useRouter();
   const [form, setForm] = useState({
     name: '', email: '', phone: '', subject: '', category: 'general', message: '', bookingTicketId: '',
   });
@@ -31,6 +41,10 @@ export default function HelpPage() {
   const [submitted, setSubmitted] = useState(null);
   const [error, setError] = useState('');
   const [openFaq, setOpenFaq] = useState(null);
+
+  const handlePrefill = (tid) => {
+    setForm((prev) => ({ ...prev, bookingTicketId: tid, category: 'booking' }));
+  };
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -89,9 +103,7 @@ export default function HelpPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               {meData?.user && (
-                <Link href="/dashboard/support" className="btn btn-gold">
-                  View My Tickets
-                </Link>
+                <Link href="/dashboard/support" className="btn btn-gold">View My Tickets</Link>
               )}
               <Link href="/" className="btn btn-outline">Go Home</Link>
             </div>
@@ -103,6 +115,11 @@ export default function HelpPage() {
 
   return (
     <div className="min-h-screen pt-32 pb-20">
+      {/* Reads ?bookingTicketId= and pre-fills the form — needs Suspense */}
+      <Suspense fallback={null}>
+        <SearchParamPrefill onPrefill={handlePrefill} />
+      </Suspense>
+
       <div className="container-x max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
@@ -240,7 +257,7 @@ export default function HelpPage() {
               <div className="mt-6 card p-4 bg-terra-500/5 border border-terra-500/20">
                 <h4 className="font-semibold text-terra-400 mb-1">View your previous tickets</h4>
                 <p className="text-xs text-charcoal-400 mb-3">Track replies and manage your open support requests.</p>
-                <Link href="/dashboard/support" className="btn btn-outline btn-sm text-xs px-4 py-2">
+                <Link href="/dashboard/support" className="btn btn-outline text-xs px-4 py-2">
                   My Support Tickets →
                 </Link>
               </div>
@@ -250,4 +267,8 @@ export default function HelpPage() {
       </div>
     </div>
   );
+}
+
+export default function HelpPage() {
+  return <HelpPageInner />;
 }

@@ -486,7 +486,7 @@ export default function GroupProfileForm({ registration, userEmail }) {
             <h3 className="text-xl font-display mb-4">Identity & Motorcycle Details - {currentMember.name}</h3>
             
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-3 mb-4">
-              <p className="text-sm text-yellow-400">📸 Upload clear, high-resolution files (JPG/PNG/PDF, max 5MB)</p>
+              <p className="text-sm text-yellow-400">📸 Upload clear, high-resolution files (JPG/PNG/PDF, max 3MB)</p>
             </div>
             
             <FileUpload
