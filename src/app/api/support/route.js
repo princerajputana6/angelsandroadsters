@@ -41,7 +41,7 @@ export async function POST(req) {
               ${bookingTicketId ? `<p style="margin:4px 0"><strong>Booking Ref:</strong> ${bookingTicketId}</p>` : ''}
             </div>
             <p>You can track your ticket status by logging into your account.</p>
-            <p style="margin-top:24px;font-size:13px;color:#666">— Angels & Roadsters Support Team<br>info@angelsandroadsters.com | +91 8384099474</p>
+            <p style="margin-top:24px;font-size:13px;color:#666">— Angels & Roadsters Support Team<br>support@angelsandroadsters.com</p>
           </div>
         </div>
       `,

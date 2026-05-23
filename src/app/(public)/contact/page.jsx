@@ -13,8 +13,8 @@ export default function ContactPage() {
       <p className="text-charcoal-400 mt-3">Have a question, a partnership idea, or want to host an event with us?</p>
       <p className="mt-4 text-sm text-charcoal-300">
         Email us at{' '}
-        <a href="mailto:info@angelsandroadsters.com" className="text-terra-400 hover:underline">
-          info@angelsandroadsters.com
+        <a href="mailto:support@angelsandroadsters.com" className="text-terra-400 hover:underline">
+          support@angelsandroadsters.com
         </a>
       </p>
       <div className="flex flex-wrap items-center gap-3 mt-3">

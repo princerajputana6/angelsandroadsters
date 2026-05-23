@@ -114,7 +114,7 @@ export async function sendOrderConfirmation({ order, userEmail, userName }) {
         </div>
 
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 14px;">
-          <p>Need help? Contact us at <a href="mailto:info@angelsandroadsters.com" style="color: #d97706;">info@angelsandroadsters.com</a></p>
+          <p>Need help? Contact us at <a href="mailto:support@angelsandroadsters.com" style="color: #d97706;">support@angelsandroadsters.com</a></p>
           <p style="margin-top: 15px;">&copy; ${new Date().getFullYear()} ${COMPANY_NAME}. All rights reserved.</p>
         </div>
       </div>
@@ -168,7 +168,7 @@ export async function sendOrderStatusUpdate({ order, userEmail, userName, newSta
         </div>
 
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 14px;">
-          <p>Need help? Contact us at <a href="mailto:info@angelsandroadsters.com" style="color: #d97706;">info@angelsandroadsters.com</a></p>
+          <p>Need help? Contact us at <a href="mailto:support@angelsandroadsters.com" style="color: #d97706;">support@angelsandroadsters.com</a></p>
           <p style="margin-top: 15px;">&copy; ${new Date().getFullYear()} ${COMPANY_NAME}. All rights reserved.</p>
         </div>
       </div>
@@ -272,10 +272,7 @@ export async function sendEventRegistrationConfirmation({ registration, event, u
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 14px;">
           <p style="margin: 10px 0; font-size: 15px;"><strong>For any enquiry, feel free to reach us:</strong></p>
           <p style="margin: 5px 0;">
-            <a href="mailto:info@angelsandroadsters.com" style="color: #d97706; text-decoration: none;">info@angelsandroadsters.com</a>
-          </p>
-          <p style="margin: 5px 0;">
-            <a href="tel:+918384099474" style="color: #d97706; text-decoration: none;">+91 8384099474</a>
+            <a href="mailto:support@angelsandroadsters.com" style="color: #d97706; text-decoration: none;">support@angelsandroadsters.com</a>
           </p>
           <p style="margin-top: 15px;">&copy; ${new Date().getFullYear()} ${COMPANY_NAME}. All rights reserved.</p>
         </div>
@@ -324,7 +321,7 @@ export async function sendEventRegistrationUpdate({ registration, event, userEma
         </div>
 
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 14px;">
-          <p>Need help? Contact us at <a href="mailto:info@angelsandroadsters.com" style="color: #d97706;">info@angelsandroadsters.com</a></p>
+          <p>Need help? Contact us at <a href="mailto:support@angelsandroadsters.com" style="color: #d97706;">support@angelsandroadsters.com</a></p>
           <p style="margin-top: 15px;">&copy; ${new Date().getFullYear()} ${COMPANY_NAME}. All rights reserved.</p>
         </div>
       </div>

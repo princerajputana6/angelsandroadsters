@@ -221,7 +221,7 @@ function HelpPageInner() {
               </form>
 
               <div className="mt-6 pt-5 border-t border-charcoal-800 space-y-2 text-sm text-charcoal-400">
-                <p>📧 <a href="mailto:info@angelsandroadsters.com" className="text-terra-400 hover:underline">info@angelsandroadsters.com</a></p>
+                <p>📧 <a href="mailto:support@angelsandroadsters.com" className="text-terra-400 hover:underline">support@angelsandroadsters.com</a></p>
                 <p>📞 <a href="tel:+918384099474" className="text-terra-400 hover:underline">+91 83840 99474</a></p>
                 <p>🕐 Response time: 24–48 hours</p>
               </div>

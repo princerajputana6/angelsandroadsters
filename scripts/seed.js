@@ -118,7 +118,7 @@ async function main() {
       cover: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=1600',
       city: 'Manali', state: 'Himachal Pradesh',
       start: '2026-06-15', end: '2026-06-19',
-      priceIndiv: 12500, priceGroupBase: 9999, priceGroupPerHead: 9500, priceVisitor: 500,
+      priceIndiv: 4000, priceGroupBase: 10000, priceGroupPerHead: 0, priceVisitor: 800,
       highlights: ['Rohtang Pass crossing', 'Lake Pangong campout', 'Expert ride marshals', 'Mechanical support', 'Daily group dinners'],
     },
     {
@@ -128,7 +128,7 @@ async function main() {
       cover: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1600',
       city: 'Munnar', state: 'Kerala',
       start: '2026-07-22', end: '2026-07-24',
-      priceIndiv: 6500, priceGroupBase: 5500, priceGroupPerHead: 5000, priceVisitor: 0,
+      priceIndiv: 4000, priceGroupBase: 10000, priceGroupPerHead: 0, priceVisitor: 800,
       highlights: ['Forest stays', 'Local guides', 'All meals included', 'Trekking gear provided'],
     },
     {
@@ -138,7 +138,7 @@ async function main() {
       cover: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1600',
       city: 'Bangalore', state: 'Karnataka',
       start: '2026-08-10', end: '2026-08-12',
-      priceIndiv: 299, priceGroupBase: 0, priceGroupPerHead: 0, priceVisitor: 0,
+      priceIndiv: 4000, priceGroupBase: 10000, priceGroupPerHead: 0, priceVisitor: 800,
       highlights: ['80+ brand booths', 'Live gear testing', 'Industry talks', 'Door prizes'],
     },
   ];
