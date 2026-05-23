@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useCompleteProfileMutation } from '@/store/api';
 import { useRouter } from 'next/navigation';
 import FileUpload from '@/components/FileUpload';
+import IndianLocationPicker from '@/components/IndianLocationPicker';
 
 export default function GroupProfileForm({ registration, userEmail }) {
   const router = useRouter();
@@ -420,24 +421,15 @@ export default function GroupProfileForm({ registration, userEmail }) {
                   disabled 
                 />
               </div>
-              <div>
-                <label className="block text-sm mb-1">City *</label>
-                <input 
-                  type="text" 
-                  value={currentMember.city} 
-                  onChange={(e) => handleMemberChange('city', e.target.value)} 
-                  required 
-                  className="input" 
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">State *</label>
-                <input 
-                  type="text" 
-                  value={currentMember.state} 
-                  onChange={(e) => handleMemberChange('state', e.target.value)} 
-                  required 
-                  className="input" 
+              <div className="md:col-span-2">
+                <IndianLocationPicker
+                  state={currentMember.state}
+                  city={currentMember.city}
+                  onStateChange={(val) => handleMemberChange('state', val)}
+                  onCityChange={(val) => handleMemberChange('city', val)}
+                  required
+                  stateLabel="State"
+                  cityLabel="City"
                 />
               </div>
               <div>

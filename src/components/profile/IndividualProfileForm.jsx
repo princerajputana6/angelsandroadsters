@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useCompleteProfileMutation } from '@/store/api';
 import { useRouter } from 'next/navigation';
 import FileUpload from '@/components/FileUpload';
+import IndianLocationPicker from '@/components/IndianLocationPicker';
 
 const STEPS = [
   { id: 1, title: 'Personal & Contact', icon: 'user' },
@@ -262,13 +263,16 @@ export default function IndividualProfileForm({ registration }) {
                 <label className="block text-sm mb-1">Email *</label>
                 <input type="email" name="email" value={formData.email} onChange={handleChange} required className="input" disabled />
               </div>
-              <div>
-                <label className="block text-sm mb-1">City *</label>
-                <input type="text" name="city" value={formData.city} onChange={handleChange} required className="input" />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">State *</label>
-                <input type="text" name="state" value={formData.state} onChange={handleChange} required className="input" />
+              <div className="md:col-span-2">
+                <IndianLocationPicker
+                  state={formData.state}
+                  city={formData.city}
+                  onStateChange={(val) => setFormData((prev) => ({ ...prev, state: val }))}
+                  onCityChange={(val) => setFormData((prev) => ({ ...prev, city: val }))}
+                  required
+                  stateLabel="State"
+                  cityLabel="City"
+                />
               </div>
               <div>
                 <label className="block text-sm mb-1">Pincode *</label>

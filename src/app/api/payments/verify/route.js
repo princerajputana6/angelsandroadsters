@@ -1,8 +1,10 @@
 import { connectDB } from '@/lib/db';
 import Order from '@/lib/models/Order';
 import Registration from '@/lib/models/Registration';
+import Event from '@/lib/models/Event';
 import { verifySignature } from '@/lib/razorpay';
-import { ok, fail, handler } from '@/lib/apiUtils';
+import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
+import { sendEventRegistrationConfirmation } from '@/lib/email';
 
 export async function POST(req) {
   return handler(async () => {
@@ -48,6 +50,30 @@ export async function POST(req) {
       reg.status = 'confirmed';
       reg.paymentId = razorpay_payment_id;
       await reg.save();
+
+      // Send confirmation email now that payment is verified
+      try {
+        const event = await Event.findById(reg.event).lean();
+        if (event) {
+          const memberEmails = (reg.members || []).map((m) => m?.email).filter(Boolean);
+          const recipientEmail = reg.registrationType === 'group'
+            ? memberEmails.join(',')
+            : reg.email;
+          const userName = reg.name || reg.groupName || memberEmails[0] || 'Rider';
+
+          if (recipientEmail) {
+            sendEventRegistrationConfirmation({
+              registration: toJSON(reg),
+              event: toJSON(event),
+              userEmail: recipientEmail,
+              userName,
+            }).catch(err => console.error('[Payment/Verify] Email send failed:', err.message));
+          }
+        }
+      } catch (emailErr) {
+        // Don't fail the verify response if email errors
+        console.error('[Payment/Verify] Error sending email:', emailErr.message);
+      }
     }
 
     return ok({ verified: true });

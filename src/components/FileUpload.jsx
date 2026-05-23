@@ -1,18 +1,23 @@
 'use client';
 import { useState, useRef } from 'react';
 
-export default function FileUpload({ 
-  label, 
-  accept = "image/*,.pdf", 
-  maxSize = 5 * 1024 * 1024, // 5MB default
-  value, 
-  onChange, 
+/**
+ * FileUpload — uploads via /api/upload (→ Cloudinary) and returns a URL.
+ * The old base64 path is kept as a fallback only when uploadToServer=false.
+ */
+export default function FileUpload({
+  label,
+  accept = 'image/*,.pdf',
+  maxSize = 5 * 1024 * 1024, // 5 MB default
+  value,
+  onChange,
   required = false,
   description,
-  uploadToServer = false // New prop to choose upload method
+  uploadToServer = true, // Default: always upload to server (Cloudinary)
 }) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef(null);
 
   const uploadToServerAPI = async (file) => {
@@ -25,7 +30,7 @@ export default function FileUpload({
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json().catch(() => ({ error: 'Upload failed' }));
       throw new Error(error.error || 'Upload failed');
     }
 
@@ -33,30 +38,25 @@ export default function FileUpload({
     return result.url;
   };
 
-  const convertToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
+  const convertToBase64 = (file) =>
+    new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => resolve(e.target.result);
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-  };
 
   const handleFileSelect = async (file) => {
     if (!file) return;
 
-    // Validate file size
     if (file.size > maxSize) {
-      alert(`File size must be less than ${Math.round(maxSize / 1024 / 1024)}MB`);
+      alert(`File size must be less than ${Math.round(maxSize / 1024 / 1024)} MB`);
       return;
     }
 
-    // Validate file type
-    const acceptedTypes = accept.split(',').map(type => type.trim());
-    const isValidType = acceptedTypes.some(type => {
-      if (type.startsWith('.')) {
-        return file.name.toLowerCase().endsWith(type.toLowerCase());
-      }
+    const acceptedTypes = accept.split(',').map((t) => t.trim());
+    const isValidType = acceptedTypes.some((type) => {
+      if (type.startsWith('.')) return file.name.toLowerCase().endsWith(type.toLowerCase());
       return file.type.match(type.replace('*', '.*'));
     });
 
@@ -66,23 +66,28 @@ export default function FileUpload({
     }
 
     setUploading(true);
+    setUploadProgress(0);
+
+    // Fake progress for better UX
+    const progressInterval = setInterval(() => {
+      setUploadProgress((p) => Math.min(p + 10, 85));
+    }, 200);
 
     try {
       let fileUrl;
-      
       if (uploadToServer) {
-        // Upload to server
         fileUrl = await uploadToServerAPI(file);
       } else {
-        // Convert to base64
         fileUrl = await convertToBase64(file);
       }
-
+      setUploadProgress(100);
       onChange(fileUrl);
     } catch (error) {
       alert('Upload failed: ' + error.message);
     } finally {
+      clearInterval(progressInterval);
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -90,9 +95,7 @@ export default function FileUpload({
     e.preventDefault();
     setDragOver(false);
     const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      handleFileSelect(files[0]);
-    }
+    if (files.length > 0) handleFileSelect(files[0]);
   };
 
   const handleDragOver = (e) => {
@@ -105,51 +108,26 @@ export default function FileUpload({
     setDragOver(false);
   };
 
-  const handleClick = () => {
-    fileInputRef.current?.click();
-  };
-
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
+    if (file) handleFileSelect(file);
   };
 
   const removeFile = () => {
     onChange('');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const getFileName = () => {
     if (!value) return null;
-    if (value.startsWith('data:')) {
-      return 'uploaded-file';
-    }
-    if (value.startsWith('/uploads/')) {
-      return value.split('/').pop();
-    }
-    return value.split('/').pop();
+    if (value.startsWith('data:')) return 'uploaded-file';
+    return value.split('/').pop().split('?')[0];
   };
 
   const isImage = (url) => {
     if (!url) return false;
     if (url.startsWith('data:image/')) return true;
-    return /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
-  };
-
-  const getFileSize = () => {
-    if (!value || !value.startsWith('data:')) return null;
-    
-    // Estimate base64 size
-    const base64Length = value.split(',')[1]?.length || 0;
-    const sizeInBytes = (base64Length * 3) / 4;
-    
-    if (sizeInBytes < 1024) return `${Math.round(sizeInBytes)} B`;
-    if (sizeInBytes < 1024 * 1024) return `${Math.round(sizeInBytes / 1024)} KB`;
-    return `${Math.round(sizeInBytes / 1024 / 1024)} MB`;
+    return /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(url);
   };
 
   return (
@@ -157,10 +135,8 @@ export default function FileUpload({
       <label className="block text-sm font-medium">
         {label} {required && <span className="text-red-400">*</span>}
       </label>
-      
-      {description && (
-        <p className="text-xs text-charcoal-400">{description}</p>
-      )}
+
+      {description && <p className="text-xs text-charcoal-400">{description}</p>}
 
       <input
         ref={fileInputRef}
@@ -172,34 +148,32 @@ export default function FileUpload({
 
       {!value ? (
         <div
-          onClick={handleClick}
+          onClick={() => !uploading && fileInputRef.current?.click()}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
-          className={`
-            border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
-            ${dragOver 
-              ? 'border-terra-400 bg-terra-400/10' 
-              : 'border-charcoal-600 hover:border-charcoal-500'
-            }
-            ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
+          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors
+            ${dragOver ? 'border-terra-400 bg-terra-400/10' : 'border-charcoal-600 hover:border-charcoal-500'}
+            ${uploading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
           `}
         >
           {uploading ? (
-            <div className="space-y-2">
-              <div className="animate-spin w-6 h-6 border-2 border-terra-400 border-t-transparent rounded-full mx-auto"></div>
-              <p className="text-sm text-charcoal-400">
-                {uploadToServer ? 'Uploading to server...' : 'Processing file...'}
-              </p>
+            <div className="space-y-3">
+              <div className="animate-spin w-6 h-6 border-2 border-terra-400 border-t-transparent rounded-full mx-auto" />
+              <p className="text-sm text-charcoal-400">Uploading… {uploadProgress}%</p>
+              <div className="w-full bg-charcoal-700 rounded-full h-1.5">
+                <div
+                  className="bg-terra-500 h-1.5 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
             </div>
           ) : (
             <div className="space-y-2">
               <div className="text-3xl">📁</div>
-              <p className="text-sm text-charcoal-300">
-                Click to upload or drag and drop
-              </p>
+              <p className="text-sm text-charcoal-300">Click to upload or drag and drop</p>
               <p className="text-xs text-charcoal-500">
-                Max size: {Math.round(maxSize / 1024 / 1024)}MB
+                Max size: {Math.round(maxSize / 1024 / 1024)} MB
               </p>
               <p className="text-xs text-charcoal-500">
                 Accepted: {accept.replace(/\*/g, 'all')}
@@ -212,10 +186,10 @@ export default function FileUpload({
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               {isImage(value) ? (
-                <img 
-                  src={value} 
-                  alt="Preview" 
-                  className="w-12 h-12 object-cover rounded border"
+                <img
+                  src={value}
+                  alt="Preview"
+                  className="w-12 h-12 object-cover rounded border border-charcoal-700"
                 />
               ) : (
                 <div className="w-12 h-12 bg-charcoal-700 rounded flex items-center justify-center">
@@ -223,21 +197,16 @@ export default function FileUpload({
                 </div>
               )}
               <div>
-                <p className="text-sm font-medium text-charcoal-200">
+                <p className="text-sm font-medium text-charcoal-200 break-all max-w-xs truncate">
                   {getFileName()}
                 </p>
-                <div className="flex items-center space-x-2">
-                  <p className="text-xs text-green-400">✓ Uploaded</p>
-                  {getFileSize() && (
-                    <p className="text-xs text-charcoal-500">({getFileSize()})</p>
-                  )}
-                </div>
+                <p className="text-xs text-green-400">✓ Uploaded</p>
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 shrink-0">
               <button
                 type="button"
-                onClick={handleClick}
+                onClick={() => fileInputRef.current?.click()}
                 className="text-xs text-terra-400 hover:text-terra-300 px-2 py-1 rounded border border-terra-400/30"
               >
                 Replace

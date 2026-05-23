@@ -10,6 +10,12 @@ const nextConfig = {
       { protocol: 'https', hostname: 'cdn.pixabay.com' },
     ],
   },
+  // Increase body size limit so profile completions with image data aren't rejected
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
 };
 
 module.exports = nextConfig;

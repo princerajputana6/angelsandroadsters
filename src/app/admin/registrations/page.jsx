@@ -2,6 +2,71 @@
 import React, { useEffect, useState } from 'react';
 import { useListEventsQuery } from '@/store/api';
 
+/** Small card to view/download an image or PDF uploaded by registrants */
+function AdminImageCard({ label, url, name }) {
+  if (!url) return null;
+
+  const isPdf = url.toLowerCase().includes('.pdf') || url.startsWith('data:application/pdf');
+  const ext = isPdf ? 'pdf' : (url.split('.').pop().split('?')[0] || 'jpg');
+  const downloadName = `${name}.${ext}`;
+
+  const handleDownload = async () => {
+    try {
+      // If it's a data URL, download directly
+      if (url.startsWith('data:')) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = downloadName;
+        a.click();
+        return;
+      }
+      // Remote URL — fetch as blob first to force download
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = downloadName;
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      // Fallback: open in new tab
+      window.open(url, '_blank');
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-1 text-xs">
+      <span className="text-charcoal-400 mb-1">{label}</span>
+      {isPdf ? (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-20 h-20 bg-charcoal-700 rounded flex flex-col items-center justify-center gap-1 border border-charcoal-600 hover:border-terra-400 transition"
+        >
+          <span className="text-2xl">📄</span>
+          <span className="text-charcoal-400 text-[10px]">PDF</span>
+        </a>
+      ) : (
+        <a href={url} target="_blank" rel="noopener noreferrer">
+          <img
+            src={url}
+            alt={label}
+            className="w-20 h-20 object-cover rounded border border-charcoal-600 hover:border-terra-400 transition cursor-pointer"
+          />
+        </a>
+      )}
+      <button
+        onClick={handleDownload}
+        className="text-[10px] text-terra-400 hover:text-terra-300 underline mt-0.5"
+      >
+        ⬇ Download
+      </button>
+    </div>
+  );
+}
+
 export default function AdminRegistrationsPage() {
   const { data } = useListEventsQuery();
   const [selected, setSelected] = useState('');
@@ -195,6 +260,14 @@ export default function AdminRegistrationsPage() {
                                     <span className="text-charcoal-400">Captain Email:</span> {r.teamCaptainEmail || r.groupLeader?.email}<br/>
                                     <span className="text-charcoal-400">Captain Phone:</span> {r.teamCaptainMobile || r.groupLeader?.phone}
                                   </div>
+                                  {/* Team photo */}
+                                  {r.teamPhoto && (
+                                    <div className="mb-4">
+                                      <h5 className="font-semibold text-charcoal-300 mb-2 text-xs uppercase tracking-wider">Team Photo</h5>
+                                      <AdminImageCard label="Team Photo" url={r.teamPhoto} name={`${r.groupName || r.ticketId}-team-photo`} />
+                                    </div>
+                                  )}
+
                                   <div className="overflow-x-auto">
                                     <table className="w-full text-xs">
                                       <thead className="bg-charcoal-800/30">
@@ -207,6 +280,7 @@ export default function AdminRegistrationsPage() {
                                           <th className="text-left p-2">Bike</th>
                                           <th className="text-left p-2">Experience</th>
                                           <th className="text-left p-2">Emergency</th>
+                                          <th className="text-left p-2">Photos</th>
                                           <th className="text-left p-2">Profile</th>
                                         </tr>
                                       </thead>
@@ -219,8 +293,8 @@ export default function AdminRegistrationsPage() {
                                             <td className="p-2">{m.age || '-'}</td>
                                             <td className="p-2">{m.bloodGroup || '-'}</td>
                                             <td className="p-2">
-                                              {m.motorcycleBrand && m.motorcycleModel ? 
-                                                `${m.motorcycleBrand} ${m.motorcycleModel}` : 
+                                              {m.motorcycleBrand && m.motorcycleModel ?
+                                                `${m.motorcycleBrand} ${m.motorcycleModel}` :
                                                 m.bikeDetails || '-'
                                               }
                                               {m.engineCC && <div className="text-charcoal-500">{m.engineCC}</div>}
@@ -234,6 +308,12 @@ export default function AdminRegistrationsPage() {
                                                   <div className="text-charcoal-500">{m.emergencyContactNumber}</div>
                                                 </div>
                                               )}
+                                            </td>
+                                            <td className="p-2">
+                                              <div className="flex gap-2">
+                                                <AdminImageCard label="Photo" url={m.riderPhoto} name={`${m.name || i}-rider`} />
+                                                <AdminImageCard label="ID" url={m.governmentIdProof} name={`${m.name || i}-id`} />
+                                              </div>
                                             </td>
                                             <td className="p-2">
                                               {m.profileCompleted ? (
@@ -284,6 +364,18 @@ export default function AdminRegistrationsPage() {
                                     <div><span className="text-charcoal-400">Emergency Phone:</span> {r.emergencyContactNumber || '-'}</div>
                                     <div><span className="text-charcoal-400">WhatsApp:</span> {r.whatsappNumber || '-'}</div>
                                   </div>
+
+                                  {/* Uploaded Images */}
+                                  {(r.riderPhoto || r.governmentIdProof) && (
+                                    <div className="mt-4">
+                                      <h5 className="font-semibold text-charcoal-300 mb-3 text-xs uppercase tracking-wider">Uploaded Documents</h5>
+                                      <div className="flex flex-wrap gap-4">
+                                        <AdminImageCard label="Rider Photo" url={r.riderPhoto} name={`${r.name || r.ticketId}-rider-photo`} />
+                                        <AdminImageCard label="ID Proof" url={r.governmentIdProof} name={`${r.name || r.ticketId}-id-proof`} />
+                                      </div>
+                                    </div>
+                                  )}
+
                                   {(r.medicalConditions || r.allergies) && (
                                     <div className="mt-4 p-3 bg-charcoal-800/30 rounded">
                                       <h5 className="font-semibold text-charcoal-300 mb-2">Medical Information</h5>

@@ -91,24 +91,27 @@ export async function POST(req) {
     reg.qrCode = await generateQRDataUrl(bookingUrl);
     await reg.save();
 
-    // For group bookings, send the confirmation to every member; otherwise
-    // send it to the single registrant's email.
-    const memberEmails = (body.members || [])
-      .map((m) => m?.email)
-      .filter(Boolean);
-    const recipientEmail = registrationType === 'group'
-      ? memberEmails.join(',')
-      : body.email;
+    // Send confirmation email only for FREE registrations immediately.
+    // For PAID registrations, the email is sent after payment is verified
+    // in /api/payments/verify — we never email before money is collected.
+    if (amount === 0) {
+      const memberEmails = (body.members || [])
+        .map((m) => m?.email)
+        .filter(Boolean);
+      const recipientEmail = registrationType === 'group'
+        ? memberEmails.join(',')
+        : body.email;
 
-    if (recipientEmail) {
-      sendEventRegistrationConfirmation({
-        registration: toJSON(reg),
-        event: toJSON(event),
-        userEmail: recipientEmail,
-        userName: body.name || body.groupName || memberEmails[0] || 'Rider',
-      }).catch(err => console.error('[Registration] Email send failed:', err.message));
-    } else {
-      console.warn('[Registration] No recipient email — confirmation not sent.');
+      if (recipientEmail) {
+        sendEventRegistrationConfirmation({
+          registration: toJSON(reg),
+          event: toJSON(event),
+          userEmail: recipientEmail,
+          userName: body.name || body.groupName || memberEmails[0] || 'Rider',
+        }).catch(err => console.error('[Registration] Email send failed:', err.message));
+      } else {
+        console.warn('[Registration] No recipient email — confirmation not sent.');
+      }
     }
 
     return ok({ registration: toJSON(reg), remainingAfter: remaining - 1 }, 201);
