@@ -16,6 +16,15 @@ const nextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+  async redirects() {
+    return [
+      {
+        source: '/trailstorm',
+        destination: '/trailstorm/2026-jaisalmer-trailstorm-event',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
