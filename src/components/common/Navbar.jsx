@@ -13,6 +13,7 @@ const TRAILSTORM_HREF = '/trailstorm/2026-jaisalmer-trailstorm-event';
 const NAV = [
   { href: '/', label: 'Home' },
   { href: '/shop', label: 'Shop' },
+  { href: '/blog', label: 'Blog' },
   { href: '/about', label: 'About' },
   { href: '/contact', label: 'Contact' },
 ];

@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: '/api', credentials: 'include' }),
-  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats'],
+  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog'],
   endpoints: (b) => ({
     // Auth
     me: b.query({ query: () => '/auth/me', providesTags: ['Auth'] }),
@@ -115,6 +115,35 @@ export const api = createApi({
       query: (body) => ({ url: '/reviews', method: 'POST', body }),
       invalidatesTags: ['Product'],
     }),
+
+    // Blogs
+    listBlogs: b.query({
+      query: (params = {}) => ({ url: '/blogs', params }),
+      providesTags: ['Blogs'],
+    }),
+    getBlog: b.query({
+      query: (id) => `/blogs/${id}`,
+      providesTags: (_r, _e, id) => [{ type: 'Blog', id }],
+    }),
+    getBlogBySlug: b.query({
+      query: (slug) => `/blogs/slug/${slug}`,
+      providesTags: (_r, _e, slug) => [{ type: 'Blog', id: slug }],
+    }),
+    generateBlog: b.mutation({
+      query: (body) => ({ url: '/blogs/generate', method: 'POST', body }),
+    }),
+    createBlog: b.mutation({
+      query: (body) => ({ url: '/blogs', method: 'POST', body }),
+      invalidatesTags: ['Blogs'],
+    }),
+    updateBlog: b.mutation({
+      query: ({ id, body }) => ({ url: `/blogs/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['Blogs', 'Blog'],
+    }),
+    deleteBlog: b.mutation({
+      query: (id) => ({ url: `/blogs/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Blogs'],
+    }),
   }),
 });
 
@@ -127,4 +156,5 @@ export const {
   useCreateOrderMutation, useMyOrdersQuery, useListOrdersQuery, useUpdateOrderMutation,
   useAdminStatsQuery, useListUsersQuery, useUpdateUserMutation,
   useCreateReviewMutation,
+  useListBlogsQuery, useGetBlogQuery, useGetBlogBySlugQuery, useGenerateBlogMutation, useCreateBlogMutation, useUpdateBlogMutation, useDeleteBlogMutation,
 } = api;
