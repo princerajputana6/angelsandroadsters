@@ -43,9 +43,20 @@ export const api = createApi({
     }),
 
     // Categories
-    listCategories: b.query({ query: () => '/categories', providesTags: ['Categories'] }),
+    listCategories: b.query({
+      query: (params = {}) => ({ url: '/categories', params }),
+      providesTags: ['Categories'],
+    }),
     createCategory: b.mutation({
       query: (body) => ({ url: '/categories', method: 'POST', body }),
+      invalidatesTags: ['Categories'],
+    }),
+    updateCategory: b.mutation({
+      query: ({ id, body }) => ({ url: `/categories/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['Categories'],
+    }),
+    deleteCategory: b.mutation({
+      query: (id) => ({ url: `/categories/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Categories'],
     }),
 
@@ -150,7 +161,7 @@ export const api = createApi({
 export const {
   useMeQuery, useLoginMutation, useRegisterMutation, useLogoutMutation,
   useListProductsQuery, useGetProductQuery, useCreateProductMutation, useUpdateProductMutation, useDeleteProductMutation,
-  useListCategoriesQuery, useCreateCategoryMutation,
+  useListCategoriesQuery, useCreateCategoryMutation, useUpdateCategoryMutation, useDeleteCategoryMutation,
   useListEventsQuery, useGetEventQuery, useGetEventSlotsQuery, useCreateEventMutation, useUpdateEventMutation, useDeleteEventMutation,
   useCreateRegistrationMutation, useMyRegistrationsQuery, useGetRegistrationByTicketQuery, useCompleteProfileMutation,
   useCreateOrderMutation, useMyOrdersQuery, useListOrdersQuery, useUpdateOrderMutation,

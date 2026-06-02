@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 const NAV = [
   { href: '/admin', label: 'Dashboard', icon: '📊', exact: true },
   { href: '/admin/products', label: 'Products', icon: '📦' },
+  { href: '/admin/categories', label: 'Categories', icon: '🗂' },
   { href: '/admin/orders', label: 'Orders', icon: '🧾' },
   { href: '/admin/events', label: 'Events', icon: '🎪' },
   { href: '/admin/registrations', label: 'Registrations', icon: '🎫' },

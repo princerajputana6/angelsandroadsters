@@ -1,49 +1,91 @@
 'use client';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCreateProductMutation, useListCategoriesQuery, useCreateCategoryMutation } from '@/store/api';
-import toast from 'react-hot-toast';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
+import {
+  useCreateProductMutation,
+  useListCategoriesQuery,
+} from '@/store/api';
+import FileUpload from '@/components/FileUpload';
 
 export default function NewProductPage() {
   const router = useRouter();
-  const { data: catData, refetch } = useListCategoriesQuery();
+  const { data: catData } = useListCategoriesQuery();
   const [createProduct, { isLoading }] = useCreateProductMutation();
-  const [createCategory] = useCreateCategoryMutation();
+
   const [form, setForm] = useState({
-    name: '', description: '', brand: '', category: '', subCategory: '',
-    price: '', discountedPrice: '', stock: 0,
-    images: '', thumbnail: '', sizes: '', colors: '', tags: '',
-    isFeatured: false, isActive: true,
+    name: '',
+    description: '',
+    brand: '',
+    categoryId: '',     // top-level category id
+    subCategoryId: '',  // sub-category id (optional, only when parent has children)
+    price: '',
+    discountedPrice: '',
+    stock: 0,
+    thumbnail: '',
+    images: [],
+    sizes: '',
+    colors: '',
+    tags: '',
+    isFeatured: false,
+    isActive: true,
   });
-  const [newCat, setNewCat] = useState({ name: '', parent: 'riding' });
+
+  const allCats = catData?.categories || [];
+  const topLevels = useMemo(() => allCats.filter((c) => !c.parentCategory), [allCats]);
+  const subCategories = useMemo(() => {
+    if (!form.categoryId) return [];
+    return allCats.filter((c) => String(c.parentCategory) === String(form.categoryId));
+  }, [allCats, form.categoryId]);
+
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+
+  const onPickCategory = (e) => {
+    setForm({ ...form, categoryId: e.target.value, subCategoryId: '' });
+  };
+
+  const addImage = (url) => {
+    if (!url) return;
+    setForm((f) => ({ ...f, images: [...f.images, url] }));
+  };
+  const removeImage = (idx) => {
+    setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== idx) }));
+  };
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!form.categoryId) { toast.error('Pick a category'); return; }
+
+    // If a sub-category was chosen, use it as the leaf product.category;
+    // otherwise the top-level category is the leaf. Either way we also send
+    // a human-readable subCategory string for backwards compat.
+    const leafCategoryId = form.subCategoryId || form.categoryId;
+    const subCategoryName = form.subCategoryId
+      ? allCats.find((c) => String(c._id) === String(form.subCategoryId))?.name
+      : '';
+
     try {
       await createProduct({
-        ...form,
+        name: form.name,
+        description: form.description,
+        brand: form.brand,
+        category: leafCategoryId,
+        subCategory: subCategoryName || '',
         price: Number(form.price),
         discountedPrice: form.discountedPrice ? Number(form.discountedPrice) : undefined,
         stock: Number(form.stock),
-        images: form.images.split(',').map((s) => s.trim()).filter(Boolean),
+        thumbnail: form.thumbnail || form.images[0] || '',
+        images: form.images,
         sizes: form.sizes.split(',').map((s) => s.trim()).filter(Boolean),
         colors: form.colors.split(',').map((s) => s.trim()).filter(Boolean),
         tags: form.tags.split(',').map((s) => s.trim()).filter(Boolean),
+        isFeatured: form.isFeatured,
+        isActive: form.isActive,
       }).unwrap();
       toast.success('Product created');
       router.push('/admin/products');
     } catch (err) { toast.error(err?.data?.message || 'Failed'); }
-  };
-
-  const addCategory = async () => {
-    if (!newCat.name) return;
-    try {
-      await createCategory(newCat).unwrap();
-      toast.success('Category added');
-      setNewCat({ name: '', parent: 'riding' });
-      refetch();
-    } catch (e) { toast.error('Failed'); }
   };
 
   return (
@@ -51,53 +93,133 @@ export default function NewProductPage() {
       <div className="mb-6">
         <Link href="/admin/products" className="text-xs text-charcoal-400 hover:text-terra-400">← Back to Products</Link>
         <h1 className="text-3xl sm:text-4xl font-display mt-2">New Product</h1>
+        <p className="text-charcoal-400 text-sm mt-1">
+          Manage the category list on the <Link href="/admin/categories" className="text-terra-400 hover:text-terra-300">Categories page</Link>.
+        </p>
       </div>
 
       <form onSubmit={submit} className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div className="card p-5 sm:p-6 space-y-4">
-          <h3 className="font-display text-xl">Basics</h3>
-          <div><label className="label">Name</label><input className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-          <div><label className="label">Description</label><textarea className="input" rows="4" required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="label">Brand</label><input className="input" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} /></div>
-            <div><label className="label">Sub Category</label><input className="input" value={form.subCategory} onChange={(e) => setForm({ ...form, subCategory: e.target.value })} /></div>
-          </div>
-          <div>
-            <label className="label">Category</label>
-            <select className="input" required value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-              <option value="">Select category...</option>
-              {(catData?.categories || []).map((c) => <option key={c._id} value={c._id}>{c.parent} · {c.name}</option>)}
-            </select>
-            <div className="flex flex-col sm:flex-row gap-2 mt-3">
-              <input className="input flex-1" placeholder="New category name" value={newCat.name} onChange={(e) => setNewCat({ ...newCat, name: e.target.value })} />
-              <select className="input sm:w-32" value={newCat.parent} onChange={(e) => setNewCat({ ...newCat, parent: e.target.value })}>
-                <option value="riding">Riding</option>
-                <option value="travelling">Travelling</option>
-              </select>
-              <button type="button" onClick={addCategory} className="btn btn-outline">+ Add</button>
+        {/* LEFT: Basics + Category */}
+        <div className="space-y-5">
+          <div className="card p-5 sm:p-6 space-y-4">
+            <h3 className="font-display text-xl">Basics</h3>
+            <div>
+              <label className="label">Name</label>
+              <input className="input" required value={form.name} onChange={set('name')} />
             </div>
+            <div>
+              <label className="label">Description</label>
+              <textarea className="input" rows="4" required value={form.description} onChange={set('description')} />
+            </div>
+            <div>
+              <label className="label">Brand</label>
+              <input className="input" value={form.brand} onChange={set('brand')} />
+            </div>
+          </div>
+
+          <div className="card p-5 sm:p-6 space-y-4">
+            <h3 className="font-display text-xl">Category</h3>
+
+            <div>
+              <label className="label">Category <span className="text-red-400">*</span></label>
+              <select className="input" required value={form.categoryId} onChange={onPickCategory}>
+                <option value="">Select a category...</option>
+                {topLevels.map((c) => (
+                  <option key={c._id} value={c._id}>{c.parent} · {c.name}</option>
+                ))}
+              </select>
+              {topLevels.length === 0 && (
+                <p className="text-xs text-amber-400 mt-1">
+                  No categories yet. <Link href="/admin/categories" className="underline">Add one</Link>.
+                </p>
+              )}
+            </div>
+
+            {form.categoryId && (
+              <div>
+                <label className="label">Sub-category</label>
+                {subCategories.length > 0 ? (
+                  <>
+                    <select className="input" value={form.subCategoryId} onChange={set('subCategoryId')}>
+                      <option value="">— None —</option>
+                      {subCategories.map((s) => (
+                        <option key={s._id} value={s._id}>{s.name}</option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-charcoal-500 mt-1">Optional. Pick a sub-category if one fits.</p>
+                  </>
+                ) : (
+                  <p className="text-xs text-charcoal-500">
+                    No sub-categories for the selected category.
+                    {' '}<Link href="/admin/categories" className="text-terra-400 hover:text-terra-300 underline">Add one</Link>.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="card p-5 sm:p-6 space-y-4">
-          <h3 className="font-display text-xl">Pricing & Media</h3>
-          <div className="grid grid-cols-3 gap-3">
-            <div><label className="label">Price (₹)</label><input className="input" type="number" required value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} /></div>
-            <div><label className="label">Sale</label><input className="input" type="number" value={form.discountedPrice} onChange={(e) => setForm({ ...form, discountedPrice: e.target.value })} /></div>
-            <div><label className="label">Stock</label><input className="input" type="number" required value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} /></div>
+        {/* RIGHT: Pricing + Media */}
+        <div className="space-y-5">
+          <div className="card p-5 sm:p-6 space-y-4">
+            <h3 className="font-display text-xl">Pricing & stock</h3>
+            <div className="grid grid-cols-3 gap-3">
+              <div><label className="label">Price (₹)</label><input className="input" type="number" required value={form.price} onChange={set('price')} /></div>
+              <div><label className="label">Sale</label><input className="input" type="number" value={form.discountedPrice} onChange={set('discountedPrice')} /></div>
+              <div><label className="label">Stock</label><input className="input" type="number" required value={form.stock} onChange={set('stock')} /></div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div><label className="label">Sizes</label><input className="input" placeholder="S, M, L" value={form.sizes} onChange={set('sizes')} /></div>
+              <div><label className="label">Colors</label><input className="input" placeholder="Black, Red" value={form.colors} onChange={set('colors')} /></div>
+              <div><label className="label">Tags</label><input className="input" placeholder="helmet, dot" value={form.tags} onChange={set('tags')} /></div>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.isFeatured} onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })} />
+              <span className="text-sm">Featured product</span>
+            </label>
           </div>
-          <div><label className="label">Thumbnail URL</label><input className="input" placeholder="https://..." value={form.thumbnail} onChange={(e) => setForm({ ...form, thumbnail: e.target.value })} /></div>
-          <div><label className="label">Gallery URLs (comma-separated)</label><input className="input" value={form.images} onChange={(e) => setForm({ ...form, images: e.target.value })} /></div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div><label className="label">Sizes</label><input className="input" placeholder="S, M, L" value={form.sizes} onChange={(e) => setForm({ ...form, sizes: e.target.value })} /></div>
-            <div><label className="label">Colors</label><input className="input" placeholder="Black, Red" value={form.colors} onChange={(e) => setForm({ ...form, colors: e.target.value })} /></div>
-            <div><label className="label">Tags</label><input className="input" placeholder="helmet, dot" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} /></div>
+
+          <div className="card p-5 sm:p-6 space-y-4">
+            <h3 className="font-display text-xl">Images</h3>
+
+            <FileUpload
+              label="Thumbnail (main image)"
+              accept="image/*"
+              value={form.thumbnail}
+              onChange={(url) => setForm({ ...form, thumbnail: url })}
+              description="Shown in product listings. If empty, the first gallery image is used."
+            />
+
+            <div>
+              <label className="label">Gallery images</label>
+              <FileUpload
+                label=""
+                accept="image/*"
+                value=""
+                onChange={addImage}
+                description="Add multiple images, one at a time. Shown on the product page."
+              />
+              {form.images.length > 0 && (
+                <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {form.images.map((url, i) => (
+                    <div key={`${url}-${i}`} className="relative group rounded-lg overflow-hidden border border-charcoal-800 bg-charcoal-900">
+                      <img src={url} alt={`Gallery ${i + 1}`} className="w-full aspect-square object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        className="absolute top-1 right-1 bg-red-500/90 hover:bg-red-500 text-white text-xs w-6 h-6 rounded flex items-center justify-center"
+                        title="Remove"
+                      >✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={form.isFeatured} onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })} />
-            <span className="text-sm">Featured product</span>
-          </label>
-          <button type="submit" disabled={isLoading} className="btn btn-gold w-full h-12">{isLoading ? 'Saving...' : 'Create Product'}</button>
+
+          <button type="submit" disabled={isLoading} className="btn btn-gold w-full h-12">
+            {isLoading ? 'Saving...' : 'Create Product'}
+          </button>
         </div>
       </form>
     </div>
