@@ -48,6 +48,7 @@ export default function AdminEvents() {
                     <td className="p-3 text-terra-400 font-bold">₹{e.pricing?.individual || 0}</td>
                     <td className="p-3 text-right space-x-3">
                       <Link href={`/events/${e.slug}`} target="_blank" className="text-xs text-charcoal-400 hover:text-terra-400">View</Link>
+                      <Link href={`/admin/events/${e.slug}`} className="text-xs text-terra-400 hover:text-terra-300">Gallery</Link>
                       <button onClick={() => remove(e.slug)} className="text-xs text-red-400">Delete</button>
                     </td>
                   </tr>
@@ -73,8 +74,9 @@ export default function AdminEvents() {
                     <span>{new Date(e.startDate).toLocaleDateString()}</span>
                     <span className="text-terra-400 font-bold">₹{e.pricing?.individual || 0}</span>
                   </div>
-                  <div className="flex justify-between mt-3 pt-2 border-t border-charcoal-800">
+                  <div className="flex justify-between items-center mt-3 pt-2 border-t border-charcoal-800">
                     <Link href={`/events/${e.slug}`} target="_blank" className="text-xs text-charcoal-400">View →</Link>
+                    <Link href={`/admin/events/${e.slug}`} className="text-xs text-terra-400">Gallery</Link>
                     <button onClick={() => remove(e.slug)} className="text-xs text-red-400">Delete</button>
                   </div>
                 </div>

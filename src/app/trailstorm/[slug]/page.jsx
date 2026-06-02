@@ -3,6 +3,7 @@ import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useGetEventQuery, useGetEventSlotsQuery } from '@/store/api';
 import BookingWizard from '@/components/events/BookingWizard';
+import EventGallerySlider from '@/components/events/EventGallerySlider';
 import TrailstormMark from '@/components/common/TrailstormMark';
 import Link from 'next/link';
 
@@ -160,6 +161,9 @@ export default function TrailstormEventPage() {
           </motion.div>
         </div>
       </section>
+
+      {/* EVENT GALLERY SLIDER (admin-uploaded) */}
+      <EventGallerySlider images={event.gallery} title={event.galleryTitle} />
 
       {/* ABOUT */}
       <section id="details" className="container-x py-16 sm:py-20">

@@ -7,6 +7,7 @@ const eventSchema = new mongoose.Schema({
   description: { type: String, required: true },
   coverImage: String,
   gallery: [String],
+  galleryTitle: { type: String, default: '' },
   eventType: { type: String, enum: ['rally', 'trek', 'expedition', 'expo', 'workshop', 'meetup'], required: true },
   location: {
     venue: String,
