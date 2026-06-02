@@ -6,44 +6,22 @@ import {
   useCreateCategoryMutation,
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
+  useListSectionsQuery,
+  useCreateSectionMutation,
+  useDeleteSectionMutation,
 } from '@/store/api';
 import FileUpload from '@/components/FileUpload';
 
-function CategoryForm({ initial = {}, topLevels, existingSections = [], onCancel, onSubmit, submitLabel }) {
-  // Built-in defaults always available even if no categories exist yet
-  const SECTION_DEFAULTS = ['riding', 'travelling'];
-  const sectionOptions = Array.from(new Set([
-    ...SECTION_DEFAULTS,
-    ...existingSections,
-  ])).sort();
+function CategoryForm({ initial = {}, topLevels, sections, onCancel, onSubmit, submitLabel }) {
   const [f, setF] = useState({
     name: initial.name || '',
-    parent: initial.parent || sectionOptions[0] || 'riding',
+    parent: initial.parent || sections[0]?.name || '',
     parentCategory: initial.parentCategory || '',
     description: initial.description || '',
     image: initial.image || '',
   });
-  const [addingSection, setAddingSection] = useState(false);
-  const [newSection, setNewSection] = useState('');
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const isSub = Boolean(f.parentCategory);
-
-  const handleSectionChange = (e) => {
-    const v = e.target.value;
-    if (v === '__new__') {
-      setAddingSection(true);
-      setNewSection('');
-    } else {
-      setF({ ...f, parent: v });
-    }
-  };
-  const commitNewSection = () => {
-    const trimmed = newSection.trim().toLowerCase();
-    if (!trimmed) return;
-    setF({ ...f, parent: trimmed });
-    setAddingSection(false);
-    setNewSection('');
-  };
 
   const submit = (e) => {
     e.preventDefault();
@@ -56,6 +34,7 @@ function CategoryForm({ initial = {}, topLevels, existingSections = [], onCancel
       image: f.image || '',
     });
   };
+
   return (
     <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div className="sm:col-span-2">
@@ -63,27 +42,12 @@ function CategoryForm({ initial = {}, topLevels, existingSections = [], onCancel
         <input className="input" required value={f.name} onChange={set('name')} placeholder="e.g. Helmets, Off-road Helmets" />
       </div>
       <div>
-        <label className="label">Section</label>
-        {addingSection ? (
-          <div className="flex gap-2">
-            <input
-              className="input flex-1"
-              autoFocus
-              value={newSection}
-              onChange={(e) => setNewSection(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitNewSection(); } }}
-              placeholder="e.g. apparel, accessories"
-            />
-            <button type="button" onClick={commitNewSection} className="btn btn-gold h-10 px-4">Use</button>
-            <button type="button" onClick={() => setAddingSection(false)} className="btn btn-outline h-10 px-3">✕</button>
-          </div>
-        ) : (
-          <select className="input" value={f.parent} onChange={handleSectionChange}>
-            {sectionOptions.map((s) => <option key={s} value={s}>{s}</option>)}
-            <option value="__new__">+ Add new section…</option>
-          </select>
-        )}
-        <p className="text-[10px] text-charcoal-500 mt-1">A section groups categories at the top of the catalog (e.g. "riding", "travelling").</p>
+        <label className="label">Section <span className="text-red-400">*</span></label>
+        <select className="input" required value={f.parent} onChange={set('parent')}>
+          <option value="">Select a section…</option>
+          {sections.map((s) => <option key={s._id} value={s.name}>{s.name}</option>)}
+        </select>
+        <p className="text-[10px] text-charcoal-500 mt-1">Sections are managed at the top of this page.</p>
       </div>
       <div>
         <label className="label">Parent category (optional)</label>
@@ -107,7 +71,7 @@ function CategoryForm({ initial = {}, topLevels, existingSections = [], onCancel
           accept="image/*"
           value={f.image}
           onChange={(url) => setF({ ...f, image: url })}
-          description="Shown on the homepage 'Shop by Category' tiles. Use a tall/portrait photo for best results."
+          description="Shown on the homepage 'Shop by Category' tiles. A tall/portrait photo works best."
         />
       </div>
       <div className="sm:col-span-2 flex gap-2 justify-end">
@@ -120,26 +84,99 @@ function CategoryForm({ initial = {}, topLevels, existingSections = [], onCancel
   );
 }
 
+function SectionsManager({ sections, onAdd, onDelete }) {
+  const [name, setName] = useState('');
+  const submit = (e) => {
+    e.preventDefault();
+    const trimmed = name.trim().toLowerCase();
+    if (!trimmed) return;
+    onAdd(trimmed).then((ok) => { if (ok) setName(''); });
+  };
+  return (
+    <div className="card p-5 sm:p-6 mb-6">
+      <h2 className="font-display text-xl mb-1">Sections</h2>
+      <p className="text-xs text-charcoal-400 mb-4">
+        Sections group categories at the top of the catalog (e.g. <em>riding</em>, <em>travelling</em>, <em>accessories</em>).
+        You must create at least one section before you can add categories.
+      </p>
+
+      {sections.length > 0 ? (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {sections.map((s) => (
+            <span key={s._id} className="chip">
+              {s.name}
+              <button
+                type="button"
+                onClick={() => onDelete(s)}
+                className="text-red-400 hover:text-red-300 -mr-1 ml-1"
+                title="Delete section"
+              >✕</button>
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-dashed border-charcoal-700 p-5 text-center text-charcoal-400 text-sm mb-4">
+          No sections yet. Add one below to get started.
+        </div>
+      )}
+
+      <form onSubmit={submit} className="flex gap-2">
+        <input
+          className="input flex-1"
+          placeholder="New section name (e.g. apparel)"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={40}
+        />
+        <button type="submit" className="btn btn-gold h-10 px-5">+ Add section</button>
+      </form>
+    </div>
+  );
+}
+
 export default function AdminCategoriesPage() {
-  const { data, isLoading } = useListCategoriesQuery();
+  const { data: catData, isLoading } = useListCategoriesQuery();
+  const { data: secData } = useListSectionsQuery();
   const [createCategory] = useCreateCategoryMutation();
   const [updateCategory] = useUpdateCategoryMutation();
   const [deleteCategory] = useDeleteCategoryMutation();
+  const [createSection] = useCreateSectionMutation();
+  const [deleteSection] = useDeleteSectionMutation();
   const [editingId, setEditingId] = useState(null);
 
-  const cats = data?.categories || [];
-  const { topLevels, subsByParent, existingSections } = useMemo(() => {
+  const sections = secData?.sections || [];
+  const cats = catData?.categories || [];
+  const hasSections = sections.length > 0;
+
+  const { topLevels, subsByParent } = useMemo(() => {
     const tops = cats.filter((c) => !c.parentCategory);
     const subs = {};
-    cats
-      .filter((c) => c.parentCategory)
-      .forEach((c) => {
-        const pid = String(c.parentCategory);
-        (subs[pid] ||= []).push(c);
-      });
-    const sections = Array.from(new Set(cats.map((c) => c.parent).filter(Boolean)));
-    return { topLevels: tops, subsByParent: subs, existingSections: sections };
+    cats.filter((c) => c.parentCategory).forEach((c) => {
+      const pid = String(c.parentCategory);
+      (subs[pid] ||= []).push(c);
+    });
+    return { topLevels: tops, subsByParent: subs };
   }, [cats]);
+
+  const handleAddSection = async (name) => {
+    try {
+      await createSection({ name }).unwrap();
+      toast.success('Section added');
+      return true;
+    } catch (e) {
+      toast.error(e?.data?.message || 'Failed to add section');
+      return false;
+    }
+  };
+  const handleDeleteSection = async (section) => {
+    if (!confirm(`Delete section "${section.name}"?`)) return;
+    try {
+      await deleteSection(section._id).unwrap();
+      toast.success('Section deleted');
+    } catch (e) {
+      toast.error(e?.data?.message || 'Failed to delete section');
+    }
+  };
 
   const handleCreate = async (body) => {
     try {
@@ -149,7 +186,6 @@ export default function AdminCategoriesPage() {
       toast.error(e?.data?.message || 'Failed to add');
     }
   };
-
   const handleUpdate = async (id, body) => {
     try {
       await updateCategory({ id, body }).unwrap();
@@ -159,7 +195,6 @@ export default function AdminCategoriesPage() {
       toast.error(e?.data?.message || 'Failed to save');
     }
   };
-
   const handleDelete = async (cat) => {
     if (!confirm(`Delete category "${cat.name}"?`)) return;
     try {
@@ -175,20 +210,43 @@ export default function AdminCategoriesPage() {
       <div className="mb-6">
         <p className="eyebrow mb-1">CATALOG</p>
         <h1 className="text-3xl sm:text-4xl font-display">Categories</h1>
-        <p className="text-charcoal-400 text-sm mt-1">Create top-level categories and nest sub-categories under them. Products on the New Product page use this list.</p>
+        <p className="text-charcoal-400 text-sm mt-1">
+          First add the sections you want, then create categories and sub-categories under them.
+        </p>
       </div>
 
-      {/* Create form */}
+      {/* Sections management — always shown */}
+      <SectionsManager sections={sections} onAdd={handleAddSection} onDelete={handleDeleteSection} />
+
+      {/* Category creation — gated on having at least one section */}
       <div className="card p-5 sm:p-6 mb-8">
-        <h2 className="font-display text-xl mb-4">Add a category</h2>
-        <CategoryForm topLevels={topLevels} existingSections={existingSections} onSubmit={handleCreate} submitLabel="+ Add category" />
+        <h2 className="font-display text-xl mb-1">Add a category</h2>
+        {!hasSections ? (
+          <p className="text-sm text-amber-400 mt-2">
+            Add at least one section above before creating a category.
+          </p>
+        ) : (
+          <>
+            <p className="text-xs text-charcoal-400 mb-4">
+              Pick a section, then add a top-level category or nest a sub-category under an existing one.
+            </p>
+            <CategoryForm
+              topLevels={topLevels}
+              sections={sections}
+              onSubmit={handleCreate}
+              submitLabel="+ Add category"
+            />
+          </>
+        )}
       </div>
 
       {/* Tree */}
       <div className="space-y-4">
         {isLoading && <div className="card p-8 text-center text-charcoal-400">Loading...</div>}
         {!isLoading && topLevels.length === 0 && (
-          <div className="card p-8 text-center text-charcoal-400">No categories yet. Add one above.</div>
+          <div className="card p-8 text-center text-charcoal-400">
+            {hasSections ? 'No categories yet. Add one above.' : 'Add a section, then a category.'}
+          </div>
         )}
         {topLevels.map((cat) => {
           const subs = subsByParent[String(cat._id)] || [];
@@ -224,7 +282,7 @@ export default function AdminCategoriesPage() {
                   <CategoryForm
                     initial={cat}
                     topLevels={topLevels}
-                    existingSections={existingSections}
+                    sections={sections}
                     onCancel={() => setEditingId(null)}
                     onSubmit={(body) => handleUpdate(cat._id, body)}
                     submitLabel="Save"
@@ -235,7 +293,9 @@ export default function AdminCategoriesPage() {
               <div className="p-4 sm:p-5">
                 <p className="eyebrow mb-3">{subs.length} sub-categor{subs.length === 1 ? 'y' : 'ies'}</p>
                 {subs.length === 0 ? (
-                  <p className="text-xs text-charcoal-500">No sub-categories. Add one using the form above and pick this category as the parent.</p>
+                  <p className="text-xs text-charcoal-500">
+                    No sub-categories. Add one using the form above and pick this category as the parent.
+                  </p>
                 ) : (
                   <ul className="space-y-2">
                     {subs.map((s) => {
@@ -263,7 +323,7 @@ export default function AdminCategoriesPage() {
                               <CategoryForm
                                 initial={s}
                                 topLevels={topLevels}
-                                existingSections={existingSections}
+                                sections={sections}
                                 onCancel={() => setEditingId(null)}
                                 onSubmit={(body) => handleUpdate(s._id, body)}
                                 submitLabel="Save"

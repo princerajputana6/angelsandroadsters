@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: '/api', credentials: 'include' }),
-  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog'],
+  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog'],
   endpoints: (b) => ({
     // Auth
     me: b.query({ query: () => '/auth/me', providesTags: ['Auth'] }),
@@ -58,6 +58,17 @@ export const api = createApi({
     deleteCategory: b.mutation({
       query: (id) => ({ url: `/categories/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Categories'],
+    }),
+
+    // Sections
+    listSections: b.query({ query: () => '/sections', providesTags: ['Sections'] }),
+    createSection: b.mutation({
+      query: (body) => ({ url: '/sections', method: 'POST', body }),
+      invalidatesTags: ['Sections'],
+    }),
+    deleteSection: b.mutation({
+      query: (id) => ({ url: `/sections/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Sections'],
     }),
 
     // Events
@@ -162,6 +173,7 @@ export const {
   useMeQuery, useLoginMutation, useRegisterMutation, useLogoutMutation,
   useListProductsQuery, useGetProductQuery, useCreateProductMutation, useUpdateProductMutation, useDeleteProductMutation,
   useListCategoriesQuery, useCreateCategoryMutation, useUpdateCategoryMutation, useDeleteCategoryMutation,
+  useListSectionsQuery, useCreateSectionMutation, useDeleteSectionMutation,
   useListEventsQuery, useGetEventQuery, useGetEventSlotsQuery, useCreateEventMutation, useUpdateEventMutation, useDeleteEventMutation,
   useCreateRegistrationMutation, useMyRegistrationsQuery, useGetRegistrationByTicketQuery, useCompleteProfileMutation,
   useCreateOrderMutation, useMyOrdersQuery, useListOrdersQuery, useUpdateOrderMutation,
