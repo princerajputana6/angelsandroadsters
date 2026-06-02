@@ -1,6 +1,6 @@
 import { connectDB } from '@/lib/db';
 import Blog from '@/lib/models/Blog';
-import { requireAdmin, getUser } from '@/lib/auth';
+import { requireAdmin, getCurrentUser } from '@/lib/auth';
 import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
 
 export async function GET(req) {
@@ -14,7 +14,7 @@ export async function GET(req) {
     const status = searchParams.get('status');
     const sort = searchParams.get('sort') || '-publishedAt';
 
-    const user = await getUser(req);
+    const user = await getCurrentUser();
     const isAdmin = user?.role === 'admin';
 
     const filter = {};
@@ -50,7 +50,7 @@ export async function GET(req) {
 
 export async function POST(req) {
   return handler(async () => {
-    const user = await requireAdmin(req);
+    const user = await requireAdmin();
     await connectDB();
 
     const body = await req.json();

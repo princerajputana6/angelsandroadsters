@@ -1,6 +1,6 @@
 import { connectDB } from '@/lib/db';
 import Blog from '@/lib/models/Blog';
-import { getUser } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
 import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
 
 export async function GET(req, { params }) {
@@ -8,7 +8,7 @@ export async function GET(req, { params }) {
     await connectDB();
     const { slug } = params;
 
-    const user = await getUser(req);
+    const user = await getCurrentUser();
     const isAdmin = user?.role === 'admin';
 
     const filter = { slug };

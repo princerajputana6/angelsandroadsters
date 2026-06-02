@@ -1,6 +1,6 @@
 import { connectDB } from '@/lib/db';
 import Blog from '@/lib/models/Blog';
-import { requireAdmin, getUser } from '@/lib/auth';
+import { requireAdmin, getCurrentUser } from '@/lib/auth';
 import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
 
 export async function GET(req, { params }) {
@@ -8,7 +8,7 @@ export async function GET(req, { params }) {
     await connectDB();
     const { id } = params;
 
-    const user = await getUser(req);
+    const user = await getCurrentUser();
     const isAdmin = user?.role === 'admin';
 
     const filter = { _id: id };
@@ -32,7 +32,7 @@ export async function GET(req, { params }) {
 
 export async function PUT(req, { params }) {
   return handler(async () => {
-    await requireAdmin(req);
+    await requireAdmin();
     await connectDB();
     const { id } = params;
 
@@ -73,7 +73,7 @@ export async function PUT(req, { params }) {
 
 export async function DELETE(req, { params }) {
   return handler(async () => {
-    await requireAdmin(req);
+    await requireAdmin();
     await connectDB();
     const { id } = params;
 

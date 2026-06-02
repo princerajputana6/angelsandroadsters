@@ -59,7 +59,7 @@ function pickImagesForTopic(topic, category, n) {
 
 export async function POST(req) {
   return handler(async () => {
-    await requireAdmin(req);
+    await requireAdmin();
 
     const body = await req.json();
     const { topic, category } = body;
