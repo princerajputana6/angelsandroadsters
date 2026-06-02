@@ -8,7 +8,7 @@ function ShopContent() {
   const sp = useSearchParams();
   const [filters, setFilters] = useState({
     q: sp.get('q') || '',
-    category: '',
+    category: sp.get('category') || '',
     sort: '-createdAt',
     featured: sp.get('featured') || '',
   });

@@ -95,7 +95,6 @@ export default function ProductDetailPage() {
               <div className="mt-6">
                 <div className="flex items-center justify-between mb-2">
                   <label className="label">Size</label>
-                  <a href="#" className="text-xs text-terra-400">Size guide</a>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   {product.sizes.map((s) => (
@@ -129,19 +128,54 @@ export default function ProductDetailPage() {
               <button className="btn btn-outline w-12 h-12 p-0" aria-label="Wishlist">♡</button>
             </div>
 
-            {/* Trust badges */}
-            <div className="grid grid-cols-3 gap-2 mt-7 text-center">
-              {[
-                { i: '🚚', t: 'Free over ₹1500' },
-                { i: '↩️', t: '30-day returns' },
-                { i: '🔒', t: 'Secure checkout' },
-              ].map((b) => (
-                <div key={b.t} className="card p-3">
-                  <div className="text-lg">{b.i}</div>
-                  <div className="text-[11px] text-charcoal-400 mt-1">{b.t}</div>
+            {/* Trust badges — driven by admin-controlled product fields */}
+            {(() => {
+              const badges = [];
+              const d = product.delivery || {};
+              const r = product.returnPolicy || {};
+              if (d.free) {
+                badges.push({ i: '🚚', t: d.note || 'Free delivery' });
+              } else if (d.fee > 0) {
+                badges.push({ i: '🚚', t: `Delivery ₹${d.fee}${d.etaDays ? ` · ${d.etaDays}d` : ''}` });
+              } else if (d.etaDays > 0) {
+                badges.push({ i: '🚚', t: `Delivers in ${d.etaDays}d` });
+              }
+              if (r.available !== false) {
+                const days = r.days ?? 30;
+                badges.push({ i: '↩️', t: `${days}-day returns` });
+              } else {
+                badges.push({ i: '🚫', t: 'No returns' });
+              }
+              badges.push({ i: '🔒', t: 'Secure checkout' });
+              const colsClass = badges.length === 1 ? 'grid-cols-1' : badges.length === 2 ? 'grid-cols-2' : 'grid-cols-3';
+              return (
+                <div className={`grid gap-2 mt-7 text-center ${colsClass}`}>
+                  {badges.map((b, idx) => (
+                    <div key={idx} className="card p-3">
+                      <div className="text-lg">{b.i}</div>
+                      <div className="text-[11px] text-charcoal-400 mt-1">{b.t}</div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              );
+            })()}
+
+            {/* Tax / return / delivery details */}
+            {(product.tax?.note || (product.tax?.rate > 0) || product.returnPolicy?.note || product.delivery?.note) && (
+              <div className="mt-4 card p-4 space-y-1.5 text-xs text-charcoal-300">
+                {product.tax?.note ? (
+                  <div className="flex gap-2"><span className="text-charcoal-500 w-16 shrink-0">Tax</span><span>{product.tax.note}</span></div>
+                ) : product.tax?.rate > 0 ? (
+                  <div className="flex gap-2"><span className="text-charcoal-500 w-16 shrink-0">Tax</span><span>{product.tax.rate}%{product.tax.included ? ' · included in price' : ' · added at checkout'}</span></div>
+                ) : null}
+                {product.delivery?.note && (
+                  <div className="flex gap-2"><span className="text-charcoal-500 w-16 shrink-0">Delivery</span><span>{product.delivery.note}</span></div>
+                )}
+                {product.returnPolicy?.note && (
+                  <div className="flex gap-2"><span className="text-charcoal-500 w-16 shrink-0">Returns</span><span>{product.returnPolicy.note}</span></div>
+                )}
+              </div>
+            )}
 
             {product.specifications && Object.keys(product.specifications || {}).length > 0 && (
               <div className="mt-8">

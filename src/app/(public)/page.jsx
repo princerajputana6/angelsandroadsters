@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
-import { useListProductsQuery } from '@/store/api';
+import { useListProductsQuery, useListCategoriesQuery } from '@/store/api';
 import ProductCard from '@/components/shop/ProductCard';
 import ProductCarousel from '@/components/shop/ProductCarousel';
 import TrailstormMark from '@/components/common/TrailstormMark';
@@ -12,11 +12,12 @@ const HERO_VIDEO = 'https://cdn.pixabay.com/video/2020/05/26/40478-422717417_lar
 const HERO_FALLBACK = 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=1920';
 const TRAILSTORM_HREF = '/trailstorm/2026-jaisalmer-trailstorm-event';
 
-const CATEGORY_TILES = [
-  { name: 'Helmets', img: 'https://images.unsplash.com/photo-1577128321998-da8fae0b9a0d?w=900', href: '/shop?q=helmet', count: '40+' },
-  { name: 'Backpacks', img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=900', href: '/shop?q=backpack', count: '25+' },
-  { name: 'Tents', img: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=900', href: '/shop?q=tent', count: '18+' },
-  { name: 'Riding Jackets', img: 'https://images.unsplash.com/photo-1591025207163-942350e47db2?w=900', href: '/shop?q=jacket', count: '32+' },
+// Fallback gradient swatches when a category has no image set
+const CATEGORY_FALLBACK_GRADIENTS = [
+  'from-terra-500/30 via-charcoal-900 to-charcoal-950',
+  'from-gold-500/25 via-charcoal-900 to-charcoal-950',
+  'from-emerald-500/20 via-charcoal-900 to-charcoal-950',
+  'from-sky-500/20 via-charcoal-900 to-charcoal-950',
 ];
 
 const BRANDS = [
@@ -40,6 +41,8 @@ export default function HomePage() {
   const { data: featured } = useListProductsQuery({ featured: true, limit: 12 });
   const { data: newest } = useListProductsQuery({ limit: 12, sort: '-createdAt' });
   const { data: topRated } = useListProductsQuery({ limit: 12, sort: '-ratings.average' });
+  const { data: catData } = useListCategoriesQuery({ topLevel: 'true', includeCounts: 'true' });
+  const topCategories = (catData?.categories || []).slice(0, 4);
 
   const featuredProducts = featured?.products || [];
   const newProducts = newest?.products || [];
@@ -242,19 +245,42 @@ export default function HomePage() {
           </div>
           <Link href="/shop" className="btn btn-outline text-sm">Browse all →</Link>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
-          {CATEGORY_TILES.map((c) => (
-            <Link key={c.name} href={c.href} className="relative aspect-[3/4] rounded-2xl overflow-hidden group border border-charcoal-800 hover:border-terra-500/40 transition">
-              <img src={c.img} alt={c.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition duration-[800ms]" />
-              <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950 via-charcoal-950/40 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-                <span className="text-[10px] text-terra-400 tracking-widest uppercase">{c.count} items</span>
-                <h3 className="font-display text-2xl sm:text-3xl mt-1">{c.name}</h3>
-                <p className="text-xs text-charcoal-400 mt-1 group-hover:text-terra-400 transition">Explore →</p>
-              </div>
-            </Link>
-          ))}
-        </div>
+        {topCategories.length === 0 ? (
+          <div className="card p-10 text-center text-charcoal-400 text-sm">
+            No categories yet. {' '}
+            <Link href="/admin/categories" className="text-terra-400 hover:text-terra-300 underline">Add some in the admin console</Link>.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+            {topCategories.map((c, i) => {
+              const href = `/shop?category=${c._id}`;
+              const gradient = CATEGORY_FALLBACK_GRADIENTS[i % CATEGORY_FALLBACK_GRADIENTS.length];
+              return (
+                <Link
+                  key={c._id}
+                  href={href}
+                  className="relative aspect-[3/4] rounded-2xl overflow-hidden group border border-charcoal-800 hover:border-terra-500/40 transition"
+                >
+                  {c.image ? (
+                    <img src={c.image} alt={c.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition duration-[800ms]" />
+                  ) : (
+                    <div className={`absolute inset-0 bg-gradient-to-br ${gradient} flex items-center justify-center text-6xl opacity-60 group-hover:scale-110 transition duration-[800ms]`}>
+                      🗂
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950 via-charcoal-950/40 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+                    <span className="text-[10px] text-terra-400 tracking-widest uppercase">
+                      {(c.productCount ?? 0)} item{c.productCount === 1 ? '' : 's'}
+                    </span>
+                    <h3 className="font-display text-2xl sm:text-3xl mt-1">{c.name}</h3>
+                    <p className="text-xs text-charcoal-400 mt-1 group-hover:text-terra-400 transition">Explore →</p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* Recommended carousel */}

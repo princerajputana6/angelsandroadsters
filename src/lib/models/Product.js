@@ -25,6 +25,25 @@ const productSchema = new mongoose.Schema({
   reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }],
   isFeatured: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },
+  // Tax info (admin-controlled per-product)
+  tax: {
+    rate: { type: Number, default: 0, min: 0 },         // e.g. 18 = 18%
+    included: { type: Boolean, default: true },          // price already includes tax
+    note: { type: String, default: '' },                 // e.g. "Inclusive of GST"
+  },
+  // Return policy
+  returnPolicy: {
+    available: { type: Boolean, default: true },
+    days: { type: Number, default: 30, min: 0 },         // return window
+    note: { type: String, default: '' },                 // e.g. "Unused, original tags"
+  },
+  // Delivery options
+  delivery: {
+    free: { type: Boolean, default: false },             // free shipping for this product
+    fee: { type: Number, default: 0, min: 0 },           // applied when not free
+    etaDays: { type: Number, default: 0, min: 0 },       // estimated delivery (days)
+    note: { type: String, default: '' },                 // e.g. "Ships from Bangalore"
+  },
 }, { timestamps: true });
 
 productSchema.pre('save', function (next) {

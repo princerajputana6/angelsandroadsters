@@ -7,6 +7,7 @@ import {
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
 } from '@/store/api';
+import FileUpload from '@/components/FileUpload';
 
 const SECTIONS = ['riding', 'travelling'];
 
@@ -16,6 +17,7 @@ function CategoryForm({ initial = {}, topLevels, onCancel, onSubmit, submitLabel
     parent: initial.parent || 'riding',
     parentCategory: initial.parentCategory || '',
     description: initial.description || '',
+    image: initial.image || '',
   });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const isSub = Boolean(f.parentCategory);
@@ -27,6 +29,7 @@ function CategoryForm({ initial = {}, topLevels, onCancel, onSubmit, submitLabel
       parent: f.parent,
       parentCategory: f.parentCategory || null,
       description: f.description.trim(),
+      image: f.image || '',
     });
   };
   return (
@@ -56,6 +59,15 @@ function CategoryForm({ initial = {}, topLevels, onCancel, onSubmit, submitLabel
       <div className="sm:col-span-2">
         <label className="label">Description (optional)</label>
         <input className="input" value={f.description} onChange={set('description')} />
+      </div>
+      <div className="sm:col-span-2">
+        <FileUpload
+          label="Category image (optional)"
+          accept="image/*"
+          value={f.image}
+          onChange={(url) => setF({ ...f, image: url })}
+          description="Shown on the homepage 'Shop by Category' tiles. Use a tall/portrait photo for best results."
+        />
       </div>
       <div className="sm:col-span-2 flex gap-2 justify-end">
         {onCancel && (
@@ -142,13 +154,20 @@ export default function AdminCategoriesPage() {
           return (
             <div key={cat._id} className="card overflow-hidden">
               <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5 border-b border-charcoal-800/70">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-lg">{cat.name}</span>
-                    <span className="badge bg-terra-500/15 text-terra-400 uppercase text-[10px]">{cat.parent}</span>
-                    <span className="text-xs text-charcoal-500">/{cat.slug}</span>
+                <div className="min-w-0 flex items-center gap-3">
+                  {cat.image ? (
+                    <img src={cat.image} alt={cat.name} className="w-14 h-14 rounded-lg object-cover border border-charcoal-800" />
+                  ) : (
+                    <div className="w-14 h-14 rounded-lg bg-charcoal-800/60 border border-charcoal-800 flex items-center justify-center text-xl">🗂</div>
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-lg">{cat.name}</span>
+                      <span className="badge bg-terra-500/15 text-terra-400 uppercase text-[10px]">{cat.parent}</span>
+                      <span className="text-xs text-charcoal-500">/{cat.slug}</span>
+                    </div>
+                    {cat.description && <p className="text-xs text-charcoal-400 mt-1">{cat.description}</p>}
                   </div>
-                  {cat.description && <p className="text-xs text-charcoal-400 mt-1">{cat.description}</p>}
                 </div>
                 <div className="flex gap-3 shrink-0">
                   <button onClick={() => setEditingId(isEditing ? null : cat._id)} className="text-xs text-terra-400 hover:text-terra-300">
@@ -183,6 +202,9 @@ export default function AdminCategoriesPage() {
                           <div className="flex items-center justify-between gap-3 px-3 py-2 bg-charcoal-900/40">
                             <div className="flex items-center gap-2 min-w-0">
                               <span className="text-charcoal-500 text-xs">↳</span>
+                              {s.image ? (
+                                <img src={s.image} alt={s.name} className="w-8 h-8 rounded object-cover border border-charcoal-800" />
+                              ) : null}
                               <span className="font-medium truncate">{s.name}</span>
                               <span className="text-[10px] text-charcoal-500">/{s.slug}</span>
                             </div>

@@ -30,6 +30,19 @@ export default function NewProductPage() {
     tags: '',
     isFeatured: false,
     isActive: true,
+    // Tax
+    taxRate: 18,
+    taxIncluded: true,
+    taxNote: '',
+    // Returns
+    returnAvailable: true,
+    returnDays: 30,
+    returnNote: '',
+    // Delivery
+    deliveryFree: false,
+    deliveryFee: 0,
+    deliveryEta: 0,
+    deliveryNote: '',
   });
 
   const allCats = catData?.categories || [];
@@ -82,6 +95,22 @@ export default function NewProductPage() {
         tags: form.tags.split(',').map((s) => s.trim()).filter(Boolean),
         isFeatured: form.isFeatured,
         isActive: form.isActive,
+        tax: {
+          rate: Number(form.taxRate) || 0,
+          included: !!form.taxIncluded,
+          note: form.taxNote.trim(),
+        },
+        returnPolicy: {
+          available: !!form.returnAvailable,
+          days: Number(form.returnDays) || 0,
+          note: form.returnNote.trim(),
+        },
+        delivery: {
+          free: !!form.deliveryFree,
+          fee: Number(form.deliveryFee) || 0,
+          etaDays: Number(form.deliveryEta) || 0,
+          note: form.deliveryNote.trim(),
+        },
       }).unwrap();
       toast.success('Product created');
       router.push('/admin/products');
@@ -214,6 +243,81 @@ export default function NewProductPage() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+
+          <div className="card p-5 sm:p-6 space-y-5">
+            <h3 className="font-display text-xl">Tax, returns & delivery</h3>
+
+            {/* TAX */}
+            <div className="space-y-3">
+              <p className="eyebrow">Tax</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Tax rate (%)</label>
+                  <input className="input" type="number" min="0" value={form.taxRate} onChange={set('taxRate')} />
+                </div>
+                <div>
+                  <label className="label">Price includes tax?</label>
+                  <select className="input" value={form.taxIncluded ? 'yes' : 'no'} onChange={(e) => setForm({ ...form, taxIncluded: e.target.value === 'yes' })}>
+                    <option value="yes">Yes — tax is included in the price</option>
+                    <option value="no">No — tax is added at checkout</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="label">Tax note (optional)</label>
+                <input className="input" value={form.taxNote} onChange={set('taxNote')} placeholder="e.g. Inclusive of all taxes (GST 18%)" />
+              </div>
+            </div>
+
+            <div className="border-t border-charcoal-800/70" />
+
+            {/* RETURNS */}
+            <div className="space-y-3">
+              <p className="eyebrow">Returns</p>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={form.returnAvailable} onChange={(e) => setForm({ ...form, returnAvailable: e.target.checked })} />
+                <span className="text-sm">Returns accepted for this product</span>
+              </label>
+              {form.returnAvailable && (
+                <>
+                  <div>
+                    <label className="label">Return window (days)</label>
+                    <input className="input" type="number" min="0" value={form.returnDays} onChange={set('returnDays')} />
+                  </div>
+                  <div>
+                    <label className="label">Return note (optional)</label>
+                    <input className="input" value={form.returnNote} onChange={set('returnNote')} placeholder="e.g. Unused, with original tags" />
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="border-t border-charcoal-800/70" />
+
+            {/* DELIVERY */}
+            <div className="space-y-3">
+              <p className="eyebrow">Delivery</p>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={form.deliveryFree} onChange={(e) => setForm({ ...form, deliveryFree: e.target.checked })} />
+                <span className="text-sm">Free delivery</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Delivery fee (₹)</label>
+                  <input className="input" type="number" min="0" disabled={form.deliveryFree} value={form.deliveryFee} onChange={set('deliveryFee')} />
+                  {form.deliveryFree && <p className="text-[10px] text-charcoal-500 mt-1">Disabled — delivery is free.</p>}
+                </div>
+                <div>
+                  <label className="label">ETA (days)</label>
+                  <input className="input" type="number" min="0" value={form.deliveryEta} onChange={set('deliveryEta')} placeholder="e.g. 5" />
+                </div>
+              </div>
+              <div>
+                <label className="label">Delivery note (optional)</label>
+                <input className="input" value={form.deliveryNote} onChange={set('deliveryNote')} placeholder="e.g. Ships from Bangalore in 24h" />
+              </div>
             </div>
           </div>
 
