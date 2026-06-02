@@ -9,24 +9,48 @@ import {
 } from '@/store/api';
 import FileUpload from '@/components/FileUpload';
 
-const SECTIONS = ['riding', 'travelling'];
-
-function CategoryForm({ initial = {}, topLevels, onCancel, onSubmit, submitLabel }) {
+function CategoryForm({ initial = {}, topLevels, existingSections = [], onCancel, onSubmit, submitLabel }) {
+  // Built-in defaults always available even if no categories exist yet
+  const SECTION_DEFAULTS = ['riding', 'travelling'];
+  const sectionOptions = Array.from(new Set([
+    ...SECTION_DEFAULTS,
+    ...existingSections,
+  ])).sort();
   const [f, setF] = useState({
     name: initial.name || '',
-    parent: initial.parent || 'riding',
+    parent: initial.parent || sectionOptions[0] || 'riding',
     parentCategory: initial.parentCategory || '',
     description: initial.description || '',
     image: initial.image || '',
   });
+  const [addingSection, setAddingSection] = useState(false);
+  const [newSection, setNewSection] = useState('');
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const isSub = Boolean(f.parentCategory);
+
+  const handleSectionChange = (e) => {
+    const v = e.target.value;
+    if (v === '__new__') {
+      setAddingSection(true);
+      setNewSection('');
+    } else {
+      setF({ ...f, parent: v });
+    }
+  };
+  const commitNewSection = () => {
+    const trimmed = newSection.trim().toLowerCase();
+    if (!trimmed) return;
+    setF({ ...f, parent: trimmed });
+    setAddingSection(false);
+    setNewSection('');
+  };
+
   const submit = (e) => {
     e.preventDefault();
-    if (!f.name.trim()) return;
+    if (!f.name.trim() || !f.parent) return;
     onSubmit({
       name: f.name.trim(),
-      parent: f.parent,
+      parent: f.parent.toLowerCase(),
       parentCategory: f.parentCategory || null,
       description: f.description.trim(),
       image: f.image || '',
@@ -40,9 +64,26 @@ function CategoryForm({ initial = {}, topLevels, onCancel, onSubmit, submitLabel
       </div>
       <div>
         <label className="label">Section</label>
-        <select className="input" value={f.parent} onChange={set('parent')}>
-          {SECTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
+        {addingSection ? (
+          <div className="flex gap-2">
+            <input
+              className="input flex-1"
+              autoFocus
+              value={newSection}
+              onChange={(e) => setNewSection(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitNewSection(); } }}
+              placeholder="e.g. apparel, accessories"
+            />
+            <button type="button" onClick={commitNewSection} className="btn btn-gold h-10 px-4">Use</button>
+            <button type="button" onClick={() => setAddingSection(false)} className="btn btn-outline h-10 px-3">✕</button>
+          </div>
+        ) : (
+          <select className="input" value={f.parent} onChange={handleSectionChange}>
+            {sectionOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+            <option value="__new__">+ Add new section…</option>
+          </select>
+        )}
+        <p className="text-[10px] text-charcoal-500 mt-1">A section groups categories at the top of the catalog (e.g. "riding", "travelling").</p>
       </div>
       <div>
         <label className="label">Parent category (optional)</label>
@@ -87,7 +128,7 @@ export default function AdminCategoriesPage() {
   const [editingId, setEditingId] = useState(null);
 
   const cats = data?.categories || [];
-  const { topLevels, subsByParent } = useMemo(() => {
+  const { topLevels, subsByParent, existingSections } = useMemo(() => {
     const tops = cats.filter((c) => !c.parentCategory);
     const subs = {};
     cats
@@ -96,7 +137,8 @@ export default function AdminCategoriesPage() {
         const pid = String(c.parentCategory);
         (subs[pid] ||= []).push(c);
       });
-    return { topLevels: tops, subsByParent: subs };
+    const sections = Array.from(new Set(cats.map((c) => c.parent).filter(Boolean)));
+    return { topLevels: tops, subsByParent: subs, existingSections: sections };
   }, [cats]);
 
   const handleCreate = async (body) => {
@@ -139,7 +181,7 @@ export default function AdminCategoriesPage() {
       {/* Create form */}
       <div className="card p-5 sm:p-6 mb-8">
         <h2 className="font-display text-xl mb-4">Add a category</h2>
-        <CategoryForm topLevels={topLevels} onSubmit={handleCreate} submitLabel="+ Add category" />
+        <CategoryForm topLevels={topLevels} existingSections={existingSections} onSubmit={handleCreate} submitLabel="+ Add category" />
       </div>
 
       {/* Tree */}
@@ -182,6 +224,7 @@ export default function AdminCategoriesPage() {
                   <CategoryForm
                     initial={cat}
                     topLevels={topLevels}
+                    existingSections={existingSections}
                     onCancel={() => setEditingId(null)}
                     onSubmit={(body) => handleUpdate(cat._id, body)}
                     submitLabel="Save"
@@ -220,6 +263,7 @@ export default function AdminCategoriesPage() {
                               <CategoryForm
                                 initial={s}
                                 topLevels={topLevels}
+                                existingSections={existingSections}
                                 onCancel={() => setEditingId(null)}
                                 onSubmit={(body) => handleUpdate(s._id, body)}
                                 submitLabel="Save"

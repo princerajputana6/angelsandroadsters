@@ -88,7 +88,7 @@ export default function CreateBlogPage() {
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="e.g., Best Motorcycle Routes in Rajasthan"
-              className="input-field"
+              className="input"
               autoFocus
             />
             <p className="text-xs text-charcoal-500 mt-1">
@@ -98,7 +98,7 @@ export default function CreateBlogPage() {
 
           <div className="mb-6">
             <label className="block text-sm font-medium mb-2">Category</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className="input-field">
+            <select value={category} onChange={(e) => setCategory(e.target.value)} className="input">
               {CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
@@ -151,7 +151,7 @@ export default function CreateBlogPage() {
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="input-field"
+                className="input"
                 placeholder="Blog title"
               />
             </div>
@@ -161,7 +161,7 @@ export default function CreateBlogPage() {
               <textarea
                 value={formData.excerpt}
                 onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
-                className="input-field"
+                className="input"
                 rows="3"
                 placeholder="Short description"
               />
@@ -172,7 +172,7 @@ export default function CreateBlogPage() {
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="input-field"
+                className="input"
               >
                 {CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
@@ -188,7 +188,7 @@ export default function CreateBlogPage() {
                 type="text"
                 value={formData.featuredImage}
                 onChange={(e) => setFormData({ ...formData, featuredImage: e.target.value })}
-                className="input-field"
+                className="input"
                 placeholder="https://..."
               />
               {formData.featuredImage && (
@@ -204,7 +204,7 @@ export default function CreateBlogPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, tags: e.target.value.split(',').map((t) => t.trim()) })
                 }
-                className="input-field"
+                className="input"
                 placeholder="motorcycle, adventure, travel"
               />
             </div>
@@ -215,7 +215,7 @@ export default function CreateBlogPage() {
             <textarea
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              className="input-field font-mono text-sm"
+              className="input font-mono text-sm"
               rows="20"
               placeholder="Write your blog content in markdown..."
             />
@@ -233,7 +233,7 @@ export default function CreateBlogPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, seo: { ...formData.seo, metaTitle: e.target.value } })
                 }
-                className="input-field"
+                className="input"
                 placeholder="SEO title"
               />
             </div>
@@ -245,7 +245,7 @@ export default function CreateBlogPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, seo: { ...formData.seo, metaDescription: e.target.value } })
                 }
-                className="input-field"
+                className="input"
                 rows="2"
                 placeholder="SEO description"
               />

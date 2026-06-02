@@ -1,22 +1,43 @@
 'use client';
-import { Suspense, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useListProductsQuery, useListCategoriesQuery } from '@/store/api';
 import ProductCard from '@/components/shop/ProductCard';
 
 function ShopContent() {
   const sp = useSearchParams();
+  const initialCategory = sp.get('category') || '';
+  const [topCategoryId, setTopCategoryId] = useState(initialCategory);
+  const [subCategoryId, setSubCategoryId] = useState('');
   const [filters, setFilters] = useState({
     q: sp.get('q') || '',
-    category: sp.get('category') || '',
     sort: '-createdAt',
     featured: sp.get('featured') || '',
   });
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const { data, isLoading } = useListProductsQuery(filters);
   const { data: catData } = useListCategoriesQuery();
-  const products = data?.products || [];
   const categories = catData?.categories || [];
+  const topLevels = useMemo(() => categories.filter((c) => !c.parentCategory), [categories]);
+  const subOptions = useMemo(() => {
+    if (!topCategoryId) return [];
+    return categories.filter((c) => String(c.parentCategory) === String(topCategoryId));
+  }, [categories, topCategoryId]);
+
+  // Build the actual category query: pick sub-cat if set, else expand top to top+all its subs
+  const categoryQuery = useMemo(() => {
+    if (subCategoryId) return subCategoryId;
+    if (!topCategoryId) return '';
+    const subIds = subOptions.map((s) => s._id);
+    return [topCategoryId, ...subIds].join(',');
+  }, [topCategoryId, subCategoryId, subOptions]);
+
+  const { data, isLoading } = useListProductsQuery({
+    ...filters,
+    category: categoryQuery,
+  });
+  const products = data?.products || [];
+
+  const pickTop = (id) => { setTopCategoryId(id); setSubCategoryId(''); };
 
   const Filters = () => (
     <div className="space-y-5">
@@ -26,11 +47,20 @@ function ShopContent() {
       </div>
       <div>
         <label className="label">Category</label>
-        <select className="input" value={filters.category} onChange={(e) => setFilters({ ...filters, category: e.target.value })}>
+        <select className="input" value={topCategoryId} onChange={(e) => pickTop(e.target.value)}>
           <option value="">All categories</option>
-          {categories.map((c) => <option key={c._id} value={c._id}>{c.parent} · {c.name}</option>)}
+          {topLevels.map((c) => <option key={c._id} value={c._id}>{c.parent} · {c.name}</option>)}
         </select>
       </div>
+      {topCategoryId && subOptions.length > 0 && (
+        <div>
+          <label className="label">Sub-category</label>
+          <select className="input" value={subCategoryId} onChange={(e) => setSubCategoryId(e.target.value)}>
+            <option value="">All in this category</option>
+            {subOptions.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
+          </select>
+        </div>
+      )}
       <div>
         <label className="label">Sort by</label>
         <select className="input" value={filters.sort} onChange={(e) => setFilters({ ...filters, sort: e.target.value })}>
@@ -63,7 +93,7 @@ function ShopContent() {
         onClick={() => setFiltersOpen(true)}
         className="lg:hidden btn btn-outline mb-5 w-full"
       >
-        ⚙ Filters & Sort ({Object.values(filters).filter(Boolean).length})
+        ⚙ Filters & Sort ({Object.values(filters).filter(Boolean).length + (topCategoryId ? 1 : 0) + (subCategoryId ? 1 : 0)})
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8">

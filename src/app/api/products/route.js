@@ -20,7 +20,11 @@ export async function GET(req) {
 
     const filter = { isActive: true };
     if (q) filter.$text = { $search: q };
-    if (category) filter.category = category;
+    if (category) {
+      // Accept either a single id or a comma-separated list of ids
+      const list = category.split(',').map((s) => s.trim()).filter(Boolean);
+      filter.category = list.length > 1 ? { $in: list } : list[0];
+    }
     if (brand) filter.brand = brand;
     if (!Number.isNaN(minPrice) && minPrice) filter.price = { ...(filter.price || {}), $gte: minPrice };
     if (!Number.isNaN(maxPrice) && maxPrice) filter.price = { ...(filter.price || {}), $lte: maxPrice };
