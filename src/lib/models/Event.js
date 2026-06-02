@@ -8,6 +8,8 @@ const eventSchema = new mongoose.Schema({
   coverImage: String,
   gallery: [String],
   galleryTitle: { type: String, default: '' },
+  brands: [String],
+  brandsTitle: { type: String, default: '' },
   eventType: { type: String, enum: ['rally', 'trek', 'expedition', 'expo', 'workshop', 'meetup'], required: true },
   location: {
     venue: String,

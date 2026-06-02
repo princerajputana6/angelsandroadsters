@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useGetEventQuery, useGetEventSlotsQuery } from '@/store/api';
 import BookingWizard from '@/components/events/BookingWizard';
 import EventGallerySlider from '@/components/events/EventGallerySlider';
+import BrandsSlider from '@/components/events/BrandsSlider';
 import TrailstormMark from '@/components/common/TrailstormMark';
 import Link from 'next/link';
 
@@ -164,6 +165,9 @@ export default function TrailstormEventPage() {
 
       {/* EVENT GALLERY SLIDER (admin-uploaded) */}
       <EventGallerySlider images={event.gallery} title={event.galleryTitle} />
+
+      {/* BRANDS SLIDER (admin-uploaded) */}
+      <BrandsSlider logos={event.brands} title={event.brandsTitle} />
 
       {/* ABOUT */}
       <section id="details" className="container-x py-16 sm:py-20">
