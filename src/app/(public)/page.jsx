@@ -90,8 +90,10 @@ export default function HomePage() {
   const topCategories = (catData?.categories || []).slice(0, 4);
   const { data: eventsData } = useListEventsQuery({ upcoming: 'true' });
   const upcomingEvents = (eventsData?.events || []).slice(0, 3);
-  const { data: secData } = useListSectionsQuery({ favouritesOnly: 'true', includeCounts: 'true' });
-  const favSections = secData?.sections || [];
+  const { data: secData } = useListSectionsQuery({ includeCounts: 'true' });
+  const allSections = secData?.sections || [];
+  const [showAllSections, setShowAllSections] = useState(false);
+  const visibleSections = showAllSections ? allSections : allSections.slice(0, 4);
   const { data: compData } = useListCompaniesQuery();
   const companies = compData?.companies || [];
 
@@ -456,8 +458,8 @@ export default function HomePage() {
         />
       )}
 
-      {/* Section tiles — admin-favourited sections, max 4 */}
-      {favSections.length > 0 && (
+      {/* Section tiles — show 4 by default, expand on "Show All" */}
+      {allSections.length > 0 && (
         <section className="container-x py-12 sm:py-16">
           <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
             <div>
@@ -466,13 +468,8 @@ export default function HomePage() {
             </div>
             <Link href="/shop" className="btn btn-outline text-sm">Full shop →</Link>
           </div>
-          <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${
-            favSections.length === 1 ? 'md:grid-cols-1'
-            : favSections.length === 2 ? 'md:grid-cols-2'
-            : favSections.length === 3 ? 'md:grid-cols-3'
-            : 'md:grid-cols-4'
-          }`}>
-            {favSections.map((s, i) => {
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            {visibleSections.map((s, i) => {
               const href = `/shop?section=${encodeURIComponent(s.name)}`;
               const gradient = CATEGORY_FALLBACK_GRADIENTS[i % CATEGORY_FALLBACK_GRADIENTS.length];
               return (
@@ -495,6 +492,16 @@ export default function HomePage() {
               );
             })}
           </div>
+          {allSections.length > 4 && (
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => setShowAllSections((v) => !v)}
+                className="btn btn-outline text-sm px-8"
+              >
+                {showAllSections ? `Show Less ↑` : `Show All ${allSections.length} Sections ↓`}
+              </button>
+            </div>
+          )}
         </section>
       )}
     </div>

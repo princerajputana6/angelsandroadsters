@@ -69,7 +69,10 @@ export default function AdminProducts() {
                       {p.isFeatured && <span className="badge bg-gold-500/20 text-gold-400">Featured</span>}
                     </td>
                     <td className="p-3 text-right">
-                      <button onClick={() => remove(p.slug)} className="text-red-400 hover:text-red-300 text-xs">Delete</button>
+                      <div className="flex items-center justify-end gap-3">
+                        <Link href={`/admin/products/${p.slug}`} className="text-terra-400 hover:text-terra-300 text-xs font-medium">Edit</Link>
+                        <button onClick={() => remove(p.slug)} className="text-red-400 hover:text-red-300 text-xs">Delete</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -94,7 +97,10 @@ export default function AdminProducts() {
                   </div>
                   <div className="flex items-center justify-between mt-2">
                     {p.isFeatured ? <span className="badge bg-gold-500/20 text-gold-400">Featured</span> : <span />}
-                    <button onClick={() => remove(p.slug)} className="text-red-400 text-xs">Delete</button>
+                    <div className="flex items-center gap-3">
+                      <Link href={`/admin/products/${p.slug}`} className="text-terra-400 text-xs font-medium">Edit</Link>
+                      <button onClick={() => remove(p.slug)} className="text-red-400 text-xs">Delete</button>
+                    </div>
                   </div>
                 </div>
               </div>
