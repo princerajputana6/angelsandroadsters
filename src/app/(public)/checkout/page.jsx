@@ -1,13 +1,21 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useCreateOrderMutation, useMeQuery } from '@/store/api';
+import {
+  useCreateOrderMutation,
+  useMeQuery,
+  useMyAddressesQuery,
+  useCancelOrderMutation,
+} from '@/store/api';
 import { clearCart, selectCartTotal } from '@/store/cartSlice';
+import { computeOrderTotals } from '@/lib/pricing';
 import { payWithRazorpay } from '@/lib/razorpayClient';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+
+const EMPTY_ADDR = { name: '', line1: '', line2: '', city: '', state: '', postalCode: '', phone: '' };
 
 export default function CheckoutPage() {
   const items = useSelector((s) => s.cart.items);
@@ -15,10 +23,45 @@ export default function CheckoutPage() {
   const dispatch = useDispatch();
   const router = useRouter();
   const { data: meData } = useMeQuery();
+  const { data: addrData } = useMyAddressesQuery(undefined, { skip: !meData?.user });
   const [createOrder, { isLoading }] = useCreateOrderMutation();
+  const [cancelOrder] = useCancelOrderMutation();
   const [step, setStep] = useState(1);
-  const [addr, setAddr] = useState({ name: '', line1: '', line2: '', city: '', state: '', postalCode: '', phone: '' });
+  const [addr, setAddr] = useState(EMPTY_ADDR);
+  const [selectedAddressId, setSelectedAddressId] = useState('new');
   const [paymentMethod, setPaymentMethod] = useState('cod');
+
+  const savedAddresses = addrData?.addresses || [];
+
+  // Pre-pick the default address when it loads
+  useEffect(() => {
+    if (savedAddresses.length === 0 || selectedAddressId !== 'new') return;
+    const def = savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
+    if (def) {
+      setSelectedAddressId(def._id);
+      setAddr({
+        name: def.label || meData?.user?.name || '',
+        line1: def.line1, line2: def.line2 || '',
+        city: def.city, state: def.state, postalCode: def.postalCode,
+        phone: def.phone,
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addrData]);
+
+  const onPickAddress = (id) => {
+    setSelectedAddressId(id);
+    if (id === 'new') { setAddr(EMPTY_ADDR); return; }
+    const a = savedAddresses.find((x) => x._id === id);
+    if (a) {
+      setAddr({
+        name: a.label || meData?.user?.name || '',
+        line1: a.line1, line2: a.line2 || '',
+        city: a.city, state: a.state, postalCode: a.postalCode,
+        phone: a.phone,
+      });
+    }
+  };
 
   if (!meData?.user) {
     return (
@@ -40,9 +83,7 @@ export default function CheckoutPage() {
     );
   }
 
-  const shipping = total > 1500 ? 0 : 99;
-  const tax = Math.round(total * 0.05);
-  const grand = total + shipping + tax;
+  const { shippingPrice: shipping, taxPrice: tax, totalPrice: grand } = computeOrderTotals(items);
 
   const addrValid = addr.name && addr.line1 && addr.city && addr.state && addr.postalCode && addr.phone;
 
@@ -62,7 +103,7 @@ export default function CheckoutPage() {
         return;
       }
 
-      // Razorpay flow
+      // Razorpay flow — discard the just-created order if payment is cancelled
       await payWithRazorpay({
         amount: order.totalPrice,
         receipt: `ord_${order._id.slice(-12)}`,
@@ -81,10 +122,15 @@ export default function CheckoutPage() {
           toast.success('Payment confirmed! 🎉');
           router.push('/dashboard/orders');
         },
-        onFailure: (err) => {
-          toast.error(err.message || 'Payment failed. Your order is saved — retry from dashboard.');
-          dispatch(clearCart());
-          router.push('/dashboard/orders');
+        onFailure: async (err) => {
+          // Cancel/delete the phantom order so the user doesn't see it
+          try {
+            await cancelOrder({ id: order._id, reason: 'payment_cancelled' }).unwrap();
+          } catch (cancelErr) {
+            console.error('[Checkout] Failed to discard cancelled-payment order:', cancelErr);
+          }
+          // Keep the cart so the user can retry
+          toast.error(err?.message || 'Payment cancelled. No order was placed.');
         },
       });
     } catch (err) {
@@ -124,7 +170,51 @@ export default function CheckoutPage() {
           <AnimatePresence mode="wait">
             {step === 1 && (
               <motion.div key="addr" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="card p-5 sm:p-6">
-                <h3 className="font-display text-2xl mb-4">Shipping Address</h3>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                  <h3 className="font-display text-2xl">Shipping Address</h3>
+                  <Link href="/dashboard/addresses" className="text-xs text-terra-400 hover:text-terra-300">Manage addresses →</Link>
+                </div>
+
+                {savedAddresses.length > 0 && (
+                  <div className="mb-5">
+                    <label className="label">Choose a saved address</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {savedAddresses.map((a) => (
+                        <button
+                          type="button"
+                          key={a._id}
+                          onClick={() => onPickAddress(a._id)}
+                          className={`text-left p-3 rounded-xl border transition ${
+                            selectedAddressId === a._id
+                              ? 'border-terra-500 bg-terra-500/10'
+                              : 'border-charcoal-800 hover:border-charcoal-700'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold truncate">{a.label || 'Address'}</span>
+                            {a.isDefault && <span className="badge bg-gold-500/20 text-gold-400 text-[9px]">Default</span>}
+                          </div>
+                          <p className="text-xs text-charcoal-400 mt-1 line-clamp-2">
+                            {a.line1}, {a.city}, {a.state} {a.postalCode}
+                          </p>
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => onPickAddress('new')}
+                        className={`text-left p-3 rounded-xl border transition ${
+                          selectedAddressId === 'new'
+                            ? 'border-terra-500 bg-terra-500/10'
+                            : 'border-dashed border-charcoal-700 hover:border-charcoal-600'
+                        }`}
+                      >
+                        <div className="text-sm font-semibold">+ Use a new address</div>
+                        <p className="text-xs text-charcoal-500 mt-1">Enter below</p>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
                     <label className="label">Full name</label>
@@ -238,14 +328,14 @@ export default function CheckoutPage() {
             <div className="space-y-2.5 text-sm">
               <div className="flex justify-between"><span className="text-charcoal-400">Subtotal ({items.length} items)</span><span>₹{total.toLocaleString()}</span></div>
               <div className="flex justify-between"><span className="text-charcoal-400">Shipping</span><span>{shipping === 0 ? <span className="text-terra-400">FREE</span> : `₹${shipping}`}</span></div>
-              <div className="flex justify-between"><span className="text-charcoal-400">Tax (5%)</span><span>₹{tax.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-charcoal-400">Tax</span><span>{tax > 0 ? `₹${tax.toLocaleString()}` : <span className="text-charcoal-500">Included</span>}</span></div>
               <div className="border-t border-charcoal-800 my-3" />
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span><span className="text-terra-400">₹{grand.toLocaleString()}</span>
               </div>
             </div>
             <p className="text-[10px] text-charcoal-500 mt-4 leading-relaxed">
-              By placing this order you agree to our terms. Free shipping over ₹1500.
+              By placing this order you agree to our terms. Shipping &amp; tax are set per item by the seller.
             </p>
           </div>
         </div>

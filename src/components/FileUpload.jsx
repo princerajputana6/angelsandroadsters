@@ -7,7 +7,7 @@ import { useState, useRef } from 'react';
  */
 export default function FileUpload({
   label,
-  accept = 'image/*,.pdf',
+  accept = 'image/*,.pdf,.doc,.docx,.txt',
   maxSize = 5 * 1024 * 1024, // 5 MB default
   value,
   onChange,

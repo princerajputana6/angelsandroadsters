@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { updateQty, removeItem, selectCartTotal } from '@/store/cartSlice';
+import { computeOrderTotals } from '@/lib/pricing';
 
 export default function CartPage() {
   const items = useSelector((s) => s.cart.items);
@@ -20,9 +21,7 @@ export default function CartPage() {
     );
   }
 
-  const shipping = total > 1500 ? 0 : 99;
-  const tax = Math.round(total * 0.05);
-  const grand = total + shipping + tax;
+  const { shippingPrice: shipping, taxPrice: tax, totalPrice: grand } = computeOrderTotals(items);
 
   return (
     <div className="container-x pt-28 sm:pt-32 pb-32 lg:pb-10">
@@ -68,14 +67,14 @@ export default function CartPage() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-charcoal-400">Subtotal</span><span>₹{total.toLocaleString()}</span></div>
               <div className="flex justify-between"><span className="text-charcoal-400">Shipping</span><span>{shipping === 0 ? <span className="text-terra-400">FREE</span> : `₹${shipping}`}</span></div>
-              <div className="flex justify-between"><span className="text-charcoal-400">Tax (5%)</span><span>₹{tax.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-charcoal-400">Tax</span><span>{tax > 0 ? `₹${tax.toLocaleString()}` : <span className="text-charcoal-500">Included</span>}</span></div>
               <div className="border-t border-charcoal-800 my-3" />
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span><span className="text-terra-400">₹{grand.toLocaleString()}</span>
               </div>
             </div>
             <Link href="/checkout" className="btn btn-gold w-full mt-5">Proceed to Checkout →</Link>
-            <p className="text-[10px] text-charcoal-500 mt-3 text-center">Free shipping over ₹1500 · 30-day returns</p>
+            <p className="text-[10px] text-charcoal-500 mt-3 text-center">Shipping &amp; tax determined per item · 30-day returns where applicable</p>
           </div>
         </div>
       </div>

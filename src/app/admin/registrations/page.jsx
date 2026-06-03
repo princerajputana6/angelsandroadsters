@@ -2,12 +2,26 @@
 import React, { useEffect, useState } from 'react';
 import { useListEventsQuery } from '@/store/api';
 
-/** Small card to view/download an image or PDF uploaded by registrants */
+/** Small card to view/download an image, PDF, DOC, or other file uploaded by registrants */
 function AdminImageCard({ label, url, name }) {
   if (!url) return null;
 
-  const isPdf = url.toLowerCase().includes('.pdf') || url.startsWith('data:application/pdf');
-  const ext = isPdf ? 'pdf' : (url.split('.').pop().split('?')[0] || 'jpg');
+  const lower = url.toLowerCase();
+  const isPdf = lower.includes('.pdf') || url.startsWith('data:application/pdf');
+  const isDoc = /\.docx?(\?|$)/i.test(lower)
+    || url.startsWith('data:application/vnd.openxmlformats')
+    || url.startsWith('data:application/msword');
+  const isText = /\.txt(\?|$)/i.test(lower) || url.startsWith('data:text/plain');
+  const isImage = !isPdf && !isDoc && !isText;
+  const fileIcon = isPdf ? '📄' : isDoc ? '📝' : isText ? '📃' : '📎';
+  const fileLabel = isPdf ? 'PDF' : isDoc ? 'DOC' : isText ? 'TXT' : 'FILE';
+  const ext = isPdf
+    ? 'pdf'
+    : isDoc
+      ? (lower.includes('.docx') ? 'docx' : 'doc')
+      : isText
+        ? 'txt'
+        : (url.split('.').pop().split('?')[0] || 'jpg');
   const downloadName = `${name}.${ext}`;
 
   const handleDownload = async () => {
@@ -38,23 +52,24 @@ function AdminImageCard({ label, url, name }) {
   return (
     <div className="flex flex-col items-center gap-1 text-xs">
       <span className="text-charcoal-400 mb-1">{label}</span>
-      {isPdf ? (
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-20 h-20 bg-charcoal-700 rounded flex flex-col items-center justify-center gap-1 border border-charcoal-600 hover:border-terra-400 transition"
-        >
-          <span className="text-2xl">📄</span>
-          <span className="text-charcoal-400 text-[10px]">PDF</span>
-        </a>
-      ) : (
+      {isImage ? (
         <a href={url} target="_blank" rel="noopener noreferrer">
           <img
             src={url}
             alt={label}
             className="w-20 h-20 object-cover rounded border border-charcoal-600 hover:border-terra-400 transition cursor-pointer"
           />
+        </a>
+      ) : (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-20 h-20 bg-charcoal-700 rounded flex flex-col items-center justify-center gap-1 border border-charcoal-600 hover:border-terra-400 transition"
+          title={`Open ${fileLabel}`}
+        >
+          <span className="text-2xl">{fileIcon}</span>
+          <span className="text-charcoal-400 text-[10px]">{fileLabel}</span>
         </a>
       )}
       <button

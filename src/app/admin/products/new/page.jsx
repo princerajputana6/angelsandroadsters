@@ -126,12 +126,12 @@ export default function NewProductPage() {
             <h3 className="font-display text-lg">Basics</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
-                <label className="label">Name</label>
-                <input className="input" required value={form.name} onChange={set('name')} />
+                <label className="label">Name <span className="text-charcoal-500 normal-case font-normal">({form.name.length}/100)</span></label>
+                <input className="input" required maxLength={100} value={form.name} onChange={set('name')} />
               </div>
               <div>
                 <label className="label">Brand</label>
-                <input className="input" value={form.brand} onChange={set('brand')} />
+                <input className="input" maxLength={60} value={form.brand} onChange={set('brand')} />
               </div>
               <div className="flex items-center gap-3 pt-6">
                 <label className="flex items-center gap-2 cursor-pointer text-sm">
@@ -145,8 +145,8 @@ export default function NewProductPage() {
               </div>
             </div>
             <div>
-              <label className="label">Description</label>
-              <textarea className="input" rows="3" required value={form.description} onChange={set('description')} />
+              <label className="label">Description <span className="text-charcoal-500 normal-case font-normal">({form.description.length}/2000)</span></label>
+              <textarea className="input" rows="3" required maxLength={2000} value={form.description} onChange={set('description')} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -204,15 +204,15 @@ export default function NewProductPage() {
             <div className="grid grid-cols-1 gap-3">
               <div>
                 <label className="label">Sizes</label>
-                <input className="input" placeholder="S, M, L" value={form.sizes} onChange={set('sizes')} />
+                <input className="input" maxLength={120} placeholder="S, M, L" value={form.sizes} onChange={set('sizes')} />
               </div>
               <div>
                 <label className="label">Colors</label>
-                <input className="input" placeholder="Black, Red" value={form.colors} onChange={set('colors')} />
+                <input className="input" maxLength={120} placeholder="Black, Red" value={form.colors} onChange={set('colors')} />
               </div>
               <div>
                 <label className="label">Tags</label>
-                <input className="input" placeholder="helmet, dot" value={form.tags} onChange={set('tags')} />
+                <input className="input" maxLength={200} placeholder="helmet, dot" value={form.tags} onChange={set('tags')} />
               </div>
             </div>
           </div>
@@ -277,7 +277,7 @@ export default function NewProductPage() {
               </div>
               <div>
                 <label className="label">Note</label>
-                <input className="input" value={form.taxNote} onChange={set('taxNote')} placeholder="e.g. Inclusive of GST" />
+                <input className="input" maxLength={120} value={form.taxNote} onChange={set('taxNote')} placeholder="e.g. Inclusive of GST" />
               </div>
             </div>
 
@@ -296,7 +296,7 @@ export default function NewProductPage() {
               </div>
               <div>
                 <label className="label">Note</label>
-                <input className="input" disabled={!form.returnAvailable} value={form.returnNote} onChange={set('returnNote')} placeholder="e.g. Unused, with original tags" />
+                <input className="input" maxLength={140} disabled={!form.returnAvailable} value={form.returnNote} onChange={set('returnNote')} placeholder="e.g. Unused, with original tags" />
               </div>
             </div>
 
@@ -321,7 +321,7 @@ export default function NewProductPage() {
               </div>
               <div>
                 <label className="label">Note</label>
-                <input className="input" value={form.deliveryNote} onChange={set('deliveryNote')} placeholder="e.g. Ships from Bangalore" />
+                <input className="input" maxLength={140} value={form.deliveryNote} onChange={set('deliveryNote')} placeholder="e.g. Ships from Bangalore" />
               </div>
             </div>
           </div>

@@ -30,6 +30,9 @@ export default function ProductDetailPage() {
     dispatch(addItem({
       product: product._id, name: product.name, image: images[0], price,
       slug: product.slug, size, quantity: qty,
+      // snapshot admin-controlled pricing rules so cart can compute totals
+      delivery: product.delivery || {},
+      tax: product.tax || {},
     }));
     toast.success('Added to cart');
   };

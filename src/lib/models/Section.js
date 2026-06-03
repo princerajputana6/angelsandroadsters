@@ -4,6 +4,8 @@ import slugify from 'slugify';
 const sectionSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true, trim: true, lowercase: true },
   slug: { type: String, unique: true, index: true },
+  title: { type: String, default: '' },          // pretty display title (admin-controlled)
+  image: { type: String, default: '' },          // hero image URL for this section
   order: { type: Number, default: 0 },
 }, { timestamps: true });
 

@@ -491,7 +491,7 @@ export default function GroupProfileForm({ registration, userEmail }) {
             
             <FileUpload
               label="Government ID Proof (Aadhar/Driving License/Passport)"
-              accept="image/*,.pdf"
+              accept="image/*,.pdf,.doc,.docx"
               maxSize={5 * 1024 * 1024}
               value={currentMember.governmentIdProof}
               onChange={(value) => handleMemberChange('governmentIdProof', value)}

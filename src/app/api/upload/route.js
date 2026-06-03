@@ -30,8 +30,10 @@ async function uploadToCloudinary(fileBuffer, fileName, mimeType) {
   formData.append('signature', signature);
   formData.append('folder', folder);
 
+  // Use /auto/upload so Cloudinary picks the right resource type
+  // (image for images, raw for pdf/doc/docx/txt, etc.)
   const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`,
     { method: 'POST', body: formData }
   );
 
@@ -67,8 +69,17 @@ export async function POST(request) {
       );
     }
 
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
-    if (!allowedTypes.includes(file.type)) {
+    const allowedTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
+      'application/pdf',
+      'application/msword',                                                         // .doc
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',    // .docx
+      'text/plain',                                                                 // .txt
+    ];
+    // Some browsers send empty / weird mime types — fall back to extension check
+    const ext = (file.name?.split('.').pop() || '').toLowerCase();
+    const extOk = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf', 'doc', 'docx', 'txt'].includes(ext);
+    if (!allowedTypes.includes(file.type) && !extOk) {
       return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
     }
 
@@ -89,8 +100,8 @@ export async function POST(request) {
 
     const timestamp = Date.now();
     const rand = Math.random().toString(36).substring(2, 10);
-    const ext = file.name.split('.').pop();
-    const filename = `${timestamp}-${rand}.${ext}`;
+    const extLocal = file.name.split('.').pop();
+    const filename = `${timestamp}-${rand}.${extLocal}`;
     await writeFile(join(uploadsDir, filename), buffer);
 
     return NextResponse.json({

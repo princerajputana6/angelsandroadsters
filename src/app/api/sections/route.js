@@ -34,7 +34,11 @@ export async function POST(req) {
     const name = String(body?.name || '').trim().toLowerCase();
     if (!name) return fail('Section name is required', 400);
     try {
-      const section = await Section.create({ name });
+      const section = await Section.create({
+        name,
+        title: typeof body.title === 'string' ? body.title.slice(0, 80) : '',
+        image: typeof body.image === 'string' ? body.image : '',
+      });
       return ok({ section: toJSON(section) }, 201);
     } catch (e) {
       if (e?.code === 11000) return fail('A section with that name already exists', 409);

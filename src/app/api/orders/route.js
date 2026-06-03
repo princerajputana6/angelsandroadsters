@@ -4,6 +4,7 @@ import Product from '@/lib/models/Product';
 import { requireUser, requireAdmin } from '@/lib/auth';
 import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
 import { sendOrderConfirmation } from '@/lib/email';
+import { computeOrderTotals } from '@/lib/pricing';
 
 export async function POST(req) {
   return handler(async () => {
@@ -12,27 +13,31 @@ export async function POST(req) {
     const { items, shippingAddress, paymentMethod = 'cod', couponCode } = await req.json();
     if (!items?.length) return fail('No items in order', 400);
 
-    let itemsPrice = 0;
     const orderItems = [];
+    const pricingLines = [];
     for (const item of items) {
       const product = await Product.findById(item.product);
       if (!product) return fail(`Product ${item.product} missing`, 400);
       const price = product.discountedPrice || product.price;
+      const qty = Number(item.quantity) || 1;
       orderItems.push({
         product: product._id,
         name: product.name,
         image: product.thumbnail || product.images?.[0],
         price,
-        quantity: item.quantity || 1,
+        quantity: qty,
         size: item.size,
         color: item.color,
       });
-      itemsPrice += price * (item.quantity || 1);
+      pricingLines.push({
+        price,
+        quantity: qty,
+        delivery: product.delivery || {},
+        tax: product.tax || {},
+      });
     }
 
-    const shippingPrice = itemsPrice > 1500 ? 0 : 99;
-    const taxPrice = Math.round(itemsPrice * 0.05);
-    const totalPrice = itemsPrice + shippingPrice + taxPrice;
+    const { itemsPrice, shippingPrice, taxPrice, totalPrice } = computeOrderTotals(pricingLines);
 
     const order = await Order.create({
       user: user._id,

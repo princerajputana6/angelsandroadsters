@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: '/api', credentials: 'include' }),
-  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog'],
+  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses'],
   endpoints: (b) => ({
     // Auth
     me: b.query({ query: () => '/auth/me', providesTags: ['Auth'] }),
@@ -64,7 +64,11 @@ export const api = createApi({
     listSections: b.query({ query: () => '/sections', providesTags: ['Sections'] }),
     createSection: b.mutation({
       query: (body) => ({ url: '/sections', method: 'POST', body }),
-      invalidatesTags: ['Sections'],
+      invalidatesTags: ['Sections', 'Categories'],
+    }),
+    updateSection: b.mutation({
+      query: ({ id, body }) => ({ url: `/sections/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['Sections', 'Categories'],
     }),
     deleteSection: b.mutation({
       query: (id) => ({ url: `/sections/${id}`, method: 'DELETE' }),
@@ -119,9 +123,39 @@ export const api = createApi({
     }),
     myOrders: b.query({ query: () => '/orders/my', providesTags: ['Orders'] }),
     listOrders: b.query({ query: () => '/orders', providesTags: ['Orders'] }),
+    getOrder: b.query({
+      query: (id) => `/orders/${id}`,
+      providesTags: (_r, _e, id) => [{ type: 'Order', id }],
+    }),
     updateOrder: b.mutation({
       query: ({ id, body }) => ({ url: `/orders/${id}`, method: 'PUT', body }),
       invalidatesTags: ['Orders'],
+    }),
+    cancelOrder: b.mutation({
+      query: ({ id, reason }) => ({
+        url: `/orders/${id}/cancel${reason ? `?reason=${encodeURIComponent(reason)}` : ''}`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Orders'],
+    }),
+    deleteOrder: b.mutation({
+      query: (id) => ({ url: `/orders/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Orders'],
+    }),
+
+    // Addresses (current user)
+    myAddresses: b.query({ query: () => '/users/me/addresses', providesTags: ['Addresses'] }),
+    addAddress: b.mutation({
+      query: (body) => ({ url: '/users/me/addresses', method: 'POST', body }),
+      invalidatesTags: ['Addresses'],
+    }),
+    updateAddress: b.mutation({
+      query: ({ id, body }) => ({ url: `/users/me/addresses/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['Addresses'],
+    }),
+    deleteAddress: b.mutation({
+      query: (id) => ({ url: `/users/me/addresses/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Addresses'],
     }),
 
     // Admin
@@ -173,10 +207,11 @@ export const {
   useMeQuery, useLoginMutation, useRegisterMutation, useLogoutMutation,
   useListProductsQuery, useGetProductQuery, useCreateProductMutation, useUpdateProductMutation, useDeleteProductMutation,
   useListCategoriesQuery, useCreateCategoryMutation, useUpdateCategoryMutation, useDeleteCategoryMutation,
-  useListSectionsQuery, useCreateSectionMutation, useDeleteSectionMutation,
+  useListSectionsQuery, useCreateSectionMutation, useUpdateSectionMutation, useDeleteSectionMutation,
   useListEventsQuery, useGetEventQuery, useGetEventSlotsQuery, useCreateEventMutation, useUpdateEventMutation, useDeleteEventMutation,
   useCreateRegistrationMutation, useMyRegistrationsQuery, useGetRegistrationByTicketQuery, useCompleteProfileMutation,
-  useCreateOrderMutation, useMyOrdersQuery, useListOrdersQuery, useUpdateOrderMutation,
+  useCreateOrderMutation, useMyOrdersQuery, useListOrdersQuery, useGetOrderQuery, useUpdateOrderMutation, useCancelOrderMutation, useDeleteOrderMutation,
+  useMyAddressesQuery, useAddAddressMutation, useUpdateAddressMutation, useDeleteAddressMutation,
   useAdminStatsQuery, useListUsersQuery, useUpdateUserMutation,
   useCreateReviewMutation,
   useListBlogsQuery, useGetBlogQuery, useGetBlogBySlugQuery, useGenerateBlogMutation, useCreateBlogMutation, useUpdateBlogMutation, useDeleteBlogMutation,

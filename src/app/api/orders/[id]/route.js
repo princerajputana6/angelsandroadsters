@@ -22,15 +22,31 @@ export async function PUT(req, { params }) {
   return handler(async () => {
     await requireAdmin();
     await connectDB();
-    const { status, note } = await req.json();
+    const body = await req.json();
+    const { status, note, tracking } = body;
+
     const order = await Order.findById(params.id).populate('user', 'name email');
     if (!order) return fail('Order not found', 404);
+
     if (status) {
       order.status = status;
       order.statusHistory.push({ status, note: note || '' });
-      if (status === 'paid') order.paidAt = new Date();
-      if (status === 'delivered') order.deliveredAt = new Date();
+      if (status === 'paid' && !order.paidAt) order.paidAt = new Date();
+      if (status === 'delivered' && !order.deliveredAt) order.deliveredAt = new Date();
+      if (status === 'cancelled' && !order.cancelledAt) order.cancelledAt = new Date();
+      if ((status === 'shipped' || status === 'out_for_delivery') && !order.tracking?.dispatchedAt) {
+        order.tracking = order.tracking || {};
+        order.tracking.dispatchedAt = new Date();
+      }
     }
+
+    if (tracking && typeof tracking === 'object') {
+      order.tracking = {
+        ...(order.tracking?.toObject?.() || order.tracking || {}),
+        ...tracking,
+      };
+    }
+
     await order.save();
 
     if (status && order.user?.email) {
@@ -44,5 +60,17 @@ export async function PUT(req, { params }) {
     }
 
     return ok({ order: toJSON(order) });
+  });
+}
+
+// Admin can hard-delete an order (e.g. to clean up Razorpay payments cancelled
+// before verification). Customers should use the dedicated /cancel endpoint.
+export async function DELETE(_req, { params }) {
+  return handler(async () => {
+    await requireAdmin();
+    await connectDB();
+    const r = await Order.findByIdAndDelete(params.id);
+    if (!r) return fail('Order not found', 404);
+    return ok({ message: 'Deleted' });
   });
 }

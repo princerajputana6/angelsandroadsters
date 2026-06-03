@@ -306,7 +306,7 @@ export default function IndividualProfileForm({ registration }) {
             
             <FileUpload
               label="Government ID Proof (Aadhar/Driving License/Passport)"
-              accept="image/*,.pdf"
+              accept="image/*,.pdf,.doc,.docx"
               maxSize={5 * 1024 * 1024}
               value={formData.governmentIdProof}
               onChange={(value) => setFormData(prev => ({ ...prev, governmentIdProof: value }))}

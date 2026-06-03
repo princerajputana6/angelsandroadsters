@@ -23,6 +23,8 @@ export default function ProductCard({ product, variant = 'default' }) {
       price,
       slug: product.slug,
       quantity: 1,
+      delivery: product.delivery || {},
+      tax: product.tax || {},
     }));
     toast.success('Added to cart');
   };

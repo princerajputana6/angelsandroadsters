@@ -8,6 +8,7 @@ import {
   useDeleteCategoryMutation,
   useListSectionsQuery,
   useCreateSectionMutation,
+  useUpdateSectionMutation,
   useDeleteSectionMutation,
 } from '@/store/api';
 import FileUpload from '@/components/FileUpload';
@@ -84,52 +85,136 @@ function CategoryForm({ initial = {}, topLevels, sections, onCancel, onSubmit, s
   );
 }
 
-function SectionsManager({ sections, onAdd, onDelete }) {
-  const [name, setName] = useState('');
+function SectionEditor({ initial, onCancel, onSubmit, submitLabel }) {
+  const [f, setF] = useState({
+    name: initial?.name || '',
+    title: initial?.title || '',
+    image: initial?.image || '',
+  });
   const submit = (e) => {
     e.preventDefault();
-    const trimmed = name.trim().toLowerCase();
-    if (!trimmed) return;
-    onAdd(trimmed).then((ok) => { if (ok) setName(''); });
+    const name = f.name.trim().toLowerCase();
+    if (!name) return;
+    onSubmit({ name, title: f.title.trim(), image: f.image || '' });
   };
   return (
-    <div className="card p-5 sm:p-6 mb-6">
-      <h2 className="font-display text-xl mb-1">Sections</h2>
-      <p className="text-xs text-charcoal-400 mb-4">
-        Sections group categories at the top of the catalog (e.g. <em>riding</em>, <em>travelling</em>, <em>accessories</em>).
-        You must create at least one section before you can add categories.
-      </p>
+    <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label className="label">Section key <span className="text-red-400">*</span></label>
+        <input
+          className="input"
+          required
+          maxLength={40}
+          placeholder="e.g. riding, accessories"
+          value={f.name}
+          onChange={(e) => setF({ ...f, name: e.target.value })}
+        />
+        <p className="text-[10px] text-charcoal-500 mt-1">Lowercase key used in URLs and filters.</p>
+      </div>
+      <div>
+        <label className="label">Display title</label>
+        <input
+          className="input"
+          maxLength={80}
+          placeholder="e.g. Riding Gear"
+          value={f.title}
+          onChange={(e) => setF({ ...f, title: e.target.value })}
+        />
+        <p className="text-[10px] text-charcoal-500 mt-1">Shown to customers. Falls back to the key.</p>
+      </div>
+      <div className="sm:col-span-2">
+        <FileUpload
+          label="Section image (optional)"
+          accept="image/*"
+          value={f.image}
+          onChange={(url) => setF({ ...f, image: url })}
+          description="A wide banner/hero image for this section."
+        />
+      </div>
+      <div className="sm:col-span-2 flex gap-2 justify-end">
+        {onCancel && <button type="button" onClick={onCancel} className="btn btn-outline h-10 px-5">Cancel</button>}
+        <button type="submit" className="btn btn-gold h-10 px-5">{submitLabel}</button>
+      </div>
+    </form>
+  );
+}
 
-      {sections.length > 0 ? (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {sections.map((s) => (
-            <span key={s._id} className="chip">
-              {s.name}
-              <button
-                type="button"
-                onClick={() => onDelete(s)}
-                className="text-red-400 hover:text-red-300 -mr-1 ml-1"
-                title="Delete section"
-              >✕</button>
-            </span>
-          ))}
+function SectionsManager({ sections, onAdd, onUpdate, onDelete }) {
+  const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+
+  return (
+    <div className="card p-5 sm:p-6 mb-6">
+      <div className="flex flex-wrap items-end justify-between gap-3 mb-2">
+        <div>
+          <h2 className="font-display text-xl mb-1">Sections</h2>
+          <p className="text-xs text-charcoal-400">
+            Sections group categories at the top of the catalog. You must create at least one before adding categories.
+          </p>
         </div>
-      ) : (
-        <div className="rounded-xl border border-dashed border-charcoal-700 p-5 text-center text-charcoal-400 text-sm mb-4">
-          No sections yet. Add one below to get started.
+        {!adding && (
+          <button onClick={() => setAdding(true)} className="btn btn-gold h-10 px-5">+ Add section</button>
+        )}
+      </div>
+
+      {adding && (
+        <div className="rounded-xl border border-terra-500/30 bg-terra-500/[0.04] p-4 mt-4">
+          <p className="eyebrow mb-3">New section</p>
+          <SectionEditor
+            onCancel={() => setAdding(false)}
+            onSubmit={async (body) => { const ok = await onAdd(body); if (ok) setAdding(false); }}
+            submitLabel="Save section"
+          />
         </div>
       )}
 
-      <form onSubmit={submit} className="flex gap-2">
-        <input
-          className="input flex-1"
-          placeholder="New section name (e.g. apparel)"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          maxLength={40}
-        />
-        <button type="submit" className="btn btn-gold h-10 px-5">+ Add section</button>
-      </form>
+      {sections.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+          {sections.map((s) => {
+            const isEditing = editingId === s._id;
+            return (
+              <div key={s._id} className="rounded-xl border border-charcoal-800 overflow-hidden">
+                {isEditing ? (
+                  <div className="p-3">
+                    <SectionEditor
+                      initial={s}
+                      onCancel={() => setEditingId(null)}
+                      onSubmit={async (body) => { const ok = await onUpdate(s._id, body); if (ok) setEditingId(null); }}
+                      submitLabel="Save changes"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-stretch gap-3">
+                    <div className="w-24 shrink-0 bg-charcoal-800 flex items-center justify-center">
+                      {s.image ? (
+                        <img src={s.image} alt={s.name} className="w-24 h-24 object-cover" />
+                      ) : (
+                        <span className="text-3xl opacity-50">🗂</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 py-3 pr-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold">{s.title || s.name}</span>
+                        {s.title && <span className="text-[10px] text-charcoal-500 font-mono">/{s.name}</span>}
+                      </div>
+                      <div className="mt-2 flex gap-3 text-xs">
+                        <button onClick={() => setEditingId(s._id)} className="text-terra-400 hover:text-terra-300">Edit</button>
+                        <button onClick={() => onDelete(s)} className="text-red-400 hover:text-red-300">Delete</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        !adding && (
+          <div className="rounded-xl border border-dashed border-charcoal-700 p-5 text-center text-charcoal-400 text-sm mt-4">
+            No sections yet. Click "+ Add section" above to get started.
+          </div>
+        )
+      )}
     </div>
   );
 }
@@ -141,6 +226,7 @@ export default function AdminCategoriesPage() {
   const [updateCategory] = useUpdateCategoryMutation();
   const [deleteCategory] = useDeleteCategoryMutation();
   const [createSection] = useCreateSectionMutation();
+  const [updateSection] = useUpdateSectionMutation();
   const [deleteSection] = useDeleteSectionMutation();
   const [editingId, setEditingId] = useState(null);
 
@@ -158,13 +244,23 @@ export default function AdminCategoriesPage() {
     return { topLevels: tops, subsByParent: subs };
   }, [cats]);
 
-  const handleAddSection = async (name) => {
+  const handleAddSection = async (body) => {
     try {
-      await createSection({ name }).unwrap();
+      await createSection(body).unwrap();
       toast.success('Section added');
       return true;
     } catch (e) {
       toast.error(e?.data?.message || 'Failed to add section');
+      return false;
+    }
+  };
+  const handleUpdateSection = async (id, body) => {
+    try {
+      await updateSection({ id, body }).unwrap();
+      toast.success('Section saved');
+      return true;
+    } catch (e) {
+      toast.error(e?.data?.message || 'Failed to save section');
       return false;
     }
   };
@@ -216,7 +312,12 @@ export default function AdminCategoriesPage() {
       </div>
 
       {/* Sections management — always shown */}
-      <SectionsManager sections={sections} onAdd={handleAddSection} onDelete={handleDeleteSection} />
+      <SectionsManager
+        sections={sections}
+        onAdd={handleAddSection}
+        onUpdate={handleUpdateSection}
+        onDelete={handleDeleteSection}
+      />
 
       {/* Category creation — gated on having at least one section */}
       <div className="card p-5 sm:p-6 mb-8">

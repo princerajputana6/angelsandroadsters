@@ -39,6 +39,16 @@ const orderSchema = new mongoose.Schema({
   statusHistory: [{ status: String, note: String, at: { type: Date, default: Date.now } }],
   paidAt: Date,
   deliveredAt: Date,
+  cancelledAt: Date,
+  // Shipment tracking — admin-managed once parcel is handed to a courier
+  tracking: {
+    courier: { type: String, default: '' },           // e.g. "Delhivery", "DTDC"
+    trackingNumber: { type: String, default: '' },
+    trackingUrl: { type: String, default: '' },        // public URL the customer can click
+    dispatchedAt: Date,                                // when handed to the delivery partner
+    expectedDeliveryDate: Date,
+    notes: { type: String, default: '' },
+  },
 }, { timestamps: true });
 
 export default mongoose.models.Order || mongoose.model('Order', orderSchema);
