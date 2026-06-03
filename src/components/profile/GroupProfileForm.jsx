@@ -11,6 +11,7 @@ export default function GroupProfileForm({ registration, userEmail }) {
   const [selectedMember, setSelectedMember] = useState(0);
   const [currentStep, setCurrentStep] = useState(1);
   const [groupPhoto, setGroupPhoto] = useState(registration.teamPhoto || '');
+  const [groupLogo, setGroupLogo] = useState(registration.teamLogo || '');
   
   const [members, setMembers] = useState(
     registration.members?.map(m => ({
@@ -123,10 +124,11 @@ export default function GroupProfileForm({ registration, userEmail }) {
       const updatedMembers = [...members];
       updatedMembers[selectedMember] = updatedMember;
       
-      await completeProfile({ 
-        id: registration._id, 
+      await completeProfile({
+        id: registration._id,
         members: [updatedMember], // Send only this member
-        teamPhoto: groupPhoto // Include group photo
+        teamPhoto: groupPhoto, // Include group photo
+        teamLogo: groupLogo,   // Include group/club logo
       }).unwrap();
       
       // Update local state
@@ -148,10 +150,11 @@ export default function GroupProfileForm({ registration, userEmail }) {
 
   const handleCompleteAll = async () => {
     try {
-      await completeProfile({ 
-        id: registration._id, 
+      await completeProfile({
+        id: registration._id,
         members,
-        teamPhoto: groupPhoto 
+        teamPhoto: groupPhoto,
+        teamLogo: groupLogo,
       }).unwrap();
       alert('All profiles completed successfully!');
       router.push(`/booking/${registration.ticketId}`);
@@ -197,18 +200,28 @@ export default function GroupProfileForm({ registration, userEmail }) {
         </div>
       </div>
 
-      {/* Group Photo Section */}
+      {/* Team Photo + Team Logo */}
       <div className="mb-6 p-4 bg-charcoal-900/50 rounded-lg">
-        <h3 className="text-lg font-semibold mb-4 text-terra-400">Team Photo</h3>
-        <FileUpload
-          label="Team Photo (All 4 registered riders visible)"
-          accept="image/*"
-          maxSize={5 * 1024 * 1024}
-          value={groupPhoto}
-          onChange={setGroupPhoto}
-          required
-          description="Upload a clear group photo of all 4 officially registered riders. Landscape orientation preferred, minimum 1080x1920."
-        />
+        <h3 className="text-lg font-semibold mb-4 text-terra-400">Team Photo &amp; Logo</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FileUpload
+            label="Team Photo (All 4 registered riders visible)"
+            accept="image/*"
+            maxSize={5 * 1024 * 1024}
+            value={groupPhoto}
+            onChange={setGroupPhoto}
+            required
+            description="Upload a clear group photo of all 4 officially registered riders. Landscape orientation preferred, minimum 1080x1920."
+          />
+          <FileUpload
+            label="Team / Club Logo (optional)"
+            accept="image/*"
+            maxSize={5 * 1024 * 1024}
+            value={groupLogo}
+            onChange={setGroupLogo}
+            description="Your club or team logo. Transparent PNG works best — used on your team page and certificates."
+          />
+        </div>
       </div>
 
       {/* Member Tabs */}

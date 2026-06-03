@@ -138,6 +138,7 @@ const registrationSchema = new mongoose.Schema({
   teamCaptainEmail: String,
   teamInstagram: String,
   teamPhoto: String, // URL to uploaded team photo
+  teamLogo: String,  // URL to uploaded team/club logo
   teamAgreeToRules: Boolean,
   teamAgreeToSafety: Boolean,
   teamAgreeToDecisions: Boolean,

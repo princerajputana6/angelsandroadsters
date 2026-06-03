@@ -5,6 +5,8 @@ import { requireAdmin } from '@/lib/auth';
 import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
 import slugify from 'slugify';
 
+const FAVOURITE_LIMIT = 4;
+
 export async function PUT(req, { params }) {
   return handler(async () => {
     await requireAdmin();
@@ -20,7 +22,6 @@ export async function PUT(req, { params }) {
     if (typeof body.name === 'string' && body.name.trim()) {
       const newName = body.name.trim().toLowerCase();
       if (newName !== section.name) {
-        // Make sure no other section already uses that name
         const clash = await Section.findOne({ name: newName, _id: { $ne: section._id } });
         if (clash) return fail('Another section already uses that name', 409);
         renamedFrom = section.name;
@@ -31,6 +32,17 @@ export async function PUT(req, { params }) {
     if (typeof body.title === 'string') section.title = body.title.slice(0, 80);
     if (typeof body.image === 'string') section.image = body.image;
     if (typeof body.order === 'number') section.order = body.order;
+
+    // Favourite toggle — enforce the 4-section cap when turning ON
+    if (typeof body.isFavourite === 'boolean' && body.isFavourite !== section.isFavourite) {
+      if (body.isFavourite === true) {
+        const favCount = await Section.countDocuments({ isFavourite: true, _id: { $ne: section._id } });
+        if (favCount >= FAVOURITE_LIMIT) {
+          return fail(`You can only have ${FAVOURITE_LIMIT} favourite sections. Unfavourite one first.`, 400);
+        }
+      }
+      section.isFavourite = body.isFavourite;
+    }
 
     await section.save();
 

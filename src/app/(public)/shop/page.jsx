@@ -7,8 +7,10 @@ import ProductCard from '@/components/shop/ProductCard';
 function ShopContent() {
   const sp = useSearchParams();
   const initialCategory = sp.get('category') || '';
+  const initialSection = sp.get('section') || '';
   const [topCategoryId, setTopCategoryId] = useState(initialCategory);
   const [subCategoryId, setSubCategoryId] = useState('');
+  const [section, setSection] = useState(initialSection);
   const [filters, setFilters] = useState({
     q: sp.get('q') || '',
     sort: '-createdAt',
@@ -31,13 +33,23 @@ function ShopContent() {
     return [topCategoryId, ...subIds].join(',');
   }, [topCategoryId, subCategoryId, subOptions]);
 
-  const { data, isLoading } = useListProductsQuery({
-    ...filters,
-    category: categoryQuery,
-  });
+  // When a section is set and no explicit category is chosen, pass the section through.
+  // Explicit category picks always win.
+  const productsQuery = useMemo(() => {
+    const base = { ...filters };
+    if (categoryQuery) base.category = categoryQuery;
+    else if (section) base.section = section;
+    return base;
+  }, [filters, categoryQuery, section]);
+
+  const { data, isLoading } = useListProductsQuery(productsQuery);
   const products = data?.products || [];
 
-  const pickTop = (id) => { setTopCategoryId(id); setSubCategoryId(''); };
+  const pickTop = (id) => {
+    setTopCategoryId(id); setSubCategoryId('');
+    // Picking a specific category clears the section filter
+    if (id && section) setSection('');
+  };
 
   const Filters = () => (
     <div className="space-y-5">
@@ -85,8 +97,14 @@ function ShopContent() {
     <div className="container-x pt-28 sm:pt-32 pb-16">
       <div className="mb-8">
         <p className="eyebrow mb-2">CATALOG</p>
-        <h1 className="section-title">SHOP ALL GEAR</h1>
+        <h1 className="section-title">{section ? `SHOP · ${section.toUpperCase()}` : 'SHOP ALL GEAR'}</h1>
         <p className="text-charcoal-400 mt-2 max-w-xl">Riding, travel, and adventure essentials — curated by Angels & Roadsters.</p>
+        {section && (
+          <div className="mt-3 inline-flex items-center gap-2 chip">
+            <span>Section: <strong className="capitalize">{section}</strong></span>
+            <button onClick={() => setSection('')} className="text-red-400 hover:text-red-300">✕</button>
+          </div>
+        )}
       </div>
 
       <button

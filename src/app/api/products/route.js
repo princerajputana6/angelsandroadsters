@@ -12,6 +12,7 @@ export async function GET(req) {
     const limit = Math.min(60, Number(searchParams.get('limit')) || 12);
     const q = searchParams.get('q');
     const category = searchParams.get('category');
+    const section = searchParams.get('section');
     const brand = searchParams.get('brand');
     const minPrice = Number(searchParams.get('minPrice'));
     const maxPrice = Number(searchParams.get('maxPrice'));
@@ -24,6 +25,10 @@ export async function GET(req) {
       // Accept either a single id or a comma-separated list of ids
       const list = category.split(',').map((s) => s.trim()).filter(Boolean);
       filter.category = list.length > 1 ? { $in: list } : list[0];
+    } else if (section) {
+      // Filter by section name → resolve to all category ids in that section
+      const cats = await Category.find({ parent: section.toLowerCase() }).select('_id').lean();
+      filter.category = { $in: cats.map((c) => c._id) };
     }
     if (brand) filter.brand = brand;
     if (!Number.isNaN(minPrice) && minPrice) filter.price = { ...(filter.price || {}), $gte: minPrice };

@@ -7,6 +7,9 @@ const sectionSchema = new mongoose.Schema({
   title: { type: String, default: '' },          // pretty display title (admin-controlled)
   image: { type: String, default: '' },          // hero image URL for this section
   order: { type: Number, default: 0 },
+  // Marked as favourite → shown as a featured tile on the customer homepage.
+  // Hard cap of 4 enforced by the API.
+  isFavourite: { type: Boolean, default: false, index: true },
 }, { timestamps: true });
 
 sectionSchema.pre('save', function (next) {

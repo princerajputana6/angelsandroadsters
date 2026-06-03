@@ -85,17 +85,28 @@ function CategoryForm({ initial = {}, topLevels, sections, onCancel, onSubmit, s
   );
 }
 
-function SectionEditor({ initial, onCancel, onSubmit, submitLabel }) {
+function SectionEditor({ initial, favouriteCount, favouriteLimit, onCancel, onSubmit, submitLabel }) {
   const [f, setF] = useState({
     name: initial?.name || '',
     title: initial?.title || '',
     image: initial?.image || '',
+    isFavourite: !!initial?.isFavourite,
   });
+  // Disable the favourite checkbox if the cap is already hit AND this section
+  // isn't already one of the favourites
+  const limit = favouriteLimit ?? 4;
+  const favLocked = !f.isFavourite && (favouriteCount ?? 0) >= limit;
+
   const submit = (e) => {
     e.preventDefault();
     const name = f.name.trim().toLowerCase();
     if (!name) return;
-    onSubmit({ name, title: f.title.trim(), image: f.image || '' });
+    onSubmit({
+      name,
+      title: f.title.trim(),
+      image: f.image || '',
+      isFavourite: !!f.isFavourite,
+    });
   };
   return (
     <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -131,6 +142,25 @@ function SectionEditor({ initial, onCancel, onSubmit, submitLabel }) {
           description="A wide banner/hero image for this section."
         />
       </div>
+      <div className="sm:col-span-2">
+        <label className={`flex items-center gap-2 text-sm ${favLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+          <input
+            type="checkbox"
+            checked={f.isFavourite}
+            disabled={favLocked}
+            onChange={(e) => setF({ ...f, isFavourite: e.target.checked })}
+          />
+          <span>
+            <span className="font-medium">⭐ Show as favourite on the homepage</span>
+            <span className="text-xs text-charcoal-500 ml-2">(max {limit} favourites)</span>
+          </span>
+        </label>
+        {favLocked && (
+          <p className="text-[11px] text-amber-400 mt-1">
+            You already have {favouriteCount} favourites. Unfavourite another section to add this one.
+          </p>
+        )}
+      </div>
       <div className="sm:col-span-2 flex gap-2 justify-end">
         {onCancel && <button type="button" onClick={onCancel} className="btn btn-outline h-10 px-5">Cancel</button>}
         <button type="submit" className="btn btn-gold h-10 px-5">{submitLabel}</button>
@@ -142,6 +172,8 @@ function SectionEditor({ initial, onCancel, onSubmit, submitLabel }) {
 function SectionsManager({ sections, onAdd, onUpdate, onDelete }) {
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const favouriteCount = sections.filter((s) => s.isFavourite).length;
+  const favouriteLimit = 4;
 
   return (
     <div className="card p-5 sm:p-6 mb-6">
@@ -161,6 +193,8 @@ function SectionsManager({ sections, onAdd, onUpdate, onDelete }) {
         <div className="rounded-xl border border-terra-500/30 bg-terra-500/[0.04] p-4 mt-4">
           <p className="eyebrow mb-3">New section</p>
           <SectionEditor
+            favouriteCount={favouriteCount}
+            favouriteLimit={favouriteLimit}
             onCancel={() => setAdding(false)}
             onSubmit={async (body) => { const ok = await onAdd(body); if (ok) setAdding(false); }}
             submitLabel="Save section"
@@ -178,6 +212,8 @@ function SectionsManager({ sections, onAdd, onUpdate, onDelete }) {
                   <div className="p-3">
                     <SectionEditor
                       initial={s}
+                      favouriteCount={favouriteCount}
+                      favouriteLimit={favouriteLimit}
                       onCancel={() => setEditingId(null)}
                       onSubmit={async (body) => { const ok = await onUpdate(s._id, body); if (ok) setEditingId(null); }}
                       submitLabel="Save changes"
@@ -185,17 +221,21 @@ function SectionsManager({ sections, onAdd, onUpdate, onDelete }) {
                   </div>
                 ) : (
                   <div className="flex items-stretch gap-3">
-                    <div className="w-24 shrink-0 bg-charcoal-800 flex items-center justify-center">
+                    <div className="w-24 shrink-0 bg-charcoal-800 flex items-center justify-center relative">
                       {s.image ? (
                         <img src={s.image} alt={s.name} className="w-24 h-24 object-cover" />
                       ) : (
                         <span className="text-3xl opacity-50">🗂</span>
+                      )}
+                      {s.isFavourite && (
+                        <span className="absolute top-1 left-1 bg-gold-500 text-charcoal-950 text-[10px] font-bold px-1.5 py-0.5 rounded">⭐</span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0 py-3 pr-3">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold">{s.title || s.name}</span>
                         {s.title && <span className="text-[10px] text-charcoal-500 font-mono">/{s.name}</span>}
+                        {s.isFavourite && <span className="badge bg-gold-500/15 text-gold-400 text-[9px]">FAVOURITE</span>}
                       </div>
                       <div className="mt-2 flex gap-3 text-xs">
                         <button onClick={() => setEditingId(s._id)} className="text-terra-400 hover:text-terra-300">Edit</button>

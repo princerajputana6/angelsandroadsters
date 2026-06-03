@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: '/api', credentials: 'include' }),
-  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses'],
+  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses'],
   endpoints: (b) => ({
     // Auth
     me: b.query({ query: () => '/auth/me', providesTags: ['Auth'] }),
@@ -61,7 +61,10 @@ export const api = createApi({
     }),
 
     // Sections
-    listSections: b.query({ query: () => '/sections', providesTags: ['Sections'] }),
+    listSections: b.query({
+      query: (params = {}) => ({ url: '/sections', params }),
+      providesTags: ['Sections'],
+    }),
     createSection: b.mutation({
       query: (body) => ({ url: '/sections', method: 'POST', body }),
       invalidatesTags: ['Sections', 'Categories'],
@@ -73,6 +76,21 @@ export const api = createApi({
     deleteSection: b.mutation({
       query: (id) => ({ url: `/sections/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Sections'],
+    }),
+
+    // Companies (partner logos shown on homepage marquee)
+    listCompanies: b.query({ query: () => '/companies', providesTags: ['Companies'] }),
+    createCompany: b.mutation({
+      query: (body) => ({ url: '/companies', method: 'POST', body }),
+      invalidatesTags: ['Companies'],
+    }),
+    updateCompany: b.mutation({
+      query: ({ id, body }) => ({ url: `/companies/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['Companies'],
+    }),
+    deleteCompany: b.mutation({
+      query: (id) => ({ url: `/companies/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Companies'],
     }),
 
     // Events
@@ -208,6 +226,7 @@ export const {
   useListProductsQuery, useGetProductQuery, useCreateProductMutation, useUpdateProductMutation, useDeleteProductMutation,
   useListCategoriesQuery, useCreateCategoryMutation, useUpdateCategoryMutation, useDeleteCategoryMutation,
   useListSectionsQuery, useCreateSectionMutation, useUpdateSectionMutation, useDeleteSectionMutation,
+  useListCompaniesQuery, useCreateCompanyMutation, useUpdateCompanyMutation, useDeleteCompanyMutation,
   useListEventsQuery, useGetEventQuery, useGetEventSlotsQuery, useCreateEventMutation, useUpdateEventMutation, useDeleteEventMutation,
   useCreateRegistrationMutation, useMyRegistrationsQuery, useGetRegistrationByTicketQuery, useCompleteProfileMutation,
   useCreateOrderMutation, useMyOrdersQuery, useListOrdersQuery, useGetOrderQuery, useUpdateOrderMutation, useCancelOrderMutation, useDeleteOrderMutation,

@@ -1,6 +1,9 @@
+import { mergeKeywords } from '@/lib/seo';
+
 export const metadata = {
   title: 'Liability Waiver | Trailstorm 2026 — Angels & Roadsters',
   description: 'Participant and attendee liability waivers for Trailstorm 2026 — Jaisalmer Desert Edition, organized by Angels & Roadsters.',
+  keywords: mergeKeywords(['liability waiver', 'Trailstorm 2026 waiver', 'event waiver India']),
 };
 
 const RIDER_WAIVER = {

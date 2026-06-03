@@ -62,6 +62,10 @@ export async function PUT(req, { params }) {
       if (body.teamPhoto !== undefined) {
         registration.teamPhoto = body.teamPhoto;
       }
+      // Update group/club logo if provided
+      if (body.teamLogo !== undefined) {
+        registration.teamLogo = body.teamLogo;
+      }
       
       // Update group members if provided
       if (body.members) {

@@ -2,7 +2,13 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
-import { useListProductsQuery, useListCategoriesQuery, useListEventsQuery } from '@/store/api';
+import {
+  useListProductsQuery,
+  useListCategoriesQuery,
+  useListEventsQuery,
+  useListSectionsQuery,
+  useListCompaniesQuery,
+} from '@/store/api';
 import ProductCard from '@/components/shop/ProductCard';
 import ProductCarousel from '@/components/shop/ProductCarousel';
 import TrailstormMark from '@/components/common/TrailstormMark';
@@ -84,6 +90,10 @@ export default function HomePage() {
   const topCategories = (catData?.categories || []).slice(0, 4);
   const { data: eventsData } = useListEventsQuery({ upcoming: 'true' });
   const upcomingEvents = (eventsData?.events || []).slice(0, 3);
+  const { data: secData } = useListSectionsQuery({ favouritesOnly: 'true', includeCounts: 'true' });
+  const favSections = secData?.sections || [];
+  const { data: compData } = useListCompaniesQuery();
+  const companies = compData?.companies || [];
 
   const featuredProducts = featured?.products || [];
   const newProducts = newest?.products || [];
@@ -269,14 +279,31 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Marquee brands strip */}
-      <section className="border-y border-charcoal-800/60 bg-charcoal-950 overflow-hidden py-5">
-        <div className="marquee-track gap-12 px-12 text-charcoal-500 font-display text-2xl sm:text-3xl whitespace-nowrap">
-          {[...BRANDS, ...BRANDS].map((b, i) => (
-            <span key={i} className="hover:text-terra-400 transition">{b}</span>
-          ))}
-        </div>
-      </section>
+      {/* Companies marquee — admin-managed via /admin/companies */}
+      {companies.length > 0 && (
+        <section className="border-y border-charcoal-800/60 bg-charcoal-950 overflow-hidden py-6">
+          <div className="marquee-track gap-10 sm:gap-14 px-10 items-center whitespace-nowrap">
+            {[...companies, ...companies].map((c, i) => {
+              const inner = c.logo ? (
+                <img
+                  src={c.logo}
+                  alt={c.name}
+                  className="h-12 sm:h-14 w-auto object-contain opacity-70 hover:opacity-100 transition"
+                />
+              ) : (
+                <span className="text-charcoal-500 font-display text-2xl sm:text-3xl hover:text-terra-400 transition">
+                  {c.name}
+                </span>
+              );
+              return c.link ? (
+                <a key={`${c._id}-${i}`} href={c.link} target="_blank" rel="noopener noreferrer">{inner}</a>
+              ) : (
+                <span key={`${c._id}-${i}`}>{inner}</span>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* UPCOMING RIDES — community-first primary content */}
       <section id="rides" className="container-x py-16 sm:py-20">
@@ -429,35 +456,40 @@ export default function HomePage() {
         />
       )}
 
-      {/* Shop categories — kept but condensed and demoted */}
-      {topCategories.length > 0 && (
+      {/* Section tiles — admin-favourited sections, max 4 */}
+      {favSections.length > 0 && (
         <section className="container-x py-12 sm:py-16">
           <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
             <div>
               <p className="eyebrow mb-2">BROWSE THE SHOP</p>
-              <h3 className="text-2xl sm:text-3xl font-display">Or jump straight to a category</h3>
+              <h3 className="text-2xl sm:text-3xl font-display">Or jump straight to a section</h3>
             </div>
             <Link href="/shop" className="btn btn-outline text-sm">Full shop →</Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            {topCategories.map((c, i) => {
-              const href = `/shop?category=${c._id}`;
+          <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${
+            favSections.length === 1 ? 'md:grid-cols-1'
+            : favSections.length === 2 ? 'md:grid-cols-2'
+            : favSections.length === 3 ? 'md:grid-cols-3'
+            : 'md:grid-cols-4'
+          }`}>
+            {favSections.map((s, i) => {
+              const href = `/shop?section=${encodeURIComponent(s.name)}`;
               const gradient = CATEGORY_FALLBACK_GRADIENTS[i % CATEGORY_FALLBACK_GRADIENTS.length];
               return (
                 <Link
-                  key={c._id}
+                  key={s._id}
                   href={href}
                   className="relative aspect-[4/3] rounded-xl overflow-hidden group border border-charcoal-800 hover:border-terra-500/40 transition"
                 >
-                  {c.image ? (
-                    <img src={c.image} alt={c.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition duration-[800ms]" />
+                  {s.image ? (
+                    <img src={s.image} alt={s.title || s.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition duration-[800ms]" />
                   ) : (
                     <div className={`absolute inset-0 bg-gradient-to-br ${gradient} flex items-center justify-center text-4xl opacity-60`}>🗂</div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950 via-charcoal-950/40 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-3">
-                    <h3 className="font-display text-lg leading-tight">{c.name}</h3>
-                    <span className="text-[10px] text-terra-400 uppercase tracking-wider">{c.productCount ?? 0} items</span>
+                    <h3 className="font-display text-lg leading-tight capitalize">{s.title || s.name}</h3>
+                    <span className="text-[10px] text-terra-400 uppercase tracking-wider">{s.productCount ?? 0} item{s.productCount === 1 ? '' : 's'}</span>
                   </div>
                 </Link>
               );

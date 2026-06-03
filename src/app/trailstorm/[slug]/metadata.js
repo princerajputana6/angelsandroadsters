@@ -1,7 +1,9 @@
+import { mergeKeywords } from '@/lib/seo';
+
 export const metadata = {
   title: 'TRAILSTORM 2026 Jaisalmer Desert Edition | India\'s Ultimate Off-Road Motorcycle Festival',
   description: 'Join TRAILSTORM 2026 in Jaisalmer, Rajasthan — India\'s ultimate desert motorcycle adventure festival featuring off-road racing, stunt arena, endurance challenges, camping, music, workshops, and rider communities. October 30-31, 2026.',
-  keywords: [
+  keywords: mergeKeywords([
     'desert biking event India',
     'off-road motorcycle event India',
     'motorcycle festival India',
@@ -19,7 +21,7 @@ export const metadata = {
     'motorcycle lifestyle festival',
     'Trailstorm 2026',
     'Angels and Roadsters',
-  ],
+  ]),
   openGraph: {
     title: 'TRAILSTORM 2026 - India\'s Most Immersive Desert Motorsport Experience',
     description: '2 Days. Endless Dunes. Adrenaline Challenges. Concert Nights. Brotherhood. Join 1000+ riders in Jaisalmer for India\'s ultimate motorcycle adventure festival.',
