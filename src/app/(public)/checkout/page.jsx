@@ -83,7 +83,7 @@ export default function CheckoutPage() {
     );
   }
 
-  const { shippingPrice: shipping, taxPrice: tax, totalPrice: grand } = computeOrderTotals(items);
+  const { shippingPrice: shipping, taxPrice: tax, includedTaxPrice: taxIncluded, totalPrice: grand } = computeOrderTotals(items);
 
   const addrValid = addr.name && addr.line1 && addr.city && addr.state && addr.postalCode && addr.phone;
 
@@ -328,7 +328,16 @@ export default function CheckoutPage() {
             <div className="space-y-2.5 text-sm">
               <div className="flex justify-between"><span className="text-charcoal-400">Subtotal ({items.length} items)</span><span>₹{total.toLocaleString()}</span></div>
               <div className="flex justify-between"><span className="text-charcoal-400">Shipping</span><span>{shipping === 0 ? <span className="text-terra-400">FREE</span> : `₹${shipping}`}</span></div>
-              <div className="flex justify-between"><span className="text-charcoal-400">Tax</span><span>{tax > 0 ? `₹${tax.toLocaleString()}` : <span className="text-charcoal-500">Included</span>}</span></div>
+              <div className="flex justify-between">
+                <span className="text-charcoal-400">Tax</span>
+                <span>
+                  {tax > 0
+                    ? `₹${tax.toLocaleString()}`
+                    : taxIncluded > 0
+                      ? <span className="text-charcoal-500">₹{taxIncluded.toLocaleString()} <span className="text-[10px]">incl.</span></span>
+                      : <span className="text-charcoal-500">—</span>}
+                </span>
+              </div>
               <div className="border-t border-charcoal-800 my-3" />
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span><span className="text-terra-400">₹{grand.toLocaleString()}</span>

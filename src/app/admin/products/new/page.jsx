@@ -261,20 +261,26 @@ export default function NewProductPage() {
 
             {/* TAX */}
             <div className="space-y-3 md:border-r md:border-charcoal-800/70 md:pr-6">
-              <p className="eyebrow">Tax</p>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="label">Rate %</label>
-                  <input className="input" type="number" min="0" value={form.taxRate} onChange={set('taxRate')} />
-                </div>
-                <div>
-                  <label className="label">Included?</label>
-                  <select className="input" value={form.taxIncluded ? 'yes' : 'no'} onChange={(e) => setForm({ ...form, taxIncluded: e.target.value === 'yes' })}>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                  </select>
-                </div>
+              <div className="flex items-center justify-between">
+                <p className="eyebrow">Tax</p>
+                <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+                  <input
+                    type="checkbox"
+                    checked={form.taxIncluded}
+                    onChange={(e) => setForm({ ...form, taxIncluded: e.target.checked })}
+                  />
+                  <span>Included in price</span>
+                </label>
               </div>
+              <div>
+                <label className="label">Rate %</label>
+                <input className="input" type="number" min="0" step="0.01" value={form.taxRate} onChange={set('taxRate')} />
+              </div>
+              <p className="text-[10px] text-charcoal-500">
+                {form.taxIncluded
+                  ? `Listed price already includes ${Number(form.taxRate) || 0}% tax. No tax added at checkout.`
+                  : `${Number(form.taxRate) || 0}% tax will be added on top of the price at checkout.`}
+              </p>
               <div>
                 <label className="label">Note</label>
                 <input className="input" maxLength={120} value={form.taxNote} onChange={set('taxNote')} placeholder="e.g. Inclusive of GST" />

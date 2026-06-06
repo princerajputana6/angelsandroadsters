@@ -275,11 +275,18 @@ export default function AdminRegistrationsPage() {
                                     <span className="text-charcoal-400">Captain Email:</span> {r.teamCaptainEmail || r.groupLeader?.email}<br/>
                                     <span className="text-charcoal-400">Captain Phone:</span> {r.teamCaptainMobile || r.groupLeader?.phone}
                                   </div>
-                                  {/* Team photo */}
-                                  {r.teamPhoto && (
+                                  {/* Team photo + team/club logo */}
+                                  {(r.teamPhoto || r.teamLogo) && (
                                     <div className="mb-4">
-                                      <h5 className="font-semibold text-charcoal-300 mb-2 text-xs uppercase tracking-wider">Team Photo</h5>
-                                      <AdminImageCard label="Team Photo" url={r.teamPhoto} name={`${r.groupName || r.ticketId}-team-photo`} />
+                                      <h5 className="font-semibold text-charcoal-300 mb-2 text-xs uppercase tracking-wider">Team Photo &amp; Logo</h5>
+                                      <div className="flex gap-3 flex-wrap">
+                                        {r.teamPhoto && (
+                                          <AdminImageCard label="Team Photo" url={r.teamPhoto} name={`${r.groupName || r.ticketId}-team-photo`} />
+                                        )}
+                                        {r.teamLogo && (
+                                          <AdminImageCard label="Team Logo" url={r.teamLogo} name={`${r.groupName || r.ticketId}-team-logo`} />
+                                        )}
+                                      </div>
                                     </div>
                                   )}
 

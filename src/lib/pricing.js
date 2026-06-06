@@ -21,7 +21,8 @@
 
 export function computeOrderTotals(lines) {
   let itemsPrice = 0;
-  let taxPrice = 0;
+  let taxPrice = 0;           // tax added on TOP of itemsPrice
+  let includedTaxPrice = 0;   // tax already baked INTO itemsPrice (shown for transparency)
   let allFreeDelivery = true;
   let maxDeliveryFee = 0;
 
@@ -33,9 +34,17 @@ export function computeOrderTotals(lines) {
 
     const tx = line.tax || {};
     const rate = Number(tx.rate) || 0;
-    const included = tx.included !== false; // default to inclusive when admin didn't set
-    if (!included && rate > 0) {
-      taxPrice += (subtotal * rate) / 100;
+    const included = tx.included !== false; // default inclusive when admin didn't set
+
+    if (rate > 0) {
+      if (included) {
+        // Reverse-derive the tax portion already inside the price:
+        //   priceInclTax = base + base*rate/100 = base * (1 + rate/100)
+        //   taxPortion   = priceInclTax - base = priceInclTax * rate / (100 + rate)
+        includedTaxPrice += (subtotal * rate) / (100 + rate);
+      } else {
+        taxPrice += (subtotal * rate) / 100;
+      }
     }
 
     const d = line.delivery || {};
@@ -50,10 +59,10 @@ export function computeOrderTotals(lines) {
 
   const shippingPrice = allFreeDelivery ? 0 : maxDeliveryFee;
 
-  // Round to whole rupees for currency display
   itemsPrice = Math.round(itemsPrice);
   taxPrice = Math.round(taxPrice);
+  includedTaxPrice = Math.round(includedTaxPrice);
   const totalPrice = itemsPrice + shippingPrice + taxPrice;
 
-  return { itemsPrice, shippingPrice, taxPrice, totalPrice };
+  return { itemsPrice, shippingPrice, taxPrice, includedTaxPrice, totalPrice };
 }
