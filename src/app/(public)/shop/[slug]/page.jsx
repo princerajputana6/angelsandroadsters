@@ -2,21 +2,27 @@ import { notFound } from 'next/navigation';
 import ProductDetailClient from '@/components/shop/ProductDetailClient';
 import ProductJsonLd from '@/components/seo/ProductJsonLd';
 import { SITE_NAME, SITE_URL } from '@/lib/seo';
+import { connectDB } from '@/lib/db';
+import Product from '@/lib/models/Product';
+import Category from '@/lib/models/Category';
 
-// Server-side function to fetch product data
+// Server-side function to fetch product data directly from database
 async function getProduct(slug) {
   try {
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/products/${slug}`, {
-      cache: 'no-store' // Ensure fresh data for meta tags
-    });
-    
-    if (!response.ok) {
+    await connectDB();
+    const product = await Product.findOne({ 
+      slug: slug, 
+      isActive: true 
+    })
+      .populate('category', 'name slug parent')
+      .lean();
+      
+    if (!product) {
       return null;
     }
     
-    const data = await response.json();
-    return data.product;
+    // Convert MongoDB object to plain object and handle _id
+    return JSON.parse(JSON.stringify(product));
   } catch (error) {
     console.error('Error fetching product:', error);
     return null;
@@ -46,7 +52,7 @@ export async function generateMetadata({ params }) {
     openGraph: {
       title: `${product.name} - ${SITE_NAME}`,
       description: product.description || `${product.name} - Premium riding gear and accessories`,
-      type: 'product',
+      type: 'website',
       url: `${SITE_URL}/shop/${product.slug}`,
       siteName: SITE_NAME,
       images: [
