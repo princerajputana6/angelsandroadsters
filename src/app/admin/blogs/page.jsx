@@ -33,7 +33,12 @@ export default function AdminBlogsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-display">Blog Management</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-display">Blog Management</h1>
+            <span className="chip text-xs">
+              {pagination.total ?? blogs.length} total
+            </span>
+          </div>
           <p className="text-charcoal-400 text-sm mt-1">Create and manage blog posts</p>
         </div>
         <Link href="/admin/blogs/create" className="btn btn-gold">
@@ -46,7 +51,7 @@ export default function AdminBlogsPage() {
           <select
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value, page: 1 })}
-            className="input-field"
+            className="input w-auto"
           >
             <option value="">All Status</option>
             <option value="draft">Draft</option>

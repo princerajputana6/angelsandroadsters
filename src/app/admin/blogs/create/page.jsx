@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useGenerateBlogMutation, useCreateBlogMutation } from '@/store/api';
 import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
+import FileUpload from '@/components/FileUpload';
 
 const CATEGORIES = ['Adventure', 'Gear', 'Travel', 'Community', 'Events', 'Tips'];
 
@@ -183,16 +184,60 @@ export default function CreateBlogPage() {
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Featured Image URL *</label>
-              <input
-                type="text"
+              <FileUpload
+                label="Featured Image *"
+                accept="image/*"
                 value={formData.featuredImage}
-                onChange={(e) => setFormData({ ...formData, featuredImage: e.target.value })}
-                className="input"
-                placeholder="https://..."
+                onChange={(url) => setFormData({ ...formData, featuredImage: url })}
+                description="Hero image shown at the top of the post and in WhatsApp / social link previews."
               />
-              {formData.featuredImage && (
-                <img src={formData.featuredImage} alt="" className="mt-2 w-full h-32 object-cover rounded" />
+              <details className="mt-2">
+                <summary className="text-xs text-charcoal-500 hover:text-terra-400 cursor-pointer">
+                  Or paste an image URL instead…
+                </summary>
+                <input
+                  type="text"
+                  value={formData.featuredImage}
+                  onChange={(e) => setFormData({ ...formData, featuredImage: e.target.value })}
+                  className="input mt-2"
+                  placeholder="https://..."
+                />
+              </details>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Additional images</label>
+              <p className="text-xs text-charcoal-500 mb-2">Optional. Upload one at a time — embed inline in the markdown body.</p>
+              <FileUpload
+                label=""
+                accept="image/*"
+                value=""
+                onChange={(url) => {
+                  if (!url) return;
+                  setFormData((f) => ({ ...f, images: [...(f.images || []), url] }));
+                  toast.success('Image added — paste the URL into the body if you want it inline.');
+                }}
+              />
+              {formData.images?.length > 0 && (
+                <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {formData.images.map((url, i) => (
+                    <div key={`${url}-${i}`} className="relative group rounded-lg overflow-hidden border border-charcoal-800">
+                      <img src={url} alt={`Image ${i + 1}`} className="w-full aspect-square object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard?.writeText(`![](${url})`).then(() => toast.success('Markdown copied'))}
+                        className="absolute bottom-1 left-1 text-[10px] bg-charcoal-900/80 px-1.5 py-0.5 rounded text-terra-400 opacity-0 group-hover:opacity-100 transition"
+                        title="Copy markdown"
+                      >Copy md</button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData((f) => ({ ...f, images: f.images.filter((_, idx) => idx !== i) }))}
+                        className="absolute top-1 right-1 bg-red-500/90 hover:bg-red-500 text-white text-xs w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                        title="Remove"
+                      >✕</button>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 

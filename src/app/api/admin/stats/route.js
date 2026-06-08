@@ -4,6 +4,7 @@ import Product from '@/lib/models/Product';
 import Order from '@/lib/models/Order';
 import Event from '@/lib/models/Event';
 import Registration from '@/lib/models/Registration';
+import Blog from '@/lib/models/Blog';
 import { requireAdmin } from '@/lib/auth';
 import { ok, handler } from '@/lib/apiUtils';
 
@@ -11,12 +12,19 @@ export async function GET() {
   return handler(async () => {
     await requireAdmin();
     await connectDB();
-    const [users, products, orders, events, registrations, orderRevenueAgg, registrationRevenueAgg] = await Promise.all([
+    const [
+      users, products, orders, events, registrations,
+      blogs, blogsPublished, blogsDraft,
+      orderRevenueAgg, registrationRevenueAgg,
+    ] = await Promise.all([
       User.countDocuments(),
       Product.countDocuments(),
       Order.countDocuments(),
       Event.countDocuments(),
       Registration.countDocuments(),
+      Blog.countDocuments(),
+      Blog.countDocuments({ status: 'published' }),
+      Blog.countDocuments({ status: 'draft' }),
       Order.aggregate([
         { $match: { status: { $nin: ['cancelled', 'returned'] } } },
         { $group: { _id: null, total: { $sum: '$totalPrice' } } },
@@ -41,11 +49,14 @@ export async function GET() {
 
     return ok({
       stats: {
-        users, 
-        products, 
-        orders, 
-        events, 
+        users,
+        products,
+        orders,
+        events,
         registrations,
+        blogs,
+        blogsPublished,
+        blogsDraft,
         revenue: totalRevenue,
         orderRevenue,
         registrationRevenue,

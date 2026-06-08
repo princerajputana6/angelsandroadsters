@@ -32,6 +32,13 @@ export default function AdminDashboard() {
     { label: 'Events', value: s.events || 0, icon: '🎪', href: '/admin/events' },
     { label: 'Registrations', value: s.registrations || 0, icon: '🎫', href: '/admin/registrations' },
     { label: 'Users', value: s.users || 0, icon: '👥', href: '/admin/users' },
+    {
+      label: 'Blogs',
+      value: s.blogs || 0,
+      icon: '📝',
+      href: '/admin/blogs',
+      subtitle: `${s.blogsPublished || 0} published · ${s.blogsDraft || 0} draft`,
+    },
   ];
 
   if (isLoading) {
@@ -47,7 +54,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-3 sm:gap-4">
         {cards.map((c) => (
           <Link key={c.label} href={c.href} className="card p-4 sm:p-5 hover:border-terra-500/40 transition group">
             <div className="flex items-center justify-between">

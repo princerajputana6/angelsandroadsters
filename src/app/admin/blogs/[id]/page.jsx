@@ -4,6 +4,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useGetBlogQuery, useUpdateBlogMutation } from '@/store/api';
 import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
+import FileUpload from '@/components/FileUpload';
 
 const CATEGORIES = ['Adventure', 'Gear', 'Travel', 'Community', 'Events', 'Tips'];
 
@@ -100,7 +101,7 @@ export default function EditBlogPage() {
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="input-field"
+                className="input"
               />
             </div>
 
@@ -109,7 +110,7 @@ export default function EditBlogPage() {
               <textarea
                 value={formData.excerpt}
                 onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
-                className="input-field"
+                className="input"
                 rows="3"
               />
             </div>
@@ -119,7 +120,7 @@ export default function EditBlogPage() {
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="input-field"
+                className="input"
               >
                 {CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
@@ -130,16 +131,23 @@ export default function EditBlogPage() {
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Featured Image URL *</label>
-              <input
-                type="text"
+              <FileUpload
+                label="Featured Image *"
+                accept="image/*"
                 value={formData.featuredImage}
-                onChange={(e) => setFormData({ ...formData, featuredImage: e.target.value })}
-                className="input-field"
+                onChange={(url) => setFormData({ ...formData, featuredImage: url })}
+                description="Used at the top of the post and in WhatsApp / social link previews."
               />
-              {formData.featuredImage && (
-                <img src={formData.featuredImage} alt="" className="mt-2 w-full h-32 object-cover rounded" />
-              )}
+              <details className="mt-2">
+                <summary className="text-xs text-charcoal-500 hover:text-terra-400 cursor-pointer">Or paste an image URL instead…</summary>
+                <input
+                  type="text"
+                  value={formData.featuredImage}
+                  onChange={(e) => setFormData({ ...formData, featuredImage: e.target.value })}
+                  className="input mt-2"
+                  placeholder="https://..."
+                />
+              </details>
             </div>
 
             <div className="mb-4">
@@ -150,7 +158,7 @@ export default function EditBlogPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, tags: e.target.value.split(',').map((t) => t.trim()) })
                 }
-                className="input-field"
+                className="input"
               />
             </div>
 
@@ -159,7 +167,7 @@ export default function EditBlogPage() {
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="input-field"
+                className="input"
               >
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
@@ -190,7 +198,7 @@ export default function EditBlogPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, seo: { ...formData.seo, metaTitle: e.target.value } })
                 }
-                className="input-field"
+                className="input"
               />
             </div>
 
@@ -201,7 +209,7 @@ export default function EditBlogPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, seo: { ...formData.seo, metaDescription: e.target.value } })
                 }
-                className="input-field"
+                className="input"
                 rows="2"
               />
             </div>

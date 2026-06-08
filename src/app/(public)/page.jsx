@@ -158,9 +158,10 @@ export default function HomePage() {
               weekend runs, multi-day expeditions, flagship festivals like Trailstorm,
               and a crew that rolls together no matter who's behind the bars.
             </p>
-            <div className="mt-7 flex flex-col sm:flex-row gap-3">
+            <div className="mt-7 flex flex-col sm:flex-row gap-3 flex-wrap">
               <Link href={TRAILSTORM_HREF} className="btn btn-gold text-base px-7 h-12">🏜 Join Trailstorm 2026</Link>
               <Link href="#rides" className="btn btn-outline text-base px-7 h-12">See upcoming rides →</Link>
+              <Link href="/bike-shipping" className="btn btn-outline text-base px-7 h-12">🚚 Bike shipping calculator</Link>
             </div>
 
             <motion.div
@@ -399,6 +400,34 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* BIKE SHIPPING — quick utility card */}
+      <section className="container-x py-12 sm:py-16">
+        <Link
+          href="/bike-shipping"
+          className="block relative overflow-hidden rounded-3xl border border-charcoal-800 hover:border-terra-500/40 bg-gradient-to-br from-charcoal-900 via-charcoal-950 to-charcoal-950 p-8 sm:p-10 group transition"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-center">
+            <div>
+              <p className="eyebrow mb-2">🚚 NEW · RIDER UTILITY</p>
+              <h3 className="font-display text-3xl sm:text-4xl">
+                Ship your bike to the start of the ride —{' '}
+                <span className="gradient-text">priced instantly.</span>
+              </h3>
+              <p className="text-charcoal-400 mt-3 text-sm sm:text-base max-w-2xl">
+                Heading to Trailstorm in Jaisalmer? A Himalayan expedition? Pick pickup &amp;
+                drop-off cities, your bike category, and our calculator gives you an instant
+                door-to-door indicative quote with full transit insurance.
+              </p>
+            </div>
+            <div className="shrink-0">
+              <span className="btn btn-gold h-12 px-6 inline-flex items-center gap-2">
+                Open calculator →
+              </span>
+            </div>
+          </div>
+        </Link>
       </section>
 
       {/* LAST RIDES — community moments */}
