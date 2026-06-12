@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: '/api', credentials: 'include' }),
-  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses'],
+  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics'],
   endpoints: (b) => ({
     // Auth
     me: b.query({ query: () => '/auth/me', providesTags: ['Auth'] }),
@@ -91,6 +91,28 @@ export const api = createApi({
     deleteCompany: b.mutation({
       query: (id) => ({ url: `/companies/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Companies'],
+    }),
+
+    // Trailstorm complimentary (FOC) tickets
+    listCompTickets: b.query({
+      query: (params = {}) => ({ url: '/admin/trailstorm/comp-tickets', params }),
+      providesTags: ['CompTickets'],
+    }),
+    createCompTicket: b.mutation({
+      query: (body) => ({ url: '/admin/trailstorm/comp-tickets', method: 'POST', body }),
+      invalidatesTags: ['CompTickets', 'TrailstormMetrics'],
+    }),
+    updateCompTicket: b.mutation({
+      query: ({ id, body }) => ({ url: `/admin/trailstorm/comp-tickets/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['CompTickets', 'TrailstormMetrics'],
+    }),
+    deleteCompTicket: b.mutation({
+      query: (id) => ({ url: `/admin/trailstorm/comp-tickets/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['CompTickets', 'TrailstormMetrics'],
+    }),
+    trailstormMetrics: b.query({
+      query: (params = {}) => ({ url: '/admin/trailstorm/metrics', params }),
+      providesTags: ['TrailstormMetrics'],
     }),
 
     // Events
@@ -227,6 +249,7 @@ export const {
   useListCategoriesQuery, useCreateCategoryMutation, useUpdateCategoryMutation, useDeleteCategoryMutation,
   useListSectionsQuery, useCreateSectionMutation, useUpdateSectionMutation, useDeleteSectionMutation,
   useListCompaniesQuery, useCreateCompanyMutation, useUpdateCompanyMutation, useDeleteCompanyMutation,
+  useListCompTicketsQuery, useCreateCompTicketMutation, useUpdateCompTicketMutation, useDeleteCompTicketMutation, useTrailstormMetricsQuery,
   useListEventsQuery, useGetEventQuery, useGetEventSlotsQuery, useCreateEventMutation, useUpdateEventMutation, useDeleteEventMutation,
   useCreateRegistrationMutation, useMyRegistrationsQuery, useGetRegistrationByTicketQuery, useCompleteProfileMutation,
   useCreateOrderMutation, useMyOrdersQuery, useListOrdersQuery, useGetOrderQuery, useUpdateOrderMutation, useCancelOrderMutation, useDeleteOrderMutation,
