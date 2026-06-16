@@ -1,4 +1,5 @@
 import './globals.css';
+import Script from 'next/script';
 import StoreProvider from '@/store/Provider';
 import { GLOBAL_KEYWORDS, SITE_NAME, SITE_URL } from '@/lib/seo';
 
@@ -40,6 +41,11 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <StoreProvider>{children}</StoreProvider>
+        <Script
+          src="https://www.trylinqr.com/widget.js"
+          data-org-id="6a1957b3c40c498c73bfe0eb"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
