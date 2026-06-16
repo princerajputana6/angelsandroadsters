@@ -27,14 +27,10 @@ const eventSchema = new mongoose.Schema({
   },
   pricing: {
     individual: { type: Number, default: 0 },
-    individualEarlyBird: { type: Number, default: 0 },
     groupBase: { type: Number, default: 0 },
-    groupEarlyBird: { type: Number, default: 0 },
     groupPerHead: { type: Number, default: 0 },
-    visitor: { type: Number, default: 0 },          // per-day price
-    visitorEarlyBird: { type: Number, default: 0 }, // per-day early-bird price
+    visitor: { type: Number, default: 0 },
   },
-  earlyBirdDeadline: Date,
   schedule: [{ time: String, activity: String, speaker: String }],
   eligibility: String,
   highlights: [String],

@@ -1,6 +1,7 @@
 import { connectDB } from '@/lib/db';
 import Registration from '@/lib/models/Registration';
 import Event from '@/lib/models/Event';
+import Coupon from '@/lib/models/Coupon';
 import { getCurrentUser } from '@/lib/auth';
 import { generateQRDataUrl } from '@/lib/qr';
 import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
@@ -36,29 +37,44 @@ export async function POST(req) {
     }
 
     const pricing = event.pricing || {};
-    const isEarlyBird = event.earlyBirdDeadline && new Date() < new Date(event.earlyBirdDeadline);
 
     let amount = 0;
     if (registrationType === 'individual') {
-      amount = isEarlyBird
-        ? (pricing.individualEarlyBird || pricing.individual || 0)
-        : (pricing.individual || 0);
+      amount = pricing.individual || 0;
     }
     if (registrationType === 'group') {
       const size = Number(body.groupSize || (body.members?.length || 1));
-      const base = isEarlyBird
-        ? (pricing.groupEarlyBird || pricing.groupBase || 0)
-        : (pricing.groupBase || 0);
-      amount = base + (pricing.groupPerHead || 0) * size;
+      amount = (pricing.groupBase || 0) + (pricing.groupPerHead || 0) * size;
     }
     if (registrationType === 'visitor') {
-      const perDay = isEarlyBird
-        ? (pricing.visitorEarlyBird || pricing.visitor || 0)
-        : (pricing.visitor || 0);
+      const perDay = pricing.visitor || 0;
       const numDays = Math.max(1, Array.isArray(body.visitDays) ? body.visitDays.length : 1);
       const count = Math.max(1, Number(body.visitorCount || 1));
       amount = perDay * numDays * count;
     }
+
+    // Apply coupon discount
+    let discountAmount = 0;
+    let appliedCouponCode = null;
+    if (body.couponCode) {
+      const coupon = await Coupon.findOne({ code: body.couponCode.toUpperCase().trim() });
+      const valid =
+        coupon &&
+        coupon.isActive &&
+        (!coupon.expiresAt || new Date() < new Date(coupon.expiresAt)) &&
+        (coupon.maxUses === 0 || coupon.usedCount < coupon.maxUses) &&
+        (!coupon.applicableTo?.length || coupon.applicableTo.includes(registrationType)) &&
+        (!coupon.eventId || String(coupon.eventId) === String(event._id));
+
+      if (valid) {
+        discountAmount = coupon.discountType === 'percent'
+          ? Math.round((amount * coupon.discountValue) / 100)
+          : Math.min(coupon.discountValue, amount);
+        appliedCouponCode = coupon.code;
+        await Coupon.findByIdAndUpdate(coupon._id, { $inc: { usedCount: 1 } });
+      }
+    }
+    amount = Math.max(0, amount - discountAmount);
 
     const reg = new Registration({
       event: event._id,
@@ -82,6 +98,8 @@ export async function POST(req) {
       groupLeader: body.groupLeader,
       members: body.members,
       groupSize: body.groupSize || (body.members?.length || undefined),
+      couponCode: appliedCouponCode,
+      discountAmount,
       amount,
       paymentStatus: amount === 0 ? 'free' : 'pending',
       status: amount === 0 ? 'confirmed' : 'pending',

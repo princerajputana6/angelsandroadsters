@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import Script from 'next/script';
 import { motion } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -281,6 +282,15 @@ export default function HomePage() {
           )}
         </div>
       </section>
+
+      {/* TryLinqr widget — shows events published by this org */}
+      <div id="trylinqr-events" />
+      <Script
+        src="https://www.trylinqr.com/widget.js"
+        data-org-id="6a1957b3c40c498c73bfe0eb"
+        data-target="#trylinqr-events"
+        strategy="afterInteractive"
+      />
 
       {/* Companies marquee — admin-managed via /admin/companies */}
       {companies.length > 0 && (

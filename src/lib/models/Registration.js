@@ -147,6 +147,9 @@ const registrationSchema = new mongoose.Schema({
   members: [memberSchema],
   groupSize: Number,
 
+  couponCode: { type: String, default: null },
+  discountAmount: { type: Number, default: 0 },
+
   paymentStatus: { type: String, enum: ['pending', 'paid', 'free', 'refunded'], default: 'pending' },
   paymentId: String,
   amount: { type: Number, default: 0 },

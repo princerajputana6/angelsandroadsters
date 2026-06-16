@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: '/api', credentials: 'include' }),
-  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics'],
+  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics', 'Coupons'],
   endpoints: (b) => ({
     // Auth
     me: b.query({ query: () => '/auth/me', providesTags: ['Auth'] }),
@@ -240,6 +240,24 @@ export const api = createApi({
       query: (id) => ({ url: `/blogs/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Blogs'],
     }),
+
+    // Coupons (admin)
+    listCoupons: b.query({ query: () => '/admin/coupons', providesTags: ['Coupons'] }),
+    createCoupon: b.mutation({
+      query: (body) => ({ url: '/admin/coupons', method: 'POST', body }),
+      invalidatesTags: ['Coupons'],
+    }),
+    toggleCoupon: b.mutation({
+      query: ({ id, isActive }) => ({ url: `/admin/coupons/${id}`, method: 'PATCH', body: { isActive } }),
+      invalidatesTags: ['Coupons'],
+    }),
+    deleteCoupon: b.mutation({
+      query: (id) => ({ url: `/admin/coupons/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Coupons'],
+    }),
+    validateCoupon: b.mutation({
+      query: (body) => ({ url: '/coupons/validate', method: 'POST', body }),
+    }),
   }),
 });
 
@@ -257,4 +275,5 @@ export const {
   useAdminStatsQuery, useListUsersQuery, useUpdateUserMutation,
   useCreateReviewMutation,
   useListBlogsQuery, useGetBlogQuery, useGetBlogBySlugQuery, useGenerateBlogMutation, useCreateBlogMutation, useUpdateBlogMutation, useDeleteBlogMutation,
+  useListCouponsQuery, useCreateCouponMutation, useToggleCouponMutation, useDeleteCouponMutation, useValidateCouponMutation,
 } = api;

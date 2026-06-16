@@ -19,6 +19,7 @@ const NAV = [
   { href: '/admin/trailstorm', label: 'Trailstorm · FOC', icon: '🏜' },
   { href: '/admin/blogs', label: 'Blogs', icon: '📝' },
   { href: '/admin/users', label: 'Users', icon: '👥' },
+  { href: '/admin/coupons', label: 'Coupons', icon: '🎟' },
   { href: '/admin/support', label: 'Support Tickets', icon: '🆘' },
 ];
 

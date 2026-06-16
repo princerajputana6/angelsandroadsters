@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useCreateRegistrationMutation, useMeQuery, useGetEventSlotsQuery } from '@/store/api';
+import { useCreateRegistrationMutation, useMeQuery, useGetEventSlotsQuery, useValidateCouponMutation } from '@/store/api';
 import { payWithRazorpay } from '@/lib/razorpayClient';
 import toast from 'react-hot-toast';
 
@@ -17,10 +17,13 @@ export default function BookingWizard({ event, onDone }) {
   const { data: meData } = useMeQuery();
   const { data: slotData, refetch: refetchSlots } = useGetEventSlotsQuery(event.slug, { pollingInterval: 30000 });
   const [register, { isLoading }] = useCreateRegistrationMutation();
+  const [validateCoupon, { isLoading: validatingCoupon }] = useValidateCouponMutation();
   const [step, setStep] = useState(1);
   const [type, setType] = useState('individual');
   const [confirmation, setConfirmation] = useState(null);
   const [agreedWaiver, setAgreedWaiver] = useState(false);
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null); // { code, discountAmount, finalAmount }
 
   const slots = slotData?.slots || {};
   const slotsFor = (t) => slots[t] || { capacity: 0, booked: 0, remaining: 0 };
@@ -58,11 +61,6 @@ export default function BookingWizard({ event, onDone }) {
     }
   }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isEarlyBird = useMemo(() => {
-    if (!event.earlyBirdDeadline) return false;
-    return new Date() < new Date(event.earlyBirdDeadline);
-  }, [event.earlyBirdDeadline]);
-
   // All calendar days the event spans (capped at 14 for safety).
   const eventDays = useMemo(() => {
     const days = [];
@@ -83,21 +81,13 @@ export default function BookingWizard({ event, onDone }) {
   const dayLabel = (d) =>
     new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
 
-  const visitorPerDay = isEarlyBird
-    ? (event.pricing?.visitorEarlyBird || event.pricing?.visitor || 0)
-    : (event.pricing?.visitor || 0);
-
-  const individualPrice = isEarlyBird
-    ? (event.pricing?.individualEarlyBird || event.pricing?.individual || 0)
-    : (event.pricing?.individual || 0);
-
-  const groupPrice = isEarlyBird
-    ? (event.pricing?.groupEarlyBird || event.pricing?.groupBase || 0)
-    : (event.pricing?.groupBase || event.pricing?.individual || 0);
+  const visitorPerDay = event.pricing?.visitor || 0;
+  const individualPrice = event.pricing?.individual || 0;
+  const groupPrice = event.pricing?.groupBase || event.pricing?.individual || 0;
 
   const visitorNumDays = form.passDuration === 'single' ? 1 : Math.max(1, eventDays.length);
 
-  const price = useMemo(() => {
+  const basePrice = useMemo(() => {
     if (type === 'individual') return individualPrice;
     if (type === 'group') return groupPrice;
     if (type === 'visitor') {
@@ -106,6 +96,32 @@ export default function BookingWizard({ event, onDone }) {
     }
     return 0;
   }, [type, form.visitorCount, individualPrice, groupPrice, visitorPerDay, visitorNumDays]);
+
+  // Reset coupon when pass type or count changes
+  const price = appliedCoupon ? appliedCoupon.finalAmount : basePrice;
+  const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
+
+  const applyCoupon = async () => {
+    if (!couponInput.trim()) return;
+    try {
+      const res = await validateCoupon({
+        code: couponInput.trim(),
+        amount: basePrice,
+        registrationType: type,
+        eventId: event._id,
+      }).unwrap();
+      setAppliedCoupon({ code: res.coupon.code, discountAmount: res.discountAmount, finalAmount: res.finalAmount });
+      toast.success(`Coupon applied! You save ₹${res.discountAmount.toLocaleString()}`);
+    } catch (err) {
+      toast.error(err?.data?.message || 'Invalid coupon');
+      setAppliedCoupon(null);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput('');
+  };
 
   const setMember = (i, key, val) => {
     const members = [...form.members];
@@ -151,6 +167,7 @@ export default function BookingWizard({ event, onDone }) {
         ...form,
         visitDays,
         age: form.age ? Number(form.age) : undefined,
+        couponCode: appliedCoupon?.code || undefined,
       };
       const res = await register(payload).unwrap();
       const reg = res.registration;
@@ -356,23 +373,12 @@ export default function BookingWizard({ event, onDone }) {
               </div>
             )}
 
-            {isEarlyBird && !allSoldOut && (
-              <div className="mb-4 p-3 rounded-xl bg-terra-500/10 border border-terra-500/30 text-sm text-terra-300">
-                🐦 Early bird pricing is live! Book before{' '}
-                {new Date(event.earlyBirdDeadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-                {' '}to lock in the discounted rate.
-              </div>
-            )}
 
             <div className="space-y-3">
               {TYPES.map((t) => {
                 const p = t.id === 'individual' ? individualPrice
                   : t.id === 'visitor' ? visitorPerDay
                   : groupPrice;
-                const regularP = t.id === 'individual' ? event.pricing?.individual
-                  : t.id === 'visitor' ? event.pricing?.visitor
-                  : event.pricing?.groupBase;
-                const showStrike = isEarlyBird && regularP > p;
                 const active = type === t.id;
                 const soldOut = isSoldOut(t.id);
                 const s = slotsFor(t.id);
@@ -399,10 +405,7 @@ export default function BookingWizard({ event, onDone }) {
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-xs text-charcoal-500">{t.id === 'visitor' ? 'Per day' : 'From'}</div>
-                      {showStrike && (
-                        <div className="text-[11px] text-charcoal-500 line-through">₹{regularP?.toLocaleString()}</div>
-                      )}
-                      <div className="text-terra-400 font-bold text-sm">{p ? `₹${p.toLocaleString()}` : 'Free'}</div>
+                        <div className="text-terra-400 font-bold text-sm">{p ? `₹${p.toLocaleString()}` : 'Free'}</div>
                     </div>
                   </button>
                 );
@@ -528,7 +531,6 @@ export default function BookingWizard({ event, onDone }) {
                       />
                       <p className="text-xs text-charcoal-400 mt-1">
                         ₹{visitorPerDay.toLocaleString()} per day · {visitorNumDays} day{visitorNumDays > 1 ? 's' : ''} = ₹{(visitorPerDay * visitorNumDays).toLocaleString()} per ticket
-                        {isEarlyBird && <span className="text-terra-400 font-semibold"> · Early bird</span>}
                       </p>
                     </div>
                   </>
@@ -611,7 +613,50 @@ export default function BookingWizard({ event, onDone }) {
                 </>
               )}
               <div className="border-t border-charcoal-800 my-2" />
-              <div className="flex justify-between text-base font-bold">
+
+              {/* Coupon */}
+              {!appliedCoupon ? (
+                <div className="flex gap-2 mt-1">
+                  <input
+                    className="input flex-1 text-sm py-2"
+                    placeholder="Coupon code"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), applyCoupon())}
+                  />
+                  <button
+                    type="button"
+                    onClick={applyCoupon}
+                    disabled={validatingCoupon || !couponInput.trim()}
+                    className="btn btn-outline text-sm px-4 disabled:opacity-40"
+                  >
+                    {validatingCoupon ? '...' : 'Apply'}
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded-xl px-3 py-2 mt-1">
+                  <div className="text-sm">
+                    <span className="font-mono font-bold text-green-400">{appliedCoupon.code}</span>
+                    <span className="text-charcoal-400 ml-2">— saving ₹{appliedCoupon.discountAmount.toLocaleString()}</span>
+                  </div>
+                  <button type="button" onClick={removeCoupon} className="text-xs text-charcoal-400 hover:text-red-400 ml-2">Remove</button>
+                </div>
+              )}
+
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-sm mt-2">
+                  <span className="text-charcoal-400">Base price</span>
+                  <span className="line-through text-charcoal-500">₹{basePrice.toLocaleString()}</span>
+                </div>
+              )}
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-green-400">Coupon discount</span>
+                  <span className="text-green-400">− ₹{discountAmount.toLocaleString()}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between text-base font-bold mt-2">
                 <span>Total payable</span>
                 <span className="text-terra-400">{price > 0 ? `₹${price.toLocaleString()}` : 'Free'}</span>
               </div>
@@ -648,6 +693,9 @@ export default function BookingWizard({ event, onDone }) {
 
         <div className="text-right mr-3 hidden sm:block">
           <div className="text-[10px] text-charcoal-500 uppercase tracking-wider">Total</div>
+          {discountAmount > 0 && (
+            <div className="text-[11px] text-charcoal-500 line-through">₹{basePrice.toLocaleString()}</div>
+          )}
           <div className="text-terra-400 font-bold">{price > 0 ? `₹${price.toLocaleString()}` : 'Free'}</div>
         </div>
 
