@@ -80,3 +80,20 @@ export function mergeKeywords(extra = []) {
 
 export const SITE_NAME = 'Angels & Roadsters';
 export const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.angelsandroadsters.com';
+
+export const SITE_LOGO = `${SITE_URL}/logos/angeles-roadsters.png`;
+export const SUPPORT_EMAIL = 'support@angelsandroadsters.com';
+
+// Official profiles for the Organization `sameAs` entity graph.
+// Only add a URL here once the profile exists, is public, and links back to
+// SITE_URL from its own bio/website field — a sameAs pointing at a dead or
+// unlinked profile weakens the entity match instead of strengthening it.
+export const SOCIAL_PROFILES = [
+  'https://www.instagram.com/angels_roadsters',
+  'https://www.youtube.com/@angels_roadsters',
+  'https://www.facebook.com/angelsandroadsters',
+  'https://x.com/angelsroadsters',
+  'https://www.linkedin.com/in/angelsandroadsters/',
+];
+
+export const TRAILSTORM_PROFILES = ['https://www.instagram.com/trailstormofficial'];

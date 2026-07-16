@@ -1,5 +1,6 @@
 import './globals.css';
 import StoreProvider from '@/store/Provider';
+import OrganizationJsonLd from '@/components/seo/OrganizationJsonLd';
 import { GLOBAL_KEYWORDS, SITE_NAME, SITE_URL } from '@/lib/seo';
 
 export const metadata = {
@@ -27,8 +28,8 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@angels_roadsters',
-    creator: '@angels_roadsters',
+    site: '@angelsroadsters',
+    creator: '@angelsroadsters',
     title: `${SITE_NAME} — India's gender-equal riding community`,
     description:
       'Weekend rides, Trailstorm festival, 50:50 community, women & professional bikers across India.',
@@ -39,6 +40,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
+        <OrganizationJsonLd />
         <StoreProvider>{children}</StoreProvider>
       </body>
     </html>
