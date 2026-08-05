@@ -205,6 +205,9 @@ export const api = createApi({
       query: ({ id, body }) => ({ url: `/admin/users/${id}`, method: 'PUT', body }),
       invalidatesTags: ['Users'],
     }),
+    resetUserPassword: b.mutation({
+      query: ({ id, password }) => ({ url: `/admin/users/${id}/reset-password`, method: 'POST', body: { password } }),
+    }),
 
     // Reviews
     createReview: b.mutation({
@@ -272,7 +275,7 @@ export const {
   useCreateRegistrationMutation, useMyRegistrationsQuery, useGetRegistrationByTicketQuery, useCompleteProfileMutation,
   useCreateOrderMutation, useMyOrdersQuery, useListOrdersQuery, useGetOrderQuery, useUpdateOrderMutation, useCancelOrderMutation, useDeleteOrderMutation,
   useMyAddressesQuery, useAddAddressMutation, useUpdateAddressMutation, useDeleteAddressMutation,
-  useAdminStatsQuery, useListUsersQuery, useUpdateUserMutation,
+  useAdminStatsQuery, useListUsersQuery, useUpdateUserMutation, useResetUserPasswordMutation,
   useCreateReviewMutation,
   useListBlogsQuery, useGetBlogQuery, useGetBlogBySlugQuery, useGenerateBlogMutation, useCreateBlogMutation, useUpdateBlogMutation, useDeleteBlogMutation,
   useListCouponsQuery, useCreateCouponMutation, useToggleCouponMutation, useDeleteCouponMutation, useValidateCouponMutation,

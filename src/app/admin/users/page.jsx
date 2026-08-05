@@ -1,12 +1,13 @@
 'use client';
 import { useState } from 'react';
-import { useListUsersQuery, useUpdateUserMutation } from '@/store/api';
+import { useListUsersQuery, useUpdateUserMutation, useResetUserPasswordMutation } from '@/store/api';
 import toast from 'react-hot-toast';
 
 const ROLES = ['user', 'eventManager', 'admin'];
 
 export default function AdminUsers() {
   const [q, setQ] = useState('');
+  const [resetTarget, setResetTarget] = useState(null); // user being reset
   const { data, isLoading } = useListUsersQuery();
   const [update] = useUpdateUserMutation();
   const users = (data?.users || []).filter((u) =>
@@ -44,6 +45,7 @@ export default function AdminUsers() {
                   <th className="text-left p-3">Role</th>
                   <th className="text-left p-3">Status</th>
                   <th className="text-left p-3">Joined</th>
+                  <th className="text-left p-3">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-charcoal-800">
@@ -67,6 +69,9 @@ export default function AdminUsers() {
                       </button>
                     </td>
                     <td className="p-3 text-xs text-charcoal-400">{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td className="p-3">
+                      <button onClick={() => setResetTarget(u)} className="btn btn-outline text-xs h-8 px-3">Reset password</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -92,11 +97,60 @@ export default function AdminUsers() {
                     {u.isBanned ? 'Unban' : 'Ban'}
                   </button>
                 </div>
+                <button onClick={() => setResetTarget(u)} className="btn btn-outline text-xs h-10 w-full mt-2">Reset password</button>
               </div>
             ))}
           </div>
         </>
       )}
+
+      {resetTarget && (
+        <ResetPasswordModal user={resetTarget} onClose={() => setResetTarget(null)} />
+      )}
+    </div>
+  );
+}
+
+function ResetPasswordModal({ user, onClose }) {
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [reset, { isLoading }] = useResetUserPasswordMutation();
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (password.length < 6) return toast.error('Password must be at least 6 characters');
+    if (password !== confirm) return toast.error('Passwords do not match');
+    try {
+      await reset({ id: user._id, password }).unwrap();
+      toast.success(`Password reset for ${user.name}`);
+      onClose();
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to reset password');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="card p-6 w-full max-w-md space-y-4">
+        <div>
+          <p className="eyebrow mb-1">RESET PASSWORD</p>
+          <h2 className="text-xl font-display">{user.name}</h2>
+          <p className="text-xs text-charcoal-500 mt-1">{user.email}</p>
+        </div>
+        <div>
+          <label className="block text-xs text-charcoal-400 mb-1">New password</label>
+          <input className="input w-full" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" autoFocus />
+        </div>
+        <div>
+          <label className="block text-xs text-charcoal-400 mb-1">Confirm new password</label>
+          <input className="input w-full" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Re-enter password" />
+        </div>
+        <p className="text-xs text-charcoal-500">Share the new password with the user through a secure channel and ask them to change it after signing in.</p>
+        <div className="flex gap-2 justify-end pt-1">
+          <button type="button" onClick={onClose} className="btn btn-outline text-sm h-10 px-4">Cancel</button>
+          <button type="submit" disabled={isLoading} className="btn btn-primary text-sm h-10 px-4">{isLoading ? 'Saving...' : 'Reset password'}</button>
+        </div>
+      </form>
     </div>
   );
 }
