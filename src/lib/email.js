@@ -14,7 +14,7 @@ const FROM_EMAIL = process.env.EMAIL_FROM || process.env.EMAIL_USER;
 const COMPANY_NAME = 'Angels & Roadsters';
 const COMPANY_WEBSITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://angelsandroadsters.com';
 
-export async function sendEmail({ to, subject, html, text }) {
+export async function sendEmail({ to, subject, html, text, bcc }) {
   try {
     if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER) {
       console.warn('[Email] Email not configured. Skipping email send.');
@@ -24,6 +24,7 @@ export async function sendEmail({ to, subject, html, text }) {
     const info = await transporter.sendMail({
       from: `"${COMPANY_NAME}" <${FROM_EMAIL}>`,
       to,
+      ...(bcc ? { bcc } : {}),
       subject,
       html,
       text: text || html.replace(/<[^>]*>/g, ''),
@@ -330,4 +331,69 @@ export async function sendEventRegistrationUpdate({ registration, event, userEma
   `;
 
   return sendEmail({ to: userEmail, subject, html });
+}
+
+// Internal inbox that receives a copy of every resort booking.
+const BOOKINGS_NOTIFY_EMAIL = 'support@angelsandroadsters.com';
+
+export async function sendResortBookingConfirmation({ booking, userEmail, userName }) {
+  const subject = `Room Booked · ${booking.resortName} — ${booking.bookingId}`;
+
+  const fmtDate = (d) =>
+    d ? new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+  const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+
+  const row = (label, value) => `
+    <tr>
+      <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">${label}</td>
+      <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: 600; text-align: right;">${value}</td>
+    </tr>`;
+
+  const html = `
+  <!DOCTYPE html>
+  <html>
+  <body style="margin: 0; padding: 0; background: #f3f4f6; font-family: Arial, sans-serif;">
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff;">
+      <div style="background: linear-gradient(135deg, #f97316, #d97706); padding: 32px 24px; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Booking Confirmed 🏨</h1>
+        <p style="color: #fff7ed; margin: 8px 0 0; font-size: 14px;">${COMPANY_NAME}</p>
+      </div>
+
+      <div style="padding: 28px 24px;">
+        <p style="font-size: 15px; color: #111827;">Hi ${userName},</p>
+        <p style="font-size: 14px; color: #374151;">
+          Your room at <strong>${booking.resortName}</strong> is booked and paid. Show your booking ID at check-in.
+        </p>
+
+        <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 16px; text-align: center; margin: 20px 0;">
+          <div style="font-size: 12px; color: #9a3412; text-transform: uppercase; letter-spacing: 1px;">Booking ID</div>
+          <div style="font-size: 22px; font-weight: 700; color: #c2410c; letter-spacing: 2px;">${booking.bookingId}</div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; border-top: 1px solid #e5e7eb;">
+          ${row('Resort', booking.resortName)}
+          ${row('Room type', booking.roomTypeName)}
+          ${row('Rooms', booking.rooms)}
+          ${row('Guests', booking.guests)}
+          ${row('Check-in', fmtDate(booking.checkIn))}
+          ${row('Check-out', fmtDate(booking.checkOut))}
+          ${row('Nights', booking.nights)}
+          ${row('Rate', `${inr(booking.pricePerNight)} / night`)}
+          <tr>
+            <td style="padding: 12px 0 0; color: #111827; font-size: 16px; font-weight: 700; border-top: 1px solid #e5e7eb;">Total paid</td>
+            <td style="padding: 12px 0 0; color: #c2410c; font-size: 18px; font-weight: 700; text-align: right; border-top: 1px solid #e5e7eb;">${inr(booking.totalAmount)}</td>
+          </tr>
+        </table>
+
+        <div style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 28px;">
+          <p>Need help? Contact us at <a href="mailto:support@angelsandroadsters.com" style="color: #d97706;">support@angelsandroadsters.com</a></p>
+          <p style="margin-top: 12px;">&copy; ${new Date().getFullYear()} ${COMPANY_NAME}. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+
+  return sendEmail({ to: userEmail, bcc: BOOKINGS_NOTIFY_EMAIL, subject, html });
 }

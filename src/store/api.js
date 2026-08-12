@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: '/api', credentials: 'include' }),
-  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics', 'Coupons'],
+  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics', 'Coupons', 'Resorts', 'Resort', 'ResortBookings'],
   endpoints: (b) => ({
     // Auth
     me: b.query({ query: () => '/auth/me', providesTags: ['Auth'] }),
@@ -261,6 +261,43 @@ export const api = createApi({
     validateCoupon: b.mutation({
       query: (body) => ({ url: '/coupons/validate', method: 'POST', body }),
     }),
+
+    // Resorts
+    listResorts: b.query({
+      query: (params = {}) => ({ url: '/resorts', params }),
+      providesTags: ['Resorts'],
+    }),
+    getResort: b.query({
+      query: (slug) => `/resorts/${slug}`,
+      providesTags: (_r, _e, slug) => [{ type: 'Resort', id: slug }],
+    }),
+    createResort: b.mutation({
+      query: (body) => ({ url: '/resorts', method: 'POST', body }),
+      invalidatesTags: ['Resorts'],
+    }),
+    updateResort: b.mutation({
+      query: ({ slug, body }) => ({ url: `/resorts/${slug}`, method: 'PUT', body }),
+      invalidatesTags: (_r, _e, { slug }) => ['Resorts', { type: 'Resort', id: slug }],
+    }),
+    deleteResort: b.mutation({
+      query: (slug) => ({ url: `/resorts/${slug}`, method: 'DELETE' }),
+      invalidatesTags: ['Resorts'],
+    }),
+
+    // Resort bookings
+    createResortBooking: b.mutation({
+      query: (body) => ({ url: '/resort-bookings', method: 'POST', body }),
+      invalidatesTags: ['ResortBookings', 'Resort'],
+    }),
+    myResortBookings: b.query({ query: () => '/resort-bookings/my', providesTags: ['ResortBookings'] }),
+    listResortBookings: b.query({
+      query: (params = {}) => ({ url: '/resort-bookings', params }),
+      providesTags: ['ResortBookings'],
+    }),
+    updateResortBooking: b.mutation({
+      query: ({ id, body }) => ({ url: `/resort-bookings/${id}`, method: 'PATCH', body }),
+      invalidatesTags: ['ResortBookings'],
+    }),
   }),
 });
 
@@ -279,4 +316,6 @@ export const {
   useCreateReviewMutation,
   useListBlogsQuery, useGetBlogQuery, useGetBlogBySlugQuery, useGenerateBlogMutation, useCreateBlogMutation, useUpdateBlogMutation, useDeleteBlogMutation,
   useListCouponsQuery, useCreateCouponMutation, useToggleCouponMutation, useDeleteCouponMutation, useValidateCouponMutation,
+  useListResortsQuery, useGetResortQuery, useCreateResortMutation, useUpdateResortMutation, useDeleteResortMutation,
+  useCreateResortBookingMutation, useMyResortBookingsQuery, useListResortBookingsQuery, useUpdateResortBookingMutation,
 } = api;

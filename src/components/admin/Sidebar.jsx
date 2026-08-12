@@ -17,6 +17,8 @@ const NAV = [
   { href: '/admin/events', label: 'Events', icon: '🎪' },
   { href: '/admin/registrations', label: 'Registrations', icon: '🎫' },
   { href: '/admin/trailstorm', label: 'Trailstorm · FOC', icon: '🏜' },
+  { href: '/admin/resorts', label: 'Resorts', icon: '🏨' },
+  { href: '/admin/resort-bookings', label: 'Resort Bookings', icon: '🛎' },
   { href: '/admin/blogs', label: 'Blogs', icon: '📝' },
   { href: '/admin/users', label: 'Users', icon: '👥' },
   { href: '/admin/coupons', label: 'Coupons', icon: '🎟' },

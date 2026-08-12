@@ -2,9 +2,10 @@ import { connectDB } from '@/lib/db';
 import Order from '@/lib/models/Order';
 import Registration from '@/lib/models/Registration';
 import Event from '@/lib/models/Event';
+import ResortBooking from '@/lib/models/ResortBooking';
 import { verifySignature } from '@/lib/razorpay';
 import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
-import { sendEventRegistrationConfirmation } from '@/lib/email';
+import { sendEventRegistrationConfirmation, sendResortBookingConfirmation } from '@/lib/email';
 
 export async function POST(req) {
   return handler(async () => {
@@ -73,6 +74,32 @@ export async function POST(req) {
       } catch (emailErr) {
         // Don't fail the verify response if email errors
         console.error('[Payment/Verify] Error sending email:', emailErr.message);
+      }
+    }
+
+    if (kind === 'resortBooking' && referenceId) {
+      await connectDB();
+      const booking = await ResortBooking.findById(referenceId);
+      if (!booking) return fail('Booking not found', 404);
+
+      booking.paymentStatus = 'paid';
+      booking.status = 'confirmed';
+      booking.paymentId = razorpay_payment_id;
+      booking.razorpayOrderId = razorpay_order_id;
+      booking.statusHistory.push({ status: 'confirmed', note: 'Razorpay payment verified' });
+      await booking.save();
+
+      // Confirmation to the guest, with an internal copy to support@ (bcc).
+      try {
+        if (booking.guestEmail) {
+          sendResortBookingConfirmation({
+            booking: toJSON(booking),
+            userEmail: booking.guestEmail,
+            userName: booking.guestName || 'Rider',
+          }).catch(err => console.error('[Payment/Verify] Resort email failed:', err.message));
+        }
+      } catch (emailErr) {
+        console.error('[Payment/Verify] Error sending resort email:', emailErr.message);
       }
     }
 
