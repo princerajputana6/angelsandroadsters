@@ -145,6 +145,7 @@ export default function TrailstormEventPage() {
 
             <div className="mt-7 flex flex-col sm:flex-row gap-3">
               <a href="#book" className="btn btn-gold text-base px-7 h-12">Register Now →</a>
+              <a href="/trailstorm/booking" className="btn btn-outline text-base px-7 h-12">🏨 Book Your Stay</a>
               <a href="#details" className="btn btn-outline text-base px-7 h-12">Watch The Story</a>
             </div>
 
