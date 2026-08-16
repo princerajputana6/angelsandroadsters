@@ -18,8 +18,19 @@ const resortBookingSchema = new mongoose.Schema({
   checkOut: Date,
   nights: { type: Number, default: 1 },
 
-  rooms: { type: Number, required: true, min: 1 }, // number of rooms booked
+  rooms: { type: Number, required: true, min: 1 }, // rooms = ceil(guests / capacity)
   guests: { type: Number, default: 1, min: 1 },
+
+  // The registration category this booking was made under, and one entry per
+  // guest with the registration ID they booked against (each guest — including
+  // every group member — has a unique registration ID).
+  registrationType: { type: String, default: 'individual' },
+  guestRegistrations: [{
+    registrationId: String,
+    name: String,
+    email: String,
+    phone: String,
+  }],
 
   pricePerNight: { type: Number, required: true, min: 0 },
   totalAmount: { type: Number, required: true, min: 0 },

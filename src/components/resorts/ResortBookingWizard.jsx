@@ -5,11 +5,14 @@ import {
   useListResortsQuery,
   useGetResortQuery,
   useCreateResortBookingMutation,
+  useValidateRegistrationMutation,
   useMeQuery,
 } from '@/store/api';
 import { payWithRazorpay } from '@/lib/razorpayClient';
 import { MAX_BOOKING_NIGHTS } from '@/lib/bookingConstants';
 import toast from 'react-hot-toast';
+
+const REG_TYPES = ['individual', 'group', 'visitor', 'staff', 'volunteer', 'organizer'];
 
 const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 const nightsBetween = (a, b) => {
@@ -24,6 +27,11 @@ const addDays = (d, n) => {
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
+const blankGuest = (seed = {}) => ({
+  registrationId: '', name: seed.name || '', email: seed.email || '', phone: seed.phone || '',
+  status: 'idle', message: '', groupKey: null,
+});
+
 export default function ResortBookingWizard() {
   const { data: meData } = useMeQuery();
   const user = meData?.user;
@@ -33,16 +41,17 @@ export default function ResortBookingWizard() {
   const [step, setStep] = useState(1);
   const [resortSlug, setResortSlug] = useState(null);
   const [roomTypeId, setRoomTypeId] = useState(null);
-  const [rooms, setRooms] = useState(1);
+  const [registrationType, setRegistrationType] = useState('individual');
   const [guests, setGuests] = useState(1);
   const [nights, setNights] = useState(1);
-  const [form, setForm] = useState({ guestName: '', guestEmail: '', guestPhone: '', notes: '' });
+  const [guestRegs, setGuestRegs] = useState([blankGuest()]);
+  const [notes, setNotes] = useState('');
   const [confirmation, setConfirmation] = useState(null);
   const [paying, setPaying] = useState(false);
 
   const [createBooking, { isLoading: creating }] = useCreateResortBookingMutation();
+  const [validateRegistration] = useValidateRegistrationMutation();
 
-  // Detail (with availability) for the chosen resort.
   const { data: detailData, isFetching: loadingDetail } = useGetResortQuery(resortSlug, { skip: !resortSlug });
   const resort = detailData?.resort;
   const availability = detailData?.availability || {};
@@ -50,59 +59,95 @@ export default function ResortBookingWizard() {
   const windowNights = resort ? nightsBetween(resort.checkIn, resort.checkOut) : 1;
   const maxNights = Math.min(MAX_BOOKING_NIGHTS, windowNights);
   const checkOutDate = resort ? addDays(resort.checkIn, nights) : null;
+
   const roomType = useMemo(
     () => resort?.roomTypes?.find((rt) => String(rt._id) === String(roomTypeId)) || null,
     [resort, roomTypeId]
   );
+  const capacity = Math.max(1, roomType?.capacity || 1);
   const remaining = roomType ? (availability[String(roomType._id)] ?? roomType.totalRooms) : 0;
-  const maxGuests = roomType ? roomType.capacity * rooms : 1;
-  const price = roomType ? roomType.pricePerNight * nights * rooms : 0;
+  const maxGuests = Math.max(1, remaining * capacity); // can't need more rooms than are left
+  const roomsNeeded = roomType ? Math.ceil(guests / capacity) : 0;
+  const price = roomType ? roomType.pricePerNight * nights * roomsNeeded : 0;
+
+  // Resize the per-guest list when the guest count changes, preserving entries.
+  const setGuestCount = (nRaw) => {
+    const n = Math.min(Math.max(1, Number(nRaw) || 1), maxGuests);
+    setGuests(n);
+    setGuestRegs((prev) => {
+      const next = prev.slice(0, n);
+      while (next.length < n) next.push(blankGuest());
+      return next;
+    });
+  };
+
+  const setGuestField = (i, patch) =>
+    setGuestRegs((prev) => prev.map((g, idx) => (idx === i ? { ...g, ...patch } : g)));
 
   const chooseResort = (r) => {
     setResortSlug(r.slug);
     setRoomTypeId(null);
-    setRooms(1);
+    setRegistrationType('individual');
     setGuests(1);
     setNights(1);
+    setGuestRegs([blankGuest()]);
     setStep(2);
   };
 
   const chooseRoom = (rt) => {
     setRoomTypeId(String(rt._id));
-    setRooms(1);
-    setGuests(Math.min(1, rt.capacity));
+    setGuestCount(1);
   };
 
   const goToDetails = () => {
     if (!roomType) return toast.error('Please select a room type');
     if (remaining <= 0) return toast.error('This room is fully booked');
-    setForm({
-      guestName: user?.name || '',
-      guestEmail: user?.email || '',
-      guestPhone: user?.phone || '',
-      notes: '',
-    });
+    // Seed the first guest's contact from the logged-in account; a registration
+    // ID still overrides it once entered.
+    setGuestRegs((prev) => prev.map((g, i) =>
+      i === 0 && !g.registrationId
+        ? { ...g, name: g.name || user?.name || '', email: g.email || user?.email || '', phone: g.phone || user?.phone || '' }
+        : g
+    ));
     setStep(3);
   };
 
-  const setF = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const validateGuest = async (i) => {
+    const id = String(guestRegs[i]?.registrationId || '').trim();
+    if (!id) return;
+    setGuestField(i, { status: 'checking', message: '' });
+    try {
+      const res = await validateRegistration({ registrationId: id }).unwrap();
+      if (res.type !== registrationType) {
+        setGuestField(i, { status: 'error', message: `That ID is a ${res.type} registration, not ${registrationType}`, name: '', email: '', phone: '', groupKey: null });
+        return;
+      }
+      setGuestField(i, {
+        status: 'valid', message: '',
+        name: res.person?.name || '', email: res.person?.email || '', phone: res.person?.phone || '',
+        groupKey: res.groupKey,
+      });
+    } catch (err) {
+      setGuestField(i, { status: 'error', message: err?.data?.message || 'Invalid registration ID', name: '', email: '', phone: '', groupKey: null });
+    }
+  };
+
+  const allValid = guestRegs.length > 0 && guestRegs.every((g) => g.status === 'valid');
+  const sameGroupOk = registrationType !== 'group' ||
+    new Set(guestRegs.filter((g) => g.status === 'valid').map((g) => g.groupKey)).size <= 1;
 
   const submit = async () => {
-    if (!form.guestName || !form.guestEmail || !form.guestPhone) {
-      return toast.error('Name, email and phone are required');
-    }
+    if (!allValid) return toast.error('Enter and verify a registration ID for every guest');
+    if (!sameGroupOk) return toast.error('All group guests must belong to the same group');
     try {
       setPaying(true);
       const res = await createBooking({
         resortId: resort._id,
         roomTypeId: roomType._id,
-        rooms,
-        guests,
+        registrationType,
         nights,
-        guestName: form.guestName,
-        guestEmail: form.guestEmail,
-        guestPhone: form.guestPhone,
-        notes: form.notes,
+        guestRegistrations: guestRegs.map((g) => ({ registrationId: g.registrationId.trim() })),
+        notes,
       }).unwrap();
 
       const booking = res.booking;
@@ -113,7 +158,7 @@ export default function ResortBookingWizard() {
         notes: { bookingId: booking.bookingId, resort: booking.resortName },
         name: 'Angels & Roadsters',
         description: `${booking.resortName} · ${booking.roomTypeName}`,
-        prefill: { name: form.guestName, email: form.guestEmail, contact: form.guestPhone },
+        prefill: { name: booking.guestName, email: booking.guestEmail, contact: booking.guestPhone },
         kind: 'resortBooking',
         referenceId: booking._id,
         onSuccess: () => {
@@ -188,7 +233,6 @@ export default function ResortBookingWizard() {
                     )}
                     <div className="p-4">
                       <div className="font-semibold group-hover:text-terra-400">{r.name}</div>
-                      {r.tagline && <div className="text-xs text-charcoal-400 mt-0.5">{r.tagline}</div>}
                       <div className="text-xs text-charcoal-500 mt-2">
                         {r.location?.city && <>{r.location.city} · </>}
                         {fmtDate(r.checkIn)} → {fmtDate(r.checkOut)}
@@ -201,7 +245,7 @@ export default function ResortBookingWizard() {
           </motion.div>
         )}
 
-        {/* Step 2 — choose room */}
+        {/* Step 2 — choose room + party */}
         {step === 2 && (
           <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
             {loadingDetail || !resort ? (
@@ -227,30 +271,39 @@ export default function ResortBookingWizard() {
                         onClick={() => !soldOut && chooseRoom(rt)}
                       >
                         <div className="flex items-center gap-4">
-                          {rt.images?.[0] && <img src={rt.images[0]} alt={rt.name} className="w-16 h-16 rounded-lg object-cover shrink-0" />}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-semibold">{rt.name}</span>
                               {soldOut ? (
                                 <span className="badge text-xs bg-red-500/20 text-red-400 border border-red-500/30">Sold out</span>
                               ) : (
-                                <span className="badge text-xs bg-green-500/20 text-green-400 border border-green-500/30">{left} left</span>
+                                <span className="badge text-xs bg-green-500/20 text-green-400 border border-green-500/30">{left} room(s) left</span>
                               )}
                             </div>
                             {rt.description && <div className="text-xs text-charcoal-400 mt-0.5">{rt.description}</div>}
                             <div className="text-xs text-charcoal-500 mt-1">
-                              Sleeps {rt.capacity}{rt.bedType && <> · {rt.bedType}</>}
+                              Up to {rt.capacity} share a room{rt.bedType && <> · {rt.bedType}</>}
                             </div>
                           </div>
                           <div className="text-right shrink-0">
                             <div className="font-bold text-terra-400">{inr(rt.pricePerNight)}</div>
-                            <div className="text-[10px] text-charcoal-500">/ night</div>
+                            <div className="text-[10px] text-charcoal-500">/ room / night</div>
                           </div>
                         </div>
 
                         {selected && !soldOut && (
                           <div className="mt-4 pt-4 border-t border-charcoal-800 space-y-3" onClick={(e) => e.stopPropagation()}>
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              <div>
+                                <label className="label">Type of registration</label>
+                                <select className="input capitalize" value={registrationType} onChange={(e) => {
+                                  setRegistrationType(e.target.value);
+                                  // Force re-verification against the new type.
+                                  setGuestRegs((prev) => prev.map((g) => ({ ...g, status: 'idle', message: '', groupKey: null })));
+                                }}>
+                                  {REG_TYPES.map((t) => <option key={t} value={t} className="capitalize">{t}</option>)}
+                                </select>
+                              </div>
                               <div>
                                 <label className="label">Nights</label>
                                 <select className="input" value={nights} onChange={(e) => setNights(Number(e.target.value))}>
@@ -260,24 +313,14 @@ export default function ResortBookingWizard() {
                                 </select>
                               </div>
                               <div>
-                                <label className="label">Rooms</label>
-                                <select className="input" value={rooms} onChange={(e) => { const n = Number(e.target.value); setRooms(n); setGuests((g) => Math.min(g, rt.capacity * n)); }}>
-                                  {Array.from({ length: Math.min(left, 10) }, (_, i) => i + 1).map((n) => (
-                                    <option key={n} value={n}>{n}</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div>
-                                <label className="label">Guests</label>
-                                <select className="input" value={guests} onChange={(e) => setGuests(Number(e.target.value))}>
-                                  {Array.from({ length: rt.capacity * rooms }, (_, i) => i + 1).map((n) => (
-                                    <option key={n} value={n}>{n}</option>
-                                  ))}
-                                </select>
+                                <label className="label">No. of guests</label>
+                                <input type="number" min="1" max={maxGuests} className="input" value={guests}
+                                  onChange={(e) => setGuestCount(e.target.value)} />
                               </div>
                             </div>
                             <p className="text-xs text-charcoal-500">
-                              {fmtDate(resort.checkIn)} → {fmtDate(checkOutDate)} · {nights} night(s)
+                              {roomsNeeded} room(s) · {fmtDate(resort.checkIn)} → {fmtDate(checkOutDate)} · {nights} night(s)
+                              {' '}· up to {rt.capacity} per room
                             </p>
                           </div>
                         )}
@@ -298,27 +341,51 @@ export default function ResortBookingWizard() {
           </motion.div>
         )}
 
-        {/* Step 3 — guest details + pay */}
+        {/* Step 3 — per-guest registration IDs + pay */}
         {step === 3 && roomType && (
           <motion.div key="s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
             <div className="card p-5 mb-4">
-              <h3 className="font-display text-xl mb-3">Guest details</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><label className="label">Full name *</label><input className="input" value={form.guestName} onChange={setF('guestName')} /></div>
-                <div><label className="label">Email *</label><input type="email" className="input" value={form.guestEmail} onChange={setF('guestEmail')} /></div>
-                <div><label className="label">Phone *</label><input className="input" value={form.guestPhone} onChange={setF('guestPhone')} /></div>
+              <h3 className="font-display text-xl mb-1">Guest registrations</h3>
+              <p className="text-xs text-charcoal-400 mb-4">
+                Enter each guest's registration ID (TR-…). Details are fetched automatically.
+                {registrationType === 'group' && ' All guests must belong to the same group.'}
+              </p>
+
+              <div className="space-y-3">
+                {guestRegs.map((g, i) => (
+                  <div key={i} className="border border-charcoal-700 rounded-xl p-3">
+                    <label className="label">Guest {i + 1} — Registration ID *</label>
+                    <div className="flex gap-2">
+                      <input
+                        className="input flex-1 font-mono uppercase"
+                        placeholder="TR-XXXXXXXXXXXX"
+                        value={g.registrationId}
+                        onChange={(e) => setGuestField(i, { registrationId: e.target.value.toUpperCase(), status: 'idle', message: '' })}
+                        onBlur={() => validateGuest(i)}
+                      />
+                      <button type="button" onClick={() => validateGuest(i)} className="btn btn-outline text-xs px-3">Verify</button>
+                    </div>
+                    {g.status === 'checking' && <p className="text-xs text-charcoal-400 mt-1">Checking…</p>}
+                    {g.status === 'valid' && (
+                      <p className="text-xs text-green-400 mt-1">✓ {g.name || 'Verified'}{g.email && <span className="text-charcoal-400"> · {g.email}</span>}{g.phone && <span className="text-charcoal-400"> · {g.phone}</span>}</p>
+                    )}
+                    {g.status === 'error' && <p className="text-xs text-red-400 mt-1">{g.message}</p>}
+                  </div>
+                ))}
               </div>
-              <div className="mt-3"><label className="label">Notes (optional)</label><textarea className="input" rows="2" value={form.notes} onChange={setF('notes')} placeholder="Special requests" /></div>
+
+              <div className="mt-4"><label className="label">Notes (optional)</label><textarea className="input" rows="2" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Special requests" /></div>
             </div>
 
             <div className="card bg-charcoal-900/50 p-5 mb-4 space-y-2 text-sm">
               <h4 className="font-display text-lg mb-2">Summary</h4>
               <Row label="Resort" value={resort.name} />
               <Row label="Room" value={roomType.name} />
+              <Row label="Registration" value={registrationType} />
               <Row label="Dates" value={`${fmtDate(resort.checkIn)} → ${fmtDate(checkOutDate)}`} />
-              <Row label="Rooms × nights" value={`${rooms} × ${nights}`} />
+              <Row label="Rooms × nights" value={`${roomsNeeded} × ${nights}`} />
               <Row label="Guests" value={guests} />
-              <Row label="Rate" value={`${inr(roomType.pricePerNight)} / night`} />
+              <Row label="Rate" value={`${inr(roomType.pricePerNight)} / room / night`} />
               <div className="flex justify-between border-t border-charcoal-800 pt-2 mt-2">
                 <span className="text-charcoal-400">Total</span>
                 <span className="font-bold text-terra-400 text-lg">{inr(price)}</span>
@@ -327,7 +394,7 @@ export default function ResortBookingWizard() {
 
             <div className="flex items-center justify-between">
               <button onClick={() => setStep(2)} className="btn btn-outline" disabled={paying || creating}>← Back</button>
-              <button onClick={submit} disabled={paying || creating} className="btn btn-gold">
+              <button onClick={submit} disabled={paying || creating || !allValid} className="btn btn-gold disabled:opacity-50">
                 {paying || creating ? 'Processing…' : `Pay ${inr(price)}`}
               </button>
             </div>
@@ -342,7 +409,7 @@ function Row({ label, value }) {
   return (
     <div className="flex justify-between">
       <span className="text-charcoal-400">{label}</span>
-      <span className="font-semibold">{value}</span>
+      <span className="font-semibold capitalize">{value}</span>
     </div>
   );
 }

@@ -2,10 +2,13 @@ import mongoose from 'mongoose';
 import crypto from 'crypto';
 
 const memberSchema = new mongoose.Schema({
+  // Every group member gets their own unique registration ID (not just the
+  // group). Used for resort-booking validation and per-person entry.
+  registrationId: { type: String, index: true },
   name: String,
   email: String,
   phone: String,
-  
+
   // Basic Details
   nickname: String,
   dateOfBirth: Date,
@@ -65,7 +68,11 @@ const memberSchema = new mongoose.Schema({
 const registrationSchema = new mongoose.Schema({
   event: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true, index: true },
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  registrationType: { type: String, enum: ['individual', 'group', 'visitor'], required: true },
+  registrationType: {
+    type: String,
+    enum: ['individual', 'group', 'visitor', 'staff', 'volunteer', 'organizer'],
+    required: true,
+  },
 
   name: String,
   email: String,
@@ -159,9 +166,18 @@ const registrationSchema = new mongoose.Schema({
   notes: String,
 }, { timestamps: true });
 
+const genRegId = () => 'TR-' + crypto.randomBytes(6).toString('hex').toUpperCase();
+
 registrationSchema.pre('save', function (next) {
-  if (!this.ticketId) {
-    this.ticketId = 'TR-' + crypto.randomBytes(6).toString('hex').toUpperCase();
+  // The registration itself always carries a unique ID (this covers
+  // individual, visitor, staff, volunteer, organizer — and the group as a
+  // whole). Group members each get their own ID below.
+  if (!this.ticketId) this.ticketId = genRegId();
+
+  if (Array.isArray(this.members)) {
+    for (const m of this.members) {
+      if (!m.registrationId) m.registrationId = genRegId();
+    }
   }
   next();
 });

@@ -16,6 +16,7 @@ const NAV = [
   { href: '/admin/orders', label: 'Orders', icon: '🧾' },
   { href: '/admin/events', label: 'Events', icon: '🎪' },
   { href: '/admin/registrations', label: 'Registrations', icon: '🎫' },
+  { href: '/admin/team-passes', label: 'Team Passes', icon: '🪪' },
   { href: '/admin/trailstorm', label: 'Trailstorm · FOC', icon: '🏜' },
   { href: '/admin/resorts', label: 'Resorts', icon: '🏨' },
   { href: '/admin/resort-bookings', label: 'Resort Bookings', icon: '🛎' },

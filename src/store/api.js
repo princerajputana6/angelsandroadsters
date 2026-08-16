@@ -284,6 +284,19 @@ export const api = createApi({
       invalidatesTags: ['Resorts'],
     }),
 
+    // Team registrations (staff / volunteer / organizer) + reg-ID validation
+    listTeamRegistrations: b.query({
+      query: (params = {}) => ({ url: '/admin/registrations/issue', params }),
+      providesTags: ['Registrations'],
+    }),
+    issueTeamRegistration: b.mutation({
+      query: (body) => ({ url: '/admin/registrations/issue', method: 'POST', body }),
+      invalidatesTags: ['Registrations'],
+    }),
+    validateRegistration: b.mutation({
+      query: (body) => ({ url: '/registrations/validate', method: 'POST', body }),
+    }),
+
     // Resort bookings
     createResortBooking: b.mutation({
       query: (body) => ({ url: '/resort-bookings', method: 'POST', body }),
@@ -318,4 +331,5 @@ export const {
   useListCouponsQuery, useCreateCouponMutation, useToggleCouponMutation, useDeleteCouponMutation, useValidateCouponMutation,
   useListResortsQuery, useGetResortQuery, useCreateResortMutation, useUpdateResortMutation, useDeleteResortMutation,
   useCreateResortBookingMutation, useMyResortBookingsQuery, useListResortBookingsQuery, useUpdateResortBookingMutation,
+  useListTeamRegistrationsQuery, useIssueTeamRegistrationMutation, useValidateRegistrationMutation,
 } = api;

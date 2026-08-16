@@ -1,7 +1,6 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import FileUpload from '@/components/FileUpload';
 import { useCreateResortMutation, useUpdateResortMutation } from '@/store/api';
 import toast from 'react-hot-toast';
 
@@ -10,7 +9,7 @@ const toDateInput = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
 
 const emptyRoom = () => ({
   name: '', description: '', pricePerNight: '', capacity: 2, totalRooms: '',
-  bedType: '', amenitiesText: '', image: '',
+  bedType: '', amenitiesText: '',
 });
 
 function roomFromDoc(rt) {
@@ -23,7 +22,6 @@ function roomFromDoc(rt) {
     totalRooms: rt.totalRooms ?? '',
     bedType: rt.bedType || '',
     amenitiesText: (rt.amenities || []).join(', '),
-    image: rt.images?.[0] || '',
   };
 }
 
@@ -36,13 +34,12 @@ export default function ResortForm({ resort }) {
 
   const [form, setForm] = useState({
     name: resort?.name || '',
-    tagline: resort?.tagline || '',
     description: resort?.description || '',
-    coverImage: resort?.coverImage || '',
     address: resort?.location?.address || '',
     city: resort?.location?.city || '',
     state: resort?.location?.state || '',
-    mapLink: resort?.location?.mapLink || '',
+    lat: resort?.location?.coordinates?.lat ?? '',
+    lng: resort?.location?.coordinates?.lng ?? '',
     amenitiesText: (resort?.amenities || []).join(', '),
     checkIn: toDateInput(resort?.checkIn),
     checkOut: toDateInput(resort?.checkOut),
@@ -75,10 +72,16 @@ export default function ResortForm({ resort }) {
 
     const body = {
       name: form.name.trim(),
-      tagline: form.tagline,
       description: form.description,
-      coverImage: form.coverImage,
-      location: { address: form.address, city: form.city, state: form.state, mapLink: form.mapLink },
+      location: {
+        address: form.address,
+        city: form.city,
+        state: form.state,
+        coordinates: {
+          lat: form.lat === '' ? undefined : Number(form.lat),
+          lng: form.lng === '' ? undefined : Number(form.lng),
+        },
+      },
       amenities: toArr(form.amenitiesText),
       checkIn: form.checkIn,
       checkOut: form.checkOut,
@@ -96,7 +99,6 @@ export default function ResortForm({ resort }) {
         totalRooms: Number(r.totalRooms) || 0,
         bedType: r.bedType,
         amenities: toArr(r.amenitiesText),
-        images: r.image ? [r.image] : [],
       })),
     };
 
@@ -124,14 +126,9 @@ export default function ResortForm({ resort }) {
           <input className="input" value={form.name} onChange={set('name')} required placeholder="e.g. Desert Dunes Camp" />
         </div>
         <div>
-          <label className="label">Tagline</label>
-          <input className="input" value={form.tagline} onChange={set('tagline')} placeholder="Luxury tents under the stars" />
-        </div>
-        <div>
           <label className="label">Description</label>
           <textarea className="input" rows="4" value={form.description} onChange={set('description')} />
         </div>
-        <FileUpload label="Cover image" accept="image/*" value={form.coverImage} onChange={(url) => setForm((f) => ({ ...f, coverImage: url }))} />
         <div>
           <label className="label">Amenities (comma separated)</label>
           <input className="input" value={form.amenitiesText} onChange={set('amenitiesText')} placeholder="Wi-Fi, Parking, Restaurant, Bonfire" />
@@ -142,16 +139,19 @@ export default function ResortForm({ resort }) {
       <div className="card p-6 space-y-4">
         <h3 className="font-display text-xl">Location</h3>
         <div>
-          <label className="label">Address</label>
-          <input className="input" value={form.address} onChange={set('address')} />
+          <label className="label">Location</label>
+          <input className="input" value={form.address} onChange={set('address')} placeholder="Full address / landmark" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div><label className="label">City</label><input className="input" value={form.city} onChange={set('city')} /></div>
           <div><label className="label">State</label><input className="input" value={form.state} onChange={set('state')} /></div>
         </div>
         <div>
-          <label className="label">Map link</label>
-          <input className="input" value={form.mapLink} onChange={set('mapLink')} placeholder="https://maps.google.com/…" />
+          <label className="label">GPS coordinates</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <input className="input" type="number" step="any" value={form.lat} onChange={set('lat')} placeholder="Latitude (e.g. 26.9157)" />
+            <input className="input" type="number" step="any" value={form.lng} onChange={set('lng')} placeholder="Longitude (e.g. 70.9083)" />
+          </div>
         </div>
       </div>
 
@@ -191,7 +191,6 @@ export default function ResortForm({ resort }) {
             </div>
             <div><label className="label">Description</label><input className="input" value={r.description} onChange={(e) => setRoom(i, 'description', e.target.value)} /></div>
             <div><label className="label">Amenities (comma separated)</label><input className="input" value={r.amenitiesText} onChange={(e) => setRoom(i, 'amenitiesText', e.target.value)} placeholder="AC, Attached bath, Breakfast" /></div>
-            <FileUpload label="Room image" accept="image/*" value={r.image} onChange={(url) => setRoom(i, 'image', url)} />
           </div>
         ))}
       </div>

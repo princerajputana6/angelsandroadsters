@@ -29,7 +29,7 @@ const resortSchema = new mongoose.Schema({
     address: String,
     city: String,
     state: String,
-    mapLink: String,
+    coordinates: { lat: Number, lng: Number },
   },
   amenities: [String],
 
