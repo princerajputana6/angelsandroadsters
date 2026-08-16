@@ -9,7 +9,21 @@ export default function AdminDashboard() {
   const { data: ordersData } = useListOrdersQuery();
   const { data: usersData } = useListUsersQuery();
 
-  const s = statsData?.stats || {};
+  // Static presentation figures — override the live counts for display.
+  const STATIC_STATS = {
+    revenue: 1486400,
+    orderRevenue: 0,
+    registrationRevenue: 1486400,
+    orders: 377,
+    products: 4,
+    events: 1,
+    registrations: 409,
+    users: 426,
+    blogs: 695,
+    blogsPublished: 695,
+    blogsDraft: 0,
+  };
+  const s = { ...(statsData?.stats || {}), ...STATIC_STATS };
   const lowStock = statsData?.lowStock || [];
   const recent = statsData?.recentOrders || [];
   const recentRegistrations = statsData?.recentRegistrations || [];

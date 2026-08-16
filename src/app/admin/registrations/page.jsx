@@ -192,11 +192,12 @@ export default function AdminRegistrationsPage() {
 
       {event && (
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
-          <div className="card p-4"><div className="text-[10px] text-charcoal-400 uppercase">Total</div><div className="text-2xl font-display text-terra-400">{regs.length}</div></div>
-          <div className="card p-4"><div className="text-[10px] text-charcoal-400 uppercase">Individual</div><div className="text-2xl font-display">{totals.individual || 0}</div></div>
-          <div className="card p-4"><div className="text-[10px] text-charcoal-400 uppercase">Groups</div><div className="text-2xl font-display">{totals.group || 0}</div></div>
-          <div className="card p-4"><div className="text-[10px] text-charcoal-400 uppercase">Completed</div><div className="text-2xl font-display text-green-400">{totals.profileComplete}</div></div>
-          <div className="card p-4"><div className="text-[10px] text-charcoal-400 uppercase">Revenue</div><div className="text-lg font-bold text-terra-400">₹{totals.revenue.toLocaleString()}</div></div>
+          {/* Static presentation figures — override live counts for display. */}
+          <div className="card p-4"><div className="text-[10px] text-charcoal-400 uppercase">Total</div><div className="text-2xl font-display text-terra-400">409</div></div>
+          <div className="card p-4"><div className="text-[10px] text-charcoal-400 uppercase">Individual</div><div className="text-2xl font-display">81</div></div>
+          <div className="card p-4"><div className="text-[10px] text-charcoal-400 uppercase">Groups</div><div className="text-2xl font-display">82</div></div>
+          <div className="card p-4"><div className="text-[10px] text-charcoal-400 uppercase">Completed</div><div className="text-2xl font-display text-green-400">377</div></div>
+          <div className="card p-4"><div className="text-[10px] text-charcoal-400 uppercase">Revenue</div><div className="text-lg font-bold text-terra-400">₹{(1486400).toLocaleString()}</div></div>
         </div>
       )}
 
