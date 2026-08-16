@@ -35,8 +35,26 @@ export default function MyRegistrationsPage() {
                   📅 {r.event?.startDate ? new Date(r.event.startDate).toDateString() : ''}
                 </p>
                 <p className="text-sm text-charcoal-300">📍 {r.event?.location?.city}, {r.event?.location?.state}</p>
-                <p className="mt-2 font-mono text-sm text-terra-400">Ticket: {r.ticketId}</p>
-                
+                <p className="mt-2 font-mono text-sm text-terra-400">
+                  {r.registrationType === 'group' ? 'Group ID' : 'Registration ID'}: {r.ticketId}
+                </p>
+
+                {r.registrationType === 'group' && r.members?.length > 0 && (
+                  <div className="mt-3 rounded-lg border border-charcoal-700 p-3">
+                    <p className="text-xs text-charcoal-400 mb-2">
+                      Member registration IDs — each member uses their own when booking a resort:
+                    </p>
+                    <ul className="space-y-1">
+                      {r.members.map((m, i) => (
+                        <li key={m.registrationId || i} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                          <span className="text-charcoal-200">{m.name || `Member ${i + 1}`}</span>
+                          <span className="font-mono text-terra-400">{m.registrationId || '—'}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {!profileComplete && (
                   <p className="mt-2 text-xs text-yellow-400 flex items-center gap-1">
                     <span>⚠️</span>
