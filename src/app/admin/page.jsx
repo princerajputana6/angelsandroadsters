@@ -33,13 +33,14 @@ export default function AdminDashboard() {
   const users = (usersData?.users || []).slice(0, 5);
 
   const cards = [
-    { 
-      label: 'Total Revenue', 
-      value: `₹${(s.revenue || 0).toLocaleString()}`, 
-      icon: '💰', 
-      tint: 'text-terra-400', 
+    {
+      label: 'Total Revenue',
+      value: `₹${(s.revenue || 0).toLocaleString('en-IN')}`,
+      icon: '💰',
+      tint: 'text-terra-400',
       href: '/admin/orders',
-      subtitle: `Orders: ₹${(s.orderRevenue || 0).toLocaleString()} | Events: ₹${(s.registrationRevenue || 0).toLocaleString()}`
+      valueClass: 'text-2xl xl:text-xl',
+      subtitle: `Orders: ₹${(s.orderRevenue || 0).toLocaleString('en-IN')} | Events: ₹${(s.registrationRevenue || 0).toLocaleString('en-IN')}`
     },
     { label: 'Orders', value: s.orders || 0, icon: '🧾', href: '/admin/orders' },
     { label: 'Products', value: s.products || 0, icon: '📦', href: '/admin/products' },
@@ -75,7 +76,7 @@ export default function AdminDashboard() {
               <span className="text-2xl">{c.icon}</span>
               <span className="text-terra-400 opacity-0 group-hover:opacity-100 transition text-sm">→</span>
             </div>
-            <p className={`text-2xl sm:text-3xl font-display mt-3 ${c.tint || 'text-white'}`}>{c.value}</p>
+            <p className={`${c.valueClass || 'text-2xl sm:text-3xl'} font-display mt-3 leading-tight break-words ${c.tint || 'text-white'}`}>{c.value}</p>
             <p className="text-[11px] text-charcoal-400 uppercase tracking-wider mt-1">{c.label}</p>
             {c.subtitle && <p className="text-[10px] text-charcoal-500 mt-1">{c.subtitle}</p>}
           </Link>
