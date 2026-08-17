@@ -5,12 +5,13 @@ import { requireUser, requireAdmin } from '@/lib/auth';
 import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
 import { sendOrderConfirmation } from '@/lib/email';
 import { computeOrderTotals } from '@/lib/pricing';
+import { findActiveAffiliateByCode, affiliateDiscount, recordConversion } from '@/lib/affiliate';
 
 export async function POST(req) {
   return handler(async () => {
     const user = await requireUser();
     await connectDB();
-    const { items, shippingAddress, paymentMethod = 'cod', couponCode } = await req.json();
+    const { items, shippingAddress, paymentMethod = 'cod', couponCode, ref } = await req.json();
     if (!items?.length) return fail('No items in order', 400);
 
     const orderItems = [];
@@ -39,6 +40,16 @@ export async function POST(req) {
 
     const { itemsPrice, shippingPrice, taxPrice, totalPrice } = computeOrderTotals(pricingLines);
 
+    // Affiliate referral (?ref=CODE): apply the affiliate's discount to the
+    // order total and stamp the sale for commission tracking.
+    let affiliate = null;
+    let discount = 0;
+    if (ref) {
+      affiliate = await findActiveAffiliateByCode(ref);
+      if (affiliate) discount = affiliateDiscount(affiliate, totalPrice);
+    }
+    const finalTotal = Math.max(0, totalPrice - discount);
+
     const order = await Order.create({
       user: user._id,
       items: orderItems,
@@ -47,10 +58,28 @@ export async function POST(req) {
       itemsPrice,
       shippingPrice,
       taxPrice,
-      totalPrice,
+      discount,
+      totalPrice: finalTotal,
       couponCode,
+      affiliate: affiliate?._id || null,
+      affiliateCode: affiliate?.code || null,
       statusHistory: [{ status: 'placed', note: 'Order placed' }],
     });
+
+    // COD orders never pass through payment verification, so record the
+    // affiliate conversion now. Razorpay orders are recorded on verify.
+    if (affiliate && paymentMethod === 'cod') {
+      await recordConversion({
+        affiliate,
+        kind: 'order',
+        refId: order._id,
+        buyerUser: user._id,
+        buyerName: user.name,
+        buyerEmail: user.email,
+        saleAmount: finalTotal,
+        discountAmount: discount,
+      }).catch((err) => console.error('[Order] Affiliate conversion failed:', err.message));
+    }
 
     sendOrderConfirmation({
       order: toJSON(order),

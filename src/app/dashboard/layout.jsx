@@ -9,6 +9,7 @@ const items = [
   { href: '/dashboard/orders', label: 'My Orders', icon: '🧾' },
   { href: '/dashboard/addresses', label: 'Addresses', icon: '📍' },
   { href: '/dashboard/registrations', label: 'My Tickets', icon: '🎫' },
+  { href: '/dashboard/affiliate', label: 'Affiliate', icon: '🔗' },
   { href: '/dashboard/support', label: 'Help & Support', icon: '🆘' },
 ];
 

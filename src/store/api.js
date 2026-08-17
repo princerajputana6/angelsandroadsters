@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: '/api', credentials: 'include' }),
-  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics', 'Coupons', 'Resorts', 'Resort', 'ResortBookings'],
+  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics', 'Coupons', 'Resorts', 'Resort', 'ResortBookings', 'Affiliate', 'Affiliates'],
   endpoints: (b) => ({
     // Auth
     me: b.query({ query: () => '/auth/me', providesTags: ['Auth'] }),
@@ -209,6 +209,31 @@ export const api = createApi({
       query: ({ id, password }) => ({ url: `/admin/users/${id}/reset-password`, method: 'POST', body: { password } }),
     }),
 
+    // Affiliate (current user)
+    myAffiliate: b.query({ query: () => '/affiliate/me', providesTags: ['Affiliate'] }),
+    applyAffiliate: b.mutation({
+      query: (body) => ({ url: '/affiliate/apply', method: 'POST', body }),
+      invalidatesTags: ['Affiliate'],
+    }),
+    trackAffiliate: b.mutation({
+      query: (code) => ({ url: '/affiliate/track', method: 'POST', body: { code } }),
+    }),
+
+    // Affiliate (admin)
+    listAffiliates: b.query({ query: () => '/admin/affiliates', providesTags: ['Affiliates'] }),
+    getAffiliate: b.query({
+      query: (id) => `/admin/affiliates/${id}`,
+      providesTags: ['Affiliate'],
+    }),
+    updateAffiliate: b.mutation({
+      query: ({ id, body }) => ({ url: `/admin/affiliates/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['Affiliates', 'Affiliate'],
+    }),
+    updateConversion: b.mutation({
+      query: ({ id, status }) => ({ url: `/admin/affiliate-conversions/${id}`, method: 'PATCH', body: { status } }),
+      invalidatesTags: ['Affiliates', 'Affiliate'],
+    }),
+
     // Reviews
     createReview: b.mutation({
       query: (body) => ({ url: '/reviews', method: 'POST', body }),
@@ -326,6 +351,8 @@ export const {
   useCreateOrderMutation, useMyOrdersQuery, useListOrdersQuery, useGetOrderQuery, useUpdateOrderMutation, useCancelOrderMutation, useDeleteOrderMutation,
   useMyAddressesQuery, useAddAddressMutation, useUpdateAddressMutation, useDeleteAddressMutation,
   useAdminStatsQuery, useListUsersQuery, useUpdateUserMutation, useResetUserPasswordMutation,
+  useMyAffiliateQuery, useApplyAffiliateMutation, useTrackAffiliateMutation,
+  useListAffiliatesQuery, useGetAffiliateQuery, useUpdateAffiliateMutation, useUpdateConversionMutation,
   useCreateReviewMutation,
   useListBlogsQuery, useGetBlogQuery, useGetBlogBySlugQuery, useGenerateBlogMutation, useCreateBlogMutation, useUpdateBlogMutation, useDeleteBlogMutation,
   useListCouponsQuery, useCreateCouponMutation, useToggleCouponMutation, useDeleteCouponMutation, useValidateCouponMutation,

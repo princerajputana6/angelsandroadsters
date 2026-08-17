@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { generateQRDataUrl } from '@/lib/qr';
 import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
 import { sendEventRegistrationConfirmation } from '@/lib/email';
+import { findActiveAffiliateByCode, affiliateDiscount } from '@/lib/affiliate';
 
 const ACTIVE = ['confirmed', 'pending', 'attended'];
 
@@ -53,10 +54,18 @@ export async function POST(req) {
       amount = perDay * numDays * count;
     }
 
-    // Apply coupon discount
+    // Affiliate referral (?ref=CODE) takes priority over a manual coupon: it
+    // both applies the affiliate's discount and stamps the sale for commission.
     let discountAmount = 0;
     let appliedCouponCode = null;
-    if (body.couponCode) {
+    let affiliate = null;
+    if (body.ref) {
+      affiliate = await findActiveAffiliateByCode(body.ref);
+      if (affiliate) discountAmount = affiliateDiscount(affiliate, amount);
+    }
+
+    // Apply coupon discount (only when no affiliate link was used)
+    if (!affiliate && body.couponCode) {
       const coupon = await Coupon.findOne({ code: body.couponCode.toUpperCase().trim() });
       const valid =
         coupon &&
@@ -100,6 +109,8 @@ export async function POST(req) {
       groupSize: body.groupSize || (body.members?.length || undefined),
       couponCode: appliedCouponCode,
       discountAmount,
+      affiliate: affiliate?._id || null,
+      affiliateCode: affiliate?.code || null,
       amount,
       paymentStatus: amount === 0 ? 'free' : 'pending',
       status: amount === 0 ? 'confirmed' : 'pending',

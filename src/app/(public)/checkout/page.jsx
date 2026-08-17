@@ -12,6 +12,7 @@ import {
 import { clearCart, selectCartTotal } from '@/store/cartSlice';
 import { computeOrderTotals } from '@/lib/pricing';
 import { payWithRazorpay } from '@/lib/razorpayClient';
+import { getRef } from '@/lib/ref';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
@@ -93,6 +94,7 @@ export default function CheckoutPage() {
         items: items.map((i) => ({ product: i.product, quantity: i.quantity, size: i.size, color: i.color })),
         shippingAddress: addr,
         paymentMethod,
+        ref: getRef() || undefined,
       }).unwrap();
       const order = res.order;
 

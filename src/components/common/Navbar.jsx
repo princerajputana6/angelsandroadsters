@@ -16,6 +16,7 @@ const NAV = [
   { href: '/blog', label: 'Blog' },
   { href: '/about', label: 'About' },
   { href: '/contact', label: 'Contact' },
+  { href: '/affiliate/join', label: 'Join Affiliate' },
 ];
 
 export default function Navbar() {

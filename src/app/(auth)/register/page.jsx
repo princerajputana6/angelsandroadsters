@@ -1,21 +1,23 @@
 'use client';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useRegisterMutation } from '@/store/api';
 import toast from 'react-hot-toast';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '' });
   const [register, { isLoading }] = useRegisterMutation();
   const router = useRouter();
+  const sp = useSearchParams();
+  const next = sp.get('next') || sp.get('redirect') || '/dashboard';
 
   const submit = async (e) => {
     e.preventDefault();
     try {
       await register(form).unwrap();
       toast.success('Account created!');
-      router.push('/dashboard');
+      router.push(next);
     } catch (err) {
       toast.error(err?.data?.message || 'Registration failed');
     }
@@ -47,8 +49,16 @@ export default function RegisterPage() {
         {isLoading ? 'Creating...' : 'Create Account'}
       </button>
       <p className="text-sm text-charcoal-400">
-        Have an account? <Link href="/login" className="text-terra-400">Sign in</Link>
+        Have an account? <Link href={`/login?next=${encodeURIComponent(next)}`} className="text-terra-400">Sign in</Link>
       </p>
     </form>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="w-full max-w-md animate-pulse text-charcoal-400">Loading...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

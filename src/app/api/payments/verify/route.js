@@ -6,6 +6,7 @@ import ResortBooking from '@/lib/models/ResortBooking';
 import { verifySignature } from '@/lib/razorpay';
 import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
 import { sendEventRegistrationConfirmation, sendResortBookingConfirmation } from '@/lib/email';
+import { recordConversion } from '@/lib/affiliate';
 
 export async function POST(req) {
   return handler(async () => {
@@ -41,6 +42,18 @@ export async function POST(req) {
       };
       order.statusHistory.push({ status: 'paid', note: 'Razorpay payment verified' });
       await order.save();
+
+      // Affiliate commission for a paid (Razorpay) order.
+      if (order.affiliate) {
+        await recordConversion({
+          affiliate: order.affiliate,
+          kind: 'order',
+          refId: order._id,
+          buyerUser: order.user,
+          saleAmount: order.totalPrice,
+          discountAmount: order.discount || 0,
+        }).catch((err) => console.error('[Payment/Verify] Order conversion failed:', err.message));
+      }
     }
 
     if (kind === 'registration' && referenceId) {
@@ -51,6 +64,20 @@ export async function POST(req) {
       reg.status = 'confirmed';
       reg.paymentId = razorpay_payment_id;
       await reg.save();
+
+      // Affiliate commission for a paid event registration.
+      if (reg.affiliate) {
+        await recordConversion({
+          affiliate: reg.affiliate,
+          kind: 'registration',
+          refId: reg._id,
+          buyerUser: reg.user,
+          buyerName: reg.name || reg.groupName,
+          buyerEmail: reg.email,
+          saleAmount: reg.amount,
+          discountAmount: reg.discountAmount || 0,
+        }).catch((err) => console.error('[Payment/Verify] Reg conversion failed:', err.message));
+      }
 
       // Send confirmation email now that payment is verified
       try {

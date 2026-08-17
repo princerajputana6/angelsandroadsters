@@ -157,6 +157,11 @@ const registrationSchema = new mongoose.Schema({
   couponCode: { type: String, default: null },
   discountAmount: { type: Number, default: 0 },
 
+  // Affiliate attribution — set when the registration came through a referral
+  // link (?ref=CODE). Commission is recorded once the sale is confirmed.
+  affiliate: { type: mongoose.Schema.Types.ObjectId, ref: 'Affiliate', default: null },
+  affiliateCode: { type: String, default: null },
+
   paymentStatus: { type: String, enum: ['pending', 'paid', 'free', 'refunded'], default: 'pending' },
   paymentId: String,
   amount: { type: Number, default: 0 },

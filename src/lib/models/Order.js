@@ -30,6 +30,9 @@ const orderSchema = new mongoose.Schema({
   shippingPrice: Number,
   discount: { type: Number, default: 0 },
   couponCode: String,
+  // Affiliate attribution — set when the order came through a referral link.
+  affiliate: { type: mongoose.Schema.Types.ObjectId, ref: 'Affiliate', default: null },
+  affiliateCode: { type: String, default: null },
   totalPrice: { type: Number, required: true },
   status: {
     type: String,

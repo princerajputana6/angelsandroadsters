@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCreateRegistrationMutation, useMeQuery, useGetEventSlotsQuery, useValidateCouponMutation } from '@/store/api';
+import { getRef } from '@/lib/ref';
 import { payWithRazorpay } from '@/lib/razorpayClient';
 import toast from 'react-hot-toast';
 
@@ -168,13 +169,18 @@ export default function BookingWizard({ event, onDone }) {
         visitDays,
         age: form.age ? Number(form.age) : undefined,
         couponCode: appliedCoupon?.code || undefined,
+        ref: getRef() || undefined,
       };
       const res = await register(payload).unwrap();
       const reg = res.registration;
       refetchSlots();
 
+      // The server is authoritative on the final amount (it also applies any
+      // affiliate-link discount the client can't see), so charge reg.amount.
+      const payable = reg.amount;
+
       // Free registration — confirm immediately
-      if (!price || price <= 0) {
+      if (!payable || payable <= 0) {
         toast.success(`Booked! Ticket: ${reg.ticketId}`);
         onDone?.(reg);
         setConfirmation(reg);
@@ -183,7 +189,7 @@ export default function BookingWizard({ event, onDone }) {
 
       // Paid registration — open Razorpay
       await payWithRazorpay({
-        amount: price,
+        amount: payable,
         receipt: reg.ticketId,
         notes: { eventId: event._id, type, ticketId: reg.ticketId },
         name: 'Angels & Roadsters',

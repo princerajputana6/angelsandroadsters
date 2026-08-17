@@ -22,6 +22,7 @@ const NAV = [
   { href: '/admin/resort-bookings', label: 'Resort Bookings', icon: '🛎' },
   { href: '/admin/blogs', label: 'Blogs', icon: '📝' },
   { href: '/admin/users', label: 'Users', icon: '👥' },
+  { href: '/admin/affiliates', label: 'Affiliation', icon: '🔗' },
   { href: '/admin/coupons', label: 'Coupons', icon: '🎟' },
   { href: '/admin/support', label: 'Support Tickets', icon: '🆘' },
 ];

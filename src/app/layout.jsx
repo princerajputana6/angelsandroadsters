@@ -1,6 +1,7 @@
 import './globals.css';
 import StoreProvider from '@/store/Provider';
 import OrganizationJsonLd from '@/components/seo/OrganizationJsonLd';
+import RefCapture from '@/components/common/RefCapture';
 import { GLOBAL_KEYWORDS, SITE_NAME, SITE_URL } from '@/lib/seo';
 
 export const metadata = {
@@ -41,6 +42,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <OrganizationJsonLd />
+        <RefCapture />
         <StoreProvider>{children}</StoreProvider>
       </body>
     </html>
