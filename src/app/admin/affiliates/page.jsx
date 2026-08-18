@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import {
   useListAffiliatesQuery,
+  useCreateAffiliateMutation,
   useGetAffiliateQuery,
   useUpdateAffiliateMutation,
   useUpdateConversionMutation,
@@ -13,6 +14,7 @@ const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
 export default function AdminAffiliates() {
   const [q, setQ] = useState('');
   const [selectedId, setSelectedId] = useState(null);
+  const [onboarding, setOnboarding] = useState(false);
   const { data, isLoading } = useListAffiliatesQuery();
 
   const affiliates = (data?.affiliates || []).filter((a) => {
@@ -30,7 +32,10 @@ export default function AdminAffiliates() {
           <p className="eyebrow mb-1">PROGRAM</p>
           <h1 className="text-3xl sm:text-4xl font-display">Affiliation</h1>
         </div>
-        <input className="input w-full sm:w-64" placeholder="Search name, email, code..." value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <input className="input flex-1 sm:w-64" placeholder="Search name, email, code..." value={q} onChange={(e) => setQ(e.target.value)} />
+          <button onClick={() => setOnboarding(true)} className="btn btn-gold h-11 px-5 whitespace-nowrap">+ Add member</button>
+        </div>
       </div>
 
       {isLoading ? <p>Loading...</p> : affiliates.length === 0 ? (
@@ -75,7 +80,123 @@ export default function AdminAffiliates() {
         </div>
       )}
 
+      {onboarding && <OnboardModal onClose={() => setOnboarding(false)} />}
       {selectedId && <AffiliateDrawer id={selectedId} onClose={() => setSelectedId(null)} />}
+    </div>
+  );
+}
+
+function OnboardModal({ onClose }) {
+  const [create, { isLoading }] = useCreateAffiliateMutation();
+  const [form, setForm] = useState({
+    name: '', email: '', password: '', phone: '',
+    instagram: '', youtube: '', otherSocial: '', audienceSize: '', promoDescription: '',
+    payoutUpiId: '', payoutName: '',
+    discountPercent: '0', commissionPercent: '0',
+  });
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.email.trim()) return toast.error('Name and email are required');
+    if ((form.password || '').length < 6) return toast.error('Password must be at least 6 characters');
+    try {
+      const res = await create({
+        ...form,
+        discountPercent: Number(form.discountPercent) || 0,
+        commissionPercent: Number(form.commissionPercent) || 0,
+      }).unwrap();
+      toast.success(`Affiliate created — code ${res.affiliate?.code}`);
+      onClose();
+    } catch (err) {
+      toast.error(err?.data?.message || 'Could not create affiliate');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="card p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-4">
+        <div>
+          <p className="eyebrow mb-1">ONBOARD</p>
+          <h2 className="text-2xl font-display">Add affiliate member</h2>
+          <p className="text-xs text-charcoal-500 mt-1">Creates their login account and affiliate record. Share the email &amp; password with them so they can sign in.</p>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-charcoal-400 uppercase tracking-wider">Login credentials</p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label className="label">Full name *</label>
+              <input className="input" value={form.name} onChange={set('name')} required />
+            </div>
+            <div>
+              <label className="label">Phone</label>
+              <input className="input" value={form.phone} onChange={set('phone')} />
+            </div>
+            <div>
+              <label className="label">Email (username) *</label>
+              <input className="input" type="email" value={form.email} onChange={set('email')} required />
+            </div>
+            <div>
+              <label className="label">Password *</label>
+              <input className="input" type="text" value={form.password} onChange={set('password')} placeholder="Min 6 characters" />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3 border-t border-charcoal-800 pt-4">
+          <p className="text-xs font-semibold text-charcoal-400 uppercase tracking-wider">Rates</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Follower discount %</label>
+              <input className="input" type="number" min="0" max="100" value={form.discountPercent} onChange={set('discountPercent')} />
+            </div>
+            <div>
+              <label className="label">Commission %</label>
+              <input className="input" type="number" min="0" max="100" value={form.commissionPercent} onChange={set('commissionPercent')} />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3 border-t border-charcoal-800 pt-4">
+          <p className="text-xs font-semibold text-charcoal-400 uppercase tracking-wider">Profile &amp; payout (optional)</p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label className="label">Instagram</label>
+              <input className="input" value={form.instagram} onChange={set('instagram')} />
+            </div>
+            <div>
+              <label className="label">YouTube</label>
+              <input className="input" value={form.youtube} onChange={set('youtube')} />
+            </div>
+            <div>
+              <label className="label">Audience size</label>
+              <input className="input" value={form.audienceSize} onChange={set('audienceSize')} />
+            </div>
+            <div>
+              <label className="label">Other platform</label>
+              <input className="input" value={form.otherSocial} onChange={set('otherSocial')} />
+            </div>
+            <div>
+              <label className="label">Payout UPI ID</label>
+              <input className="input" value={form.payoutUpiId} onChange={set('payoutUpiId')} placeholder="name@bank" />
+            </div>
+            <div>
+              <label className="label">Payout name</label>
+              <input className="input" value={form.payoutName} onChange={set('payoutName')} />
+            </div>
+          </div>
+          <div>
+            <label className="label">How they'll promote</label>
+            <textarea className="input min-h-[70px]" value={form.promoDescription} onChange={set('promoDescription')} />
+          </div>
+        </div>
+
+        <div className="flex gap-2 justify-end pt-1">
+          <button type="button" onClick={onClose} className="btn btn-outline h-10 px-4 text-sm">Cancel</button>
+          <button type="submit" disabled={isLoading} className="btn btn-gold h-10 px-5 text-sm">{isLoading ? 'Creating...' : 'Create affiliate'}</button>
+        </div>
+      </form>
     </div>
   );
 }

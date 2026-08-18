@@ -221,6 +221,10 @@ export const api = createApi({
 
     // Affiliate (admin)
     listAffiliates: b.query({ query: () => '/admin/affiliates', providesTags: ['Affiliates'] }),
+    createAffiliate: b.mutation({
+      query: (body) => ({ url: '/admin/affiliates', method: 'POST', body }),
+      invalidatesTags: ['Affiliates'],
+    }),
     getAffiliate: b.query({
       query: (id) => `/admin/affiliates/${id}`,
       providesTags: ['Affiliate'],
@@ -352,7 +356,7 @@ export const {
   useMyAddressesQuery, useAddAddressMutation, useUpdateAddressMutation, useDeleteAddressMutation,
   useAdminStatsQuery, useListUsersQuery, useUpdateUserMutation, useResetUserPasswordMutation,
   useMyAffiliateQuery, useApplyAffiliateMutation, useTrackAffiliateMutation,
-  useListAffiliatesQuery, useGetAffiliateQuery, useUpdateAffiliateMutation, useUpdateConversionMutation,
+  useListAffiliatesQuery, useCreateAffiliateMutation, useGetAffiliateQuery, useUpdateAffiliateMutation, useUpdateConversionMutation,
   useCreateReviewMutation,
   useListBlogsQuery, useGetBlogQuery, useGetBlogBySlugQuery, useGenerateBlogMutation, useCreateBlogMutation, useUpdateBlogMutation, useDeleteBlogMutation,
   useListCouponsQuery, useCreateCouponMutation, useToggleCouponMutation, useDeleteCouponMutation, useValidateCouponMutation,

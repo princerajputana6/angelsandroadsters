@@ -28,14 +28,18 @@ export default function AffiliateDashboard() {
 
   if (isLoading) return <div className="animate-pulse text-charcoal-400">Loading...</div>;
 
-  // Not enrolled yet.
+  // Not enrolled yet. Onboarding is admin-managed, so point them to support
+  // rather than a self-service signup.
   if (!affiliate) {
     return (
       <div className="card p-10 text-center">
         <div className="text-5xl mb-3">🔗</div>
-        <h1 className="text-3xl font-display mb-2">Become an affiliate</h1>
-        <p className="text-charcoal-400 mb-6">Share your link, your followers save, and you earn commission on every sale.</p>
-        <Link href="/affiliate/join" className="btn btn-gold h-12 px-6">Join the program</Link>
+        <h1 className="text-3xl font-display mb-2">Affiliate program</h1>
+        <p className="text-charcoal-400 mb-6 max-w-md mx-auto">
+          Our affiliate program is invite-only right now. If you'd like to partner with us,
+          reach out and our team will get you set up.
+        </p>
+        <Link href="/contact" className="btn btn-gold h-12 px-6">Contact us</Link>
       </div>
     );
   }

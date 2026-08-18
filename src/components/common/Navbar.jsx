@@ -16,7 +16,8 @@ const NAV = [
   { href: '/blog', label: 'Blog' },
   { href: '/about', label: 'About' },
   { href: '/contact', label: 'Contact' },
-  { href: '/affiliate/join', label: 'Join Affiliate' },
+  // Affiliate is admin-onboarded for now — self-service join link hidden.
+  // { href: '/affiliate/join', label: 'Join Affiliate' },
 ];
 
 export default function Navbar() {
