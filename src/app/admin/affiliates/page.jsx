@@ -7,6 +7,7 @@ import {
   useUpdateAffiliateMutation,
   useUpdateConversionMutation,
 } from '@/store/api';
+import { buildAffiliateUrl } from '@/lib/ref';
 import toast from 'react-hot-toast';
 
 const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
@@ -117,7 +118,7 @@ function OnboardModal({ onClose }) {
 
   // Success view: hand the admin the share URL + login details to pass on.
   if (created) {
-    const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/?ref=${created.code}`;
+    const shareUrl = buildAffiliateUrl(typeof window !== 'undefined' ? window.location.origin : '', created.code);
     const copyLink = async () => {
       try {
         await navigator.clipboard.writeText(shareUrl);
@@ -287,7 +288,7 @@ function AffiliateDrawer({ id, onClose }) {
 
   const [copied, setCopied] = useState(false);
   const shareUrl = affiliate?.code
-    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/?ref=${affiliate.code}`
+    ? buildAffiliateUrl(typeof window !== 'undefined' ? window.location.origin : '', affiliate.code)
     : '';
   const copyLink = async () => {
     try {

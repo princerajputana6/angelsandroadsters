@@ -3,6 +3,18 @@
 // login, then read back when a registration or order is created.
 const KEY = 'aff_ref';
 
+// Affiliate share links land on the Trailstorm event page (the program's main
+// funnel). RefCapture works on any page, so the ?ref is still honored if the
+// visitor navigates elsewhere before converting.
+export const AFFILIATE_LINK_PATH = '/trailstorm/2026-jaisalmer-trailstorm-event';
+
+// Build the full shareable affiliate URL for a code, given an origin.
+export function buildAffiliateUrl(origin, code) {
+  if (!code) return '';
+  const base = (origin || '').replace(/\/$/, '');
+  return `${base}${AFFILIATE_LINK_PATH}?ref=${code}`;
+}
+
 export function saveRef(code) {
   if (typeof window === 'undefined' || !code) return;
   try { localStorage.setItem(KEY, String(code).toUpperCase().trim()); } catch (_) {}

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useMyAffiliateQuery } from '@/store/api';
+import { buildAffiliateUrl } from '@/lib/ref';
 import toast from 'react-hot-toast';
 
 const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
@@ -14,7 +15,7 @@ export default function AffiliateDashboard() {
   const summary = data?.summary || {};
 
   const shareUrl = affiliate
-    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/?ref=${affiliate.code}`
+    ? buildAffiliateUrl(typeof window !== 'undefined' ? window.location.origin : '', affiliate.code)
     : '';
 
   const copy = async () => {

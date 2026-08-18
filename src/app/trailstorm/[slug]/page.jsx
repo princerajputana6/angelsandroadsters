@@ -6,6 +6,7 @@ import BookingWizard from '@/components/events/BookingWizard';
 import EventGallerySlider from '@/components/events/EventGallerySlider';
 import BrandsSlider from '@/components/events/BrandsSlider';
 import TrailstormMark from '@/components/common/TrailstormMark';
+import PageViewTracker from '@/components/common/PageViewTracker';
 import Link from 'next/link';
 
 const HERO_BG = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920';
@@ -102,6 +103,7 @@ export default function TrailstormEventPage() {
 
   return (
     <div>
+      <PageViewTracker page="trailstorm" />
       {/* HERO */}
       <section className="relative h-[100svh] min-h-[640px] overflow-hidden">
         <video

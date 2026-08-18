@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: '/api', credentials: 'include' }),
-  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics', 'Coupons', 'Resorts', 'Resort', 'ResortBookings', 'Affiliate', 'Affiliates'],
+  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics', 'Coupons', 'Resorts', 'Resort', 'ResortBookings', 'Affiliate', 'Affiliates', 'TrailstormAnalytics'],
   endpoints: (b) => ({
     // Auth
     me: b.query({ query: () => '/auth/me', providesTags: ['Auth'] }),
@@ -109,6 +109,10 @@ export const api = createApi({
     deleteCompTicket: b.mutation({
       query: (id) => ({ url: `/admin/trailstorm/comp-tickets/${id}`, method: 'DELETE' }),
       invalidatesTags: ['CompTickets', 'TrailstormMetrics'],
+    }),
+    trailstormAnalytics: b.query({
+      query: (params = {}) => ({ url: '/admin/trailstorm/analytics', params }),
+      providesTags: ['TrailstormAnalytics'],
     }),
     trailstormMetrics: b.query({
       query: (params = {}) => ({ url: '/admin/trailstorm/metrics', params }),
@@ -349,7 +353,7 @@ export const {
   useListCategoriesQuery, useCreateCategoryMutation, useUpdateCategoryMutation, useDeleteCategoryMutation,
   useListSectionsQuery, useCreateSectionMutation, useUpdateSectionMutation, useDeleteSectionMutation,
   useListCompaniesQuery, useCreateCompanyMutation, useUpdateCompanyMutation, useDeleteCompanyMutation,
-  useListCompTicketsQuery, useCreateCompTicketMutation, useUpdateCompTicketMutation, useDeleteCompTicketMutation, useTrailstormMetricsQuery,
+  useListCompTicketsQuery, useCreateCompTicketMutation, useUpdateCompTicketMutation, useDeleteCompTicketMutation, useTrailstormMetricsQuery, useTrailstormAnalyticsQuery,
   useListEventsQuery, useGetEventQuery, useGetEventSlotsQuery, useCreateEventMutation, useUpdateEventMutation, useDeleteEventMutation,
   useCreateRegistrationMutation, useMyRegistrationsQuery, useGetRegistrationByTicketQuery, useCompleteProfileMutation,
   useCreateOrderMutation, useMyOrdersQuery, useListOrdersQuery, useGetOrderQuery, useUpdateOrderMutation, useCancelOrderMutation, useDeleteOrderMutation,
