@@ -95,6 +95,8 @@ function OnboardModal({ onClose }) {
     discountPercent: '0', commissionPercent: '0',
   });
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const [created, setCreated] = useState(null); // { code, email } after success
+  const [copied, setCopied] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -107,11 +109,54 @@ function OnboardModal({ onClose }) {
         commissionPercent: Number(form.commissionPercent) || 0,
       }).unwrap();
       toast.success(`Affiliate created — code ${res.affiliate?.code}`);
-      onClose();
+      setCreated({ code: res.affiliate?.code, email: form.email, password: form.password });
     } catch (err) {
       toast.error(err?.data?.message || 'Could not create affiliate');
     }
   };
+
+  // Success view: hand the admin the share URL + login details to pass on.
+  if (created) {
+    const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/?ref=${created.code}`;
+    const copyLink = async () => {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        toast.success('Link copied!');
+        setTimeout(() => setCopied(false), 1500);
+      } catch (_) { toast.error('Could not copy'); }
+    };
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+        <div onClick={(e) => e.stopPropagation()} className="card p-6 w-full max-w-lg space-y-4">
+          <div>
+            <div className="text-4xl mb-2">✅</div>
+            <h2 className="text-2xl font-display">Affiliate onboarded</h2>
+            <p className="text-xs text-charcoal-500 mt-1">Share the link and login details below with the member.</p>
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold mb-2">Affiliate share link</p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input readOnly value={shareUrl} className="input flex-1 font-mono text-xs" onFocus={(e) => e.target.select()} />
+              <button onClick={copyLink} className="btn btn-gold h-10 px-5 text-sm whitespace-nowrap">{copied ? 'Copied ✓' : 'Copy link'}</button>
+            </div>
+          </div>
+
+          <div className="card p-4 text-sm space-y-1 bg-white/[0.02]">
+            <p className="font-semibold mb-1">Login details</p>
+            <div className="flex justify-between gap-3"><span className="text-charcoal-500">Email</span><span className="text-charcoal-200">{created.email}</span></div>
+            <div className="flex justify-between gap-3"><span className="text-charcoal-500">Password</span><span className="text-charcoal-200 font-mono">{created.password}</span></div>
+            <div className="flex justify-between gap-3"><span className="text-charcoal-500">Code</span><span className="text-charcoal-200 font-mono">{created.code}</span></div>
+          </div>
+
+          <div className="flex justify-end">
+            <button onClick={onClose} className="btn btn-gold h-10 px-6 text-sm">Done</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
@@ -240,6 +285,19 @@ function AffiliateDrawer({ id, onClose }) {
     } catch (e) { toast.error('Failed'); }
   };
 
+  const [copied, setCopied] = useState(false);
+  const shareUrl = affiliate?.code
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/?ref=${affiliate.code}`
+    : '';
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      toast.success('Link copied!');
+      setTimeout(() => setCopied(false), 1500);
+    } catch (_) { toast.error('Could not copy'); }
+  };
+
   const now = Date.now();
 
   return (
@@ -256,13 +314,23 @@ function AffiliateDrawer({ id, onClose }) {
 
         {isLoading || !affiliate ? <p className="text-charcoal-400">Loading...</p> : (
           <>
+            {/* Shareable link — hand this URL to the affiliate */}
+            <div className="card p-4">
+              <p className="text-sm font-semibold mb-2">Affiliate share link</p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input readOnly value={shareUrl} className="input flex-1 font-mono text-xs" onFocus={(e) => e.target.select()} />
+                <button onClick={copyLink} className="btn btn-gold h-10 px-5 text-sm whitespace-nowrap">{copied ? 'Copied ✓' : 'Copy link'}</button>
+              </div>
+              <p className="text-xs text-charcoal-500 mt-2">Code: <span className="font-mono text-charcoal-300">{affiliate.code}</span> — share this URL; it works across events and shop.</p>
+            </div>
+
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <Info label="Code" value={<span className="font-mono">{affiliate.code}</span>} />
               <Info label="Clicks" value={affiliate.clicks || 0} />
               <Info label="Conversions" value={affiliate.totalConversions || 0} />
               <Info label="Sales driven" value={inr(affiliate.totalSales)} />
               <Info label="Commission earned" value={inr(affiliate.totalCommission)} />
               <Info label="Commission paid" value={inr(affiliate.paidCommission)} />
+              <Info label="Status" value={<span className={affiliate.status === 'active' ? 'text-green-400' : 'text-red-400'}>{affiliate.status}</span>} />
             </div>
 
             {/* Application / payout details */}
