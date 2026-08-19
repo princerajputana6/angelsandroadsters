@@ -54,18 +54,19 @@ export async function POST(req) {
       amount = perDay * numDays * count;
     }
 
-    // Affiliate referral (?ref=CODE) takes priority over a manual coupon: it
-    // both applies the affiliate's discount and stamps the sale for commission.
+    // Discount resolution. An explicitly-entered coupon ALWAYS takes precedence
+    // over an ambient affiliate link (?ref=CODE) — the buyer sees the coupon
+    // price in the UI, so that's exactly what we must charge. (Previously the
+    // affiliate ref silently overrode the coupon, so a 100%-off coupon still
+    // charged the affiliate's discounted amount.) The affiliate is still
+    // stamped for attribution even when the coupon wins the discount.
     let discountAmount = 0;
     let appliedCouponCode = null;
     let affiliate = null;
-    if (body.ref) {
-      affiliate = await findActiveAffiliateByCode(body.ref);
-      if (affiliate) discountAmount = affiliateDiscount(affiliate, amount);
-    }
 
-    // Apply coupon discount (only when no affiliate link was used)
-    if (!affiliate && body.couponCode) {
+    if (body.ref) affiliate = await findActiveAffiliateByCode(body.ref);
+
+    if (body.couponCode) {
       const coupon = await Coupon.findOne({ code: body.couponCode.toUpperCase().trim() });
       const valid =
         coupon &&
@@ -83,6 +84,12 @@ export async function POST(req) {
         await Coupon.findByIdAndUpdate(coupon._id, { $inc: { usedCount: 1 } });
       }
     }
+
+    // Fall back to the affiliate link's discount only when no coupon applied.
+    if (!appliedCouponCode && affiliate) {
+      discountAmount = affiliateDiscount(affiliate, amount);
+    }
+
     amount = Math.max(0, amount - discountAmount);
 
     const reg = new Registration({
