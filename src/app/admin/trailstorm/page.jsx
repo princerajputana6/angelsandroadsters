@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { downloadCompPass } from '@/lib/compPass';
 import {
   useListEventsQuery,
   useListCompTicketsQuery,
@@ -169,6 +170,18 @@ function IndividualForm({ eventId, onSubmit, busy }) {
 // ============ ROW ============
 
 function TicketRow({ t, onDelete }) {
+  const [downloading, setDownloading] = useState(false);
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      await downloadCompPass(t, t.event);
+      toast.success('Pass downloaded');
+    } catch (e) {
+      toast.error('Could not generate pass');
+    } finally {
+      setDownloading(false);
+    }
+  };
   return (
     <tr className="hover:bg-white/[0.02]">
       <td className="p-3 font-mono text-[11px]">{t.ticketId}</td>
@@ -192,7 +205,16 @@ function TicketRow({ t, onDelete }) {
       </td>
       <td className="p-3 text-xs text-charcoal-400">{t.issuedBy || t.approvedBy || '—'}</td>
       <td className="p-3 text-xs text-charcoal-400 max-w-[200px] truncate">{t.remarks || t.reasonForFOC || '—'}</td>
-      <td className="p-3 text-right">
+      <td className="p-3 text-right whitespace-nowrap">
+        <button
+          onClick={handleDownload}
+          disabled={downloading}
+          title="Download golden pass (PNG)"
+          className="text-gold-400 hover:text-gold-300 text-xs font-semibold disabled:opacity-50"
+        >
+          {downloading ? 'Preparing…' : '↓ Pass'}
+        </button>
+        <span className="text-charcoal-700 mx-2">|</span>
         <button onClick={() => onDelete(t)} className="text-red-400 hover:text-red-300 text-xs">Revoke</button>
       </td>
     </tr>

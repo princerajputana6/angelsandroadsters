@@ -23,7 +23,7 @@ export async function GET(req) {
     if (searchParams.get('status')) filter.status = searchParams.get('status');
 
     const tickets = await CompTicket.find(filter)
-      .populate('event', 'title slug')
+      .populate('event', 'title slug startDate endDate location')
       .populate('createdBy', 'name email')
       .populate('clubReg', 'ticketId groupName teamCaptainName')
       .sort('-createdAt')
