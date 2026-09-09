@@ -1,6 +1,11 @@
 import { connectDB } from '@/lib/db';
 import CompTicket from '@/lib/models/CompTicket';
 import Event from '@/lib/models/Event';
+// Imported so their schemas are registered for the populate() refs below
+// (`clubReg` → Registration, `createdBy` → User). Without these, a cold
+// serverless instance throws MissingSchemaError and the list request 500s.
+import Registration from '@/lib/models/Registration';
+import User from '@/lib/models/User';
 import { requireAdmin } from '@/lib/auth';
 import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
 import crypto from 'crypto';
