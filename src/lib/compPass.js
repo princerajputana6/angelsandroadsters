@@ -61,6 +61,25 @@ function goldGradient(ctx, x0, y0, x1, y1) {
   return g;
 }
 
+// total rendered width of letter-spaced text at the current ctx.font
+function measureSpaced(ctx, text, spacing) {
+  const chars = [...String(text)];
+  let w = 0;
+  for (const c of chars) w += ctx.measureText(c).width;
+  return w + spacing * Math.max(0, chars.length - 1);
+}
+
+// shrink a Barlow Condensed line until its spaced width fits maxWidth
+function fitFont(ctx, text, weight, startSize, minSize, spacing, maxWidth) {
+  let size = startSize;
+  while (size > minSize) {
+    ctx.font = `${weight} ${size}px 'Barlow Condensed', sans-serif`;
+    if (measureSpaced(ctx, text, spacing) <= maxWidth) break;
+    size -= 1;
+  }
+  return size;
+}
+
 // letter-spaced centered/aligned text (works on every browser)
 function spacedText(ctx, text, x, y, spacing, align = 'center') {
   const chars = [...String(text)];
@@ -203,14 +222,15 @@ export async function drawCompPass(canvas, ticket, event) {
   ctx.font = "700 22px 'Barlow Condensed', sans-serif";
   spacedText(ctx, 'ANGELS & ROADSTERS  ·  PRESENTS', cx, y, 5);
 
-  // trailstorm hero logo
+  // trailstorm hero logo — contain-fit inside maxW×maxH, aspect ratio preserved
   y += 30;
   if (trailLogo) {
-    const lw = Math.min(560, trailLogo.width);
-    const scale = lw / trailLogo.width;
-    const lh = trailLogo.height * scale;
-    ctx.drawImage(trailLogo, cx - lw / 2, y, lw, Math.min(lh, 150));
-    y += Math.min(lh, 150) + 20;
+    const maxW = 440, maxH = 150;
+    const fit = Math.min(maxW / trailLogo.width, maxH / trailLogo.height);
+    const lw = trailLogo.width * fit;
+    const lh = trailLogo.height * fit;
+    ctx.drawImage(trailLogo, cx - lw / 2, y, lw, lh);
+    y += lh + 20;
   } else {
     ctx.fillStyle = '#fff';
     ctx.font = "400 116px 'Bebas Neue', sans-serif";
@@ -219,9 +239,12 @@ export async function drawCompPass(canvas, ticket, event) {
     y += 150;
   }
 
+  const loc = event?.location || {};
+  const place = (loc.city || loc.venue || event?.title || 'Trailstorm').toUpperCase();
+  const subtitle = `${place}  ·  ${fmtDates(event)}`;
+  fitFont(ctx, subtitle, '500', 27, 15, 3, contentW);
   ctx.fillStyle = 'rgba(255,255,255,0.82)';
-  ctx.font = "500 26px 'Barlow Condensed', sans-serif";
-  spacedText(ctx, `${fmtVenue(event).toUpperCase()}  ·  ${fmtDates(event)}`, cx, y, 3);
+  spacedText(ctx, subtitle, cx, y, 3);
   y += 34;
 
   // divider
@@ -360,10 +383,11 @@ export async function drawCompPass(canvas, ticket, event) {
   }
 
   // footer legal
-  ctx.fillStyle = 'rgba(253,230,138,0.55)';
-  ctx.font = "500 18px 'Barlow Condensed', sans-serif";
   ctx.textAlign = 'center';
-  spacedText(ctx, 'OFFICIAL COMPLIMENTARY PASS  ·  ONE-TIME ENTRY  ·  ANGELSANDROADSTERS.COM', cx, H - 56, 2);
+  const legal = 'OFFICIAL COMPLIMENTARY PASS  ·  ONE-TIME ENTRY  ·  ANGELSANDROADSTERS.COM';
+  fitFont(ctx, legal, '500', 18, 11, 2, contentW);
+  ctx.fillStyle = 'rgba(253,230,138,0.55)';
+  spacedText(ctx, legal, cx, H - 56, 2);
 }
 
 // ---- public: build canvas + trigger download ----------------------------------
