@@ -2,18 +2,20 @@ import mongoose from 'mongoose';
 import slugify from 'slugify';
 export { MAX_BOOKING_NIGHTS } from '@/lib/bookingConstants';
 
-// A single bookable room category within a resort. `totalRooms` is the
-// inventory; live availability is `totalRooms` minus confirmed/paid bookings
-// (computed at read-time — see the availability route). Booking dates are
-// fixed at the resort level (the Trailstorm window), so a room type only
-// needs a per-night price, not its own calendar.
+// A single bookable room category within a resort. Inventory is sold per BED
+// (allocation), not per whole room: a room type has `totalRooms` rooms, each
+// holding `capacity` beds (the allocation size), so total sellable inventory is
+// `totalRooms * capacity` beds. Guests buy individual beds and `pricePerNight`
+// is charged per person per night. Booking dates are fixed at the resort level
+// (the Trailstorm window), so a room type only needs a per-night price, not its
+// own calendar.
 const roomTypeSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   description: { type: String, default: '' },
   images: [String],
-  pricePerNight: { type: Number, required: true, min: 0 },
-  capacity: { type: Number, default: 2, min: 1 }, // guests per room
-  totalRooms: { type: Number, required: true, min: 0 }, // inventory
+  pricePerNight: { type: Number, required: true, min: 0 }, // per person, per night
+  capacity: { type: Number, default: 2, min: 1 }, // allocation size — beds per room
+  totalRooms: { type: Number, required: true, min: 0 }, // rooms (× capacity = total beds)
   bedType: { type: String, default: '' },
   amenities: [String],
 });

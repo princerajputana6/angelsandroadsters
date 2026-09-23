@@ -3,14 +3,15 @@ import Resort, { MAX_BOOKING_NIGHTS } from '@/lib/models/Resort';
 import ResortBooking from '@/lib/models/ResortBooking';
 import { getCurrentUser, requireUser } from '@/lib/auth';
 import { ok, fail, handler, toJSON } from '@/lib/apiUtils';
-import { remainingRooms } from '@/lib/resortAvailability';
+import { remainingBeds } from '@/lib/resortAvailability';
 import { lookupRegistration } from '@/lib/registrationLookup';
 
 const VALID_TYPES = ['individual', 'group', 'visitor', 'staff', 'volunteer', 'organizer'];
 
 // POST /api/resort-bookings → create a pending booking (logged-in users only).
-// One registration ID per guest; rooms are auto-derived from guest count and
-// the room's capacity. Availability is validated here; the room is only *held*
+// One registration ID per guest; each guest occupies one bed and is priced per
+// person per night. Inventory is sold per bed (a room's `capacity` beds may be
+// split across bookings). Availability is validated here; beds are only *held*
 // once payment is verified and the booking flips to confirmed/paid.
 export async function POST(req) {
   return handler(async () => {
@@ -61,14 +62,14 @@ export async function POST(req) {
     const uniqueIds = new Set(resolved.map((r) => r.registrationId.toUpperCase()));
     if (uniqueIds.size !== resolved.length) return fail('Each guest must have a different registration ID', 400);
 
-    const guestCount = resolved.length;
+    const guestCount = resolved.length; // one bed per guest
     const capacity = Math.max(1, roomType.capacity || 1);
-    const roomsNeeded = Math.ceil(guestCount / capacity); // up to `capacity` share a room
+    const roomsNeeded = Math.ceil(guestCount / capacity); // rooms touched — informational
 
-    const remaining = await remainingRooms(resort._id, roomTypeId, roomType.totalRooms);
-    if (roomsNeeded > remaining) {
+    const remaining = await remainingBeds(resort._id, roomTypeId, roomType.totalRooms, capacity);
+    if (guestCount > remaining) {
       return fail(
-        remaining <= 0 ? 'This room is fully booked' : `Only ${remaining} room(s) left — reduce guests`,
+        remaining <= 0 ? 'This room type is fully booked' : `Only ${remaining} bed(s) left — reduce guests`,
         409,
         { soldOut: true, remaining }
       );
@@ -82,7 +83,8 @@ export async function POST(req) {
     const checkOut = new Date(resort.checkIn);
     checkOut.setDate(checkOut.getDate() + nightCount);
 
-    const totalAmount = roomType.pricePerNight * nightCount * roomsNeeded;
+    // Priced per person (per bed) per night.
+    const totalAmount = roomType.pricePerNight * nightCount * guestCount;
 
     const primary = resolved[0];
     const booking = await ResortBooking.create({

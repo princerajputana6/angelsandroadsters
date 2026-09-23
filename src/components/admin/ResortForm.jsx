@@ -2,14 +2,15 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCreateResortMutation, useUpdateResortMutation } from '@/store/api';
+import FileUpload from '@/components/FileUpload';
 import toast from 'react-hot-toast';
 
 // Date <-> yyyy-mm-dd for <input type="date">
 const toDateInput = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
 
 const emptyRoom = () => ({
-  name: '', description: '', pricePerNight: '', capacity: 2, totalRooms: '',
-  bedType: '', amenitiesText: '',
+  name: '', description: '', pricePerNight: '', capacity: 3, totalRooms: '',
+  bedType: '', amenitiesText: '', images: [],
 });
 
 function roomFromDoc(rt) {
@@ -18,10 +19,11 @@ function roomFromDoc(rt) {
     name: rt.name || '',
     description: rt.description || '',
     pricePerNight: rt.pricePerNight ?? '',
-    capacity: rt.capacity ?? 2,
+    capacity: rt.capacity ?? 3,
     totalRooms: rt.totalRooms ?? '',
     bedType: rt.bedType || '',
     amenitiesText: (rt.amenities || []).join(', '),
+    images: rt.images || [],
   };
 }
 
@@ -35,6 +37,8 @@ export default function ResortForm({ resort }) {
   const [form, setForm] = useState({
     name: resort?.name || '',
     description: resort?.description || '',
+    coverImage: resort?.coverImage || '',
+    images: resort?.images || [],
     address: resort?.location?.address || '',
     city: resort?.location?.city || '',
     state: resort?.location?.state || '',
@@ -60,6 +64,16 @@ export default function ResortForm({ resort }) {
   const addRoom = () => setRooms((rs) => [...rs, emptyRoom()]);
   const removeRoom = (i) => setRooms((rs) => rs.filter((_, idx) => idx !== i));
 
+  // Resort gallery images
+  const addImage = (url) => url && setForm((f) => ({ ...f, images: [...f.images, url] }));
+  const removeImage = (idx) => setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== idx) }));
+
+  // Per-room images
+  const addRoomImage = (i, url) =>
+    url && setRooms((rs) => rs.map((r, idx) => (idx === i ? { ...r, images: [...(r.images || []), url] } : r)));
+  const removeRoomImage = (i, imgIdx) =>
+    setRooms((rs) => rs.map((r, idx) => (idx === i ? { ...r, images: (r.images || []).filter((_, k) => k !== imgIdx) } : r)));
+
   const toArr = (text) => text.split(',').map((s) => s.trim()).filter(Boolean);
 
   const submit = async (e) => {
@@ -73,6 +87,8 @@ export default function ResortForm({ resort }) {
     const body = {
       name: form.name.trim(),
       description: form.description,
+      coverImage: form.coverImage,
+      images: form.images,
       location: {
         address: form.address,
         city: form.city,
@@ -94,6 +110,7 @@ export default function ResortForm({ resort }) {
         ...(r._id ? { _id: r._id } : {}),
         name: r.name.trim(),
         description: r.description,
+        images: r.images || [],
         pricePerNight: Number(r.pricePerNight) || 0,
         capacity: Number(r.capacity) || 1,
         totalRooms: Number(r.totalRooms) || 0,
@@ -133,6 +150,42 @@ export default function ResortForm({ resort }) {
           <label className="label">Amenities (comma separated)</label>
           <input className="input" value={form.amenitiesText} onChange={set('amenitiesText')} placeholder="Wi-Fi, Parking, Restaurant, Bonfire" />
         </div>
+      </div>
+
+      {/* Images */}
+      <div className="card p-6 space-y-4">
+        <h3 className="font-display text-xl">Images</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FileUpload
+            label="Cover image"
+            accept="image/*"
+            value={form.coverImage}
+            onChange={(url) => setForm((f) => ({ ...f, coverImage: url }))}
+            description="Shown on the booking screen and admin list."
+          />
+          <FileUpload
+            label="Add gallery image"
+            accept="image/*"
+            value=""
+            onChange={addImage}
+            description="Upload one at a time — each appears below."
+          />
+        </div>
+        {form.images.length > 0 && (
+          <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2 pt-2">
+            {form.images.map((url, i) => (
+              <div key={`${url}-${i}`} className="relative group rounded-lg overflow-hidden border border-charcoal-800 bg-charcoal-900">
+                <img src={url} alt={`Gallery ${i + 1}`} className="w-full aspect-square object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removeImage(i)}
+                  className="absolute top-1 right-1 bg-red-500/90 hover:bg-red-500 text-white text-xs w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                  title="Remove"
+                >✕</button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Location */}
@@ -185,12 +238,43 @@ export default function ResortForm({ resort }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><label className="label">Name *</label><input className="input" value={r.name} onChange={(e) => setRoom(i, 'name', e.target.value)} placeholder="Deluxe Tent" /></div>
               <div><label className="label">Bed type</label><input className="input" value={r.bedType} onChange={(e) => setRoom(i, 'bedType', e.target.value)} placeholder="1 King" /></div>
-              <div><label className="label">Price / night (₹) *</label><input type="number" min="0" className="input" value={r.pricePerNight} onChange={(e) => setRoom(i, 'pricePerNight', e.target.value)} /></div>
+              <div><label className="label">Price / person / night (₹) *</label><input type="number" min="0" className="input" value={r.pricePerNight} onChange={(e) => setRoom(i, 'pricePerNight', e.target.value)} /></div>
               <div><label className="label">Total rooms *</label><input type="number" min="0" className="input" value={r.totalRooms} onChange={(e) => setRoom(i, 'totalRooms', e.target.value)} /></div>
-              <div><label className="label">Guests / room</label><input type="number" min="1" className="input" value={r.capacity} onChange={(e) => setRoom(i, 'capacity', e.target.value)} /></div>
+              <div>
+                <label className="label">Beds per room (allocation)</label>
+                <input type="number" min="1" className="input" value={r.capacity} onChange={(e) => setRoom(i, 'capacity', e.target.value)} placeholder="3" />
+              </div>
             </div>
+            <p className="text-xs text-charcoal-500">
+              Sellable beds: <span className="text-charcoal-300 font-medium">{(Number(r.totalRooms) || 0) * (Number(r.capacity) || 0)}</span>
+              {' '}({Number(r.totalRooms) || 0} rooms × {Number(r.capacity) || 0} beds). Guests are priced and sold per bed; a room can be shared across bookings.
+            </p>
             <div><label className="label">Description</label><input className="input" value={r.description} onChange={(e) => setRoom(i, 'description', e.target.value)} /></div>
             <div><label className="label">Amenities (comma separated)</label><input className="input" value={r.amenitiesText} onChange={(e) => setRoom(i, 'amenitiesText', e.target.value)} placeholder="AC, Attached bath, Breakfast" /></div>
+            <div>
+              <FileUpload
+                label="Add room image"
+                accept="image/*"
+                value=""
+                onChange={(url) => addRoomImage(i, url)}
+                description="Upload one at a time — each appears below."
+              />
+              {(r.images || []).length > 0 && (
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 pt-2">
+                  {r.images.map((url, imgIdx) => (
+                    <div key={`${url}-${imgIdx}`} className="relative group rounded-lg overflow-hidden border border-charcoal-800 bg-charcoal-900">
+                      <img src={url} alt={`Room ${i + 1} image ${imgIdx + 1}`} className="w-full aspect-square object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeRoomImage(i, imgIdx)}
+                        className="absolute top-1 right-1 bg-red-500/90 hover:bg-red-500 text-white text-xs w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                        title="Remove"
+                      >✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>

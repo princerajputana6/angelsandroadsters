@@ -18,8 +18,8 @@ const resortBookingSchema = new mongoose.Schema({
   checkOut: Date,
   nights: { type: Number, default: 1 },
 
-  rooms: { type: Number, required: true, min: 1 }, // rooms = ceil(guests / capacity)
-  guests: { type: Number, default: 1, min: 1 },
+  rooms: { type: Number, required: true, min: 1 }, // rooms touched = ceil(guests / capacity); informational — inventory is held per bed (guests)
+  guests: { type: Number, default: 1, min: 1 }, // beds held by this booking
 
   // The registration category this booking was made under, and one entry per
   // guest with the registration ID they booked against (each guest — including

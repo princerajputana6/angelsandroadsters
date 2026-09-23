@@ -378,7 +378,7 @@ export async function sendResortBookingConfirmation({ booking, userEmail, userNa
           ${row('Check-in', fmtDate(booking.checkIn))}
           ${row('Check-out', fmtDate(booking.checkOut))}
           ${row('Nights', booking.nights)}
-          ${row('Rate', `${inr(booking.pricePerNight)} / night`)}
+          ${row('Rate', `${inr(booking.pricePerNight)} / person / night`)}
           <tr>
             <td style="padding: 12px 0 0; color: #111827; font-size: 16px; font-weight: 700; border-top: 1px solid #e5e7eb;">Total paid</td>
             <td style="padding: 12px 0 0; color: #c2410c; font-size: 18px; font-weight: 700; text-align: right; border-top: 1px solid #e5e7eb;">${inr(booking.totalAmount)}</td>

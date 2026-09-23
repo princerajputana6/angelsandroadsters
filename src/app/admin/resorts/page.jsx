@@ -55,7 +55,7 @@ export default function AdminResortsPage() {
                   </div>
                   <div className="text-sm text-charcoal-400 mt-1">
                     {r.roomTypes?.length || 0} room type(s) · {totalRooms} rooms
-                    {minPrice !== Infinity && <> · from {inr(minPrice)}/night</>}
+                    {minPrice !== Infinity && <> · from {inr(minPrice)}/person/night</>}
                     {r.location?.city && <> · {r.location.city}</>}
                   </div>
                 </div>

@@ -64,11 +64,11 @@ export default function ResortBookingWizard() {
     () => resort?.roomTypes?.find((rt) => String(rt._id) === String(roomTypeId)) || null,
     [resort, roomTypeId]
   );
-  const capacity = Math.max(1, roomType?.capacity || 1);
-  const remaining = roomType ? (availability[String(roomType._id)] ?? roomType.totalRooms) : 0;
-  const maxGuests = Math.max(1, remaining * capacity); // can't need more rooms than are left
-  const roomsNeeded = roomType ? Math.ceil(guests / capacity) : 0;
-  const price = roomType ? roomType.pricePerNight * nights * roomsNeeded : 0;
+  const capacity = Math.max(1, roomType?.capacity || 1); // beds per room (allocation)
+  const remaining = roomType ? (availability[String(roomType._id)] ?? roomType.totalRooms * capacity) : 0; // beds left
+  const maxGuests = Math.max(1, remaining); // one bed per guest
+  const roomsNeeded = roomType ? Math.ceil(guests / capacity) : 0; // rooms touched — informational
+  const price = roomType ? roomType.pricePerNight * nights * guests : 0; // priced per person
 
   // Resize the per-guest list when the guest count changes, preserving entries.
   const setGuestCount = (nRaw) => {
@@ -224,22 +224,35 @@ export default function ResortBookingWizard() {
               <div className="card p-8 text-center text-charcoal-400">No resorts available yet. Check back soon.</div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
-                {resorts.map((r) => (
-                  <button key={r._id} onClick={() => chooseResort(r)} className="card p-0 overflow-hidden text-left hover:border-terra-500/60 transition group">
-                    {r.coverImage ? (
-                      <img src={r.coverImage} alt={r.name} className="w-full h-40 object-cover" />
-                    ) : (
-                      <div className="w-full h-40 bg-charcoal-800 flex items-center justify-center text-4xl">🏨</div>
-                    )}
-                    <div className="p-4">
-                      <div className="font-semibold group-hover:text-terra-400">{r.name}</div>
-                      <div className="text-xs text-charcoal-500 mt-2">
-                        {r.location?.city && <>{r.location.city} · </>}
-                        {fmtDate(r.checkIn)} → {fmtDate(r.checkOut)}
+                {resorts.map((r) => {
+                  const prices = (r.roomTypes || []).map((rt) => rt.pricePerNight || 0).filter((p) => p > 0);
+                  const fromPrice = prices.length ? Math.min(...prices) : 0;
+                  return (
+                    <button key={r._id} onClick={() => chooseResort(r)} className="card p-0 overflow-hidden text-left hover:border-terra-500/60 transition group">
+                      {r.coverImage ? (
+                        <img src={r.coverImage} alt={r.name} className="w-full h-40 object-cover" />
+                      ) : (
+                        <div className="w-full h-40 bg-charcoal-800 flex items-center justify-center text-4xl">🏨</div>
+                      )}
+                      <div className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="font-semibold group-hover:text-terra-400">{r.name}</div>
+                          {fromPrice > 0 && (
+                            <div className="text-right shrink-0">
+                              <div className="text-[10px] text-charcoal-500 leading-none">Starts from</div>
+                              <div className="font-bold text-terra-400">{inr(fromPrice)}</div>
+                              <div className="text-[10px] text-charcoal-500 leading-none">/ person / night</div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-xs text-charcoal-500 mt-2">
+                          {r.location?.city && <>{r.location.city} · </>}
+                          {fmtDate(r.checkIn)} → {fmtDate(r.checkOut)}
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </motion.div>
@@ -261,7 +274,7 @@ export default function ResortBookingWizard() {
 
                 <div className="space-y-3">
                   {resort.roomTypes.map((rt) => {
-                    const left = availability[String(rt._id)] ?? rt.totalRooms;
+                    const left = availability[String(rt._id)] ?? rt.totalRooms * Math.max(1, rt.capacity || 1); // beds left
                     const selected = String(rt._id) === String(roomTypeId);
                     const soldOut = left <= 0;
                     return (
@@ -277,17 +290,17 @@ export default function ResortBookingWizard() {
                               {soldOut ? (
                                 <span className="badge text-xs bg-red-500/20 text-red-400 border border-red-500/30">Sold out</span>
                               ) : (
-                                <span className="badge text-xs bg-green-500/20 text-green-400 border border-green-500/30">{left} room(s) left</span>
+                                <span className="badge text-xs bg-green-500/20 text-green-400 border border-green-500/30">{left} bed(s) left</span>
                               )}
                             </div>
                             {rt.description && <div className="text-xs text-charcoal-400 mt-0.5">{rt.description}</div>}
                             <div className="text-xs text-charcoal-500 mt-1">
-                              Up to {rt.capacity} share a room{rt.bedType && <> · {rt.bedType}</>}
+                              {rt.capacity} bed(s) per room{rt.bedType && <> · {rt.bedType}</>}
                             </div>
                           </div>
                           <div className="text-right shrink-0">
                             <div className="font-bold text-terra-400">{inr(rt.pricePerNight)}</div>
-                            <div className="text-[10px] text-charcoal-500">/ room / night</div>
+                            <div className="text-[10px] text-charcoal-500">/ person / night</div>
                           </div>
                         </div>
 
@@ -313,14 +326,14 @@ export default function ResortBookingWizard() {
                                 </select>
                               </div>
                               <div>
-                                <label className="label">No. of guests</label>
+                                <label className="label">No. of guests (beds)</label>
                                 <input type="number" min="1" max={maxGuests} className="input" value={guests}
                                   onChange={(e) => setGuestCount(e.target.value)} />
                               </div>
                             </div>
                             <p className="text-xs text-charcoal-500">
-                              {roomsNeeded} room(s) · {fmtDate(resort.checkIn)} → {fmtDate(checkOutDate)} · {nights} night(s)
-                              {' '}· up to {rt.capacity} per room
+                              {guests} bed(s) across ~{roomsNeeded} room(s) · {fmtDate(resort.checkIn)} → {fmtDate(checkOutDate)} · {nights} night(s)
+                              {' '}· {rt.capacity} bed(s) per room
                             </p>
                           </div>
                         )}
@@ -383,9 +396,9 @@ export default function ResortBookingWizard() {
               <Row label="Room" value={roomType.name} />
               <Row label="Registration" value={registrationType} />
               <Row label="Dates" value={`${fmtDate(resort.checkIn)} → ${fmtDate(checkOutDate)}`} />
-              <Row label="Rooms × nights" value={`${roomsNeeded} × ${nights}`} />
-              <Row label="Guests" value={guests} />
-              <Row label="Rate" value={`${inr(roomType.pricePerNight)} / room / night`} />
+              <Row label="Guests × nights" value={`${guests} × ${nights}`} />
+              <Row label="Rooms used" value={`~${roomsNeeded}`} />
+              <Row label="Rate" value={`${inr(roomType.pricePerNight)} / person / night`} />
               <div className="flex justify-between border-t border-charcoal-800 pt-2 mt-2">
                 <span className="text-charcoal-400">Total</span>
                 <span className="font-bold text-terra-400 text-lg">{inr(price)}</span>
