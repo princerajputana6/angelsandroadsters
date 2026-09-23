@@ -69,7 +69,7 @@ export default function AdminResortBookingsPage() {
                   </div>
                   <div className="text-sm mt-1">
                     <span className="font-semibold">{b.resortName}</span>
-                    <span className="text-charcoal-400"> · {b.roomTypeName} · {b.guests} bed(s) · ~{b.rooms} room(s)</span>
+                    <span className="text-charcoal-400"> · {b.roomTypeName} · {b.guests} accommodation(s) · ~{b.rooms} room(s)</span>
                   </div>
                   <div className="text-xs text-charcoal-400 mt-1">
                     {b.guestName} · {b.guestEmail} · {b.guestPhone || 'no phone'}

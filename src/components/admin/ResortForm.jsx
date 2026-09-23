@@ -241,13 +241,13 @@ export default function ResortForm({ resort }) {
               <div><label className="label">Price / person / night (₹) *</label><input type="number" min="0" className="input" value={r.pricePerNight} onChange={(e) => setRoom(i, 'pricePerNight', e.target.value)} /></div>
               <div><label className="label">Total rooms *</label><input type="number" min="0" className="input" value={r.totalRooms} onChange={(e) => setRoom(i, 'totalRooms', e.target.value)} /></div>
               <div>
-                <label className="label">Beds per room (allocation)</label>
+                <label className="label">Accommodations per room (allocation)</label>
                 <input type="number" min="1" className="input" value={r.capacity} onChange={(e) => setRoom(i, 'capacity', e.target.value)} placeholder="3" />
               </div>
             </div>
             <p className="text-xs text-charcoal-500">
-              Sellable beds: <span className="text-charcoal-300 font-medium">{(Number(r.totalRooms) || 0) * (Number(r.capacity) || 0)}</span>
-              {' '}({Number(r.totalRooms) || 0} rooms × {Number(r.capacity) || 0} beds). Guests are priced and sold per bed; a room can be shared across bookings.
+              Sellable accommodations: <span className="text-charcoal-300 font-medium">{(Number(r.totalRooms) || 0) * (Number(r.capacity) || 0)}</span>
+              {' '}({Number(r.totalRooms) || 0} rooms × {Number(r.capacity) || 0} per room). Guests are priced and sold per accommodation; a room can be shared across bookings.
             </p>
             <div><label className="label">Description</label><input className="input" value={r.description} onChange={(e) => setRoom(i, 'description', e.target.value)} /></div>
             <div><label className="label">Amenities (comma separated)</label><input className="input" value={r.amenitiesText} onChange={(e) => setRoom(i, 'amenitiesText', e.target.value)} placeholder="AC, Attached bath, Breakfast" /></div>

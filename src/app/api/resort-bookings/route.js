@@ -69,7 +69,7 @@ export async function POST(req) {
     const remaining = await remainingBeds(resort._id, roomTypeId, roomType.totalRooms, capacity);
     if (guestCount > remaining) {
       return fail(
-        remaining <= 0 ? 'This room type is fully booked' : `Only ${remaining} bed(s) left — reduce guests`,
+        remaining <= 0 ? 'This room type is fully booked' : `Only ${remaining} accommodation(s) left — reduce guests`,
         409,
         { soldOut: true, remaining }
       );

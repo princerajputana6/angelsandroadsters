@@ -290,12 +290,12 @@ export default function ResortBookingWizard() {
                               {soldOut ? (
                                 <span className="badge text-xs bg-red-500/20 text-red-400 border border-red-500/30">Sold out</span>
                               ) : (
-                                <span className="badge text-xs bg-green-500/20 text-green-400 border border-green-500/30">{left} bed(s) left</span>
+                                <span className="badge text-xs bg-green-500/20 text-green-400 border border-green-500/30">{left} accommodation(s) left</span>
                               )}
                             </div>
                             {rt.description && <div className="text-xs text-charcoal-400 mt-0.5">{rt.description}</div>}
                             <div className="text-xs text-charcoal-500 mt-1">
-                              {rt.capacity} bed(s) per room{rt.bedType && <> · {rt.bedType}</>}
+                              {rt.capacity} per room{rt.bedType && <> · {rt.bedType}</>}
                             </div>
                           </div>
                           <div className="text-right shrink-0">
@@ -326,14 +326,14 @@ export default function ResortBookingWizard() {
                                 </select>
                               </div>
                               <div>
-                                <label className="label">No. of guests (beds)</label>
+                                <label className="label">No. of guests</label>
                                 <input type="number" min="1" max={maxGuests} className="input" value={guests}
                                   onChange={(e) => setGuestCount(e.target.value)} />
                               </div>
                             </div>
                             <p className="text-xs text-charcoal-500">
-                              {guests} bed(s) across ~{roomsNeeded} room(s) · {fmtDate(resort.checkIn)} → {fmtDate(checkOutDate)} · {nights} night(s)
-                              {' '}· {rt.capacity} bed(s) per room
+                              {guests} accommodation(s) across ~{roomsNeeded} room(s) · {fmtDate(resort.checkIn)} → {fmtDate(checkOutDate)} · {nights} night(s)
+                              {' '}· {rt.capacity} per room
                             </p>
                           </div>
                         )}
