@@ -60,8 +60,8 @@ function NewRaceModal({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-charcoal-950/80 backdrop-blur">
-      <form onSubmit={submit} className="card-glass p-6 w-full max-w-lg space-y-4">
+    <div className="fixed inset-0 z-[80] flex items-start sm:items-center justify-center p-3 sm:p-4 bg-charcoal-950/80 backdrop-blur overflow-y-auto">
+      <form onSubmit={submit} className="card-glass p-4 sm:p-6 w-full max-w-lg space-y-4 my-4 sm:my-0 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between">
           <h3 className="text-2xl font-display">New Race</h3>
           <button type="button" onClick={onClose} className="w-8 h-8 rounded-full border border-charcoal-700">✕</button>

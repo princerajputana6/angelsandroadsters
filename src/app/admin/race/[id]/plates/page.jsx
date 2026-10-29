@@ -12,15 +12,21 @@ import { useRacePlatesQuery, useMarkPlatesPrintedMutation } from '@/store/api';
  * sheet is sent to the printer. "Printed" is an administrative marker only.
  */
 const PRINT_CSS = `
+/* Screen: plates are fluid so they fit any phone/desktop width. */
+.race-plate { width: 100%; max-width: 340px; aspect-ratio: 92 / 120; background: #fff; color: #000; }
+.plate-num { font-size: clamp(2.5rem, 18vw, 6rem); line-height: 0.9; }
+@media (min-width: 640px) { .plate-num { font-size: clamp(3rem, 8vw, 6.5rem); } }
+
+/* Print: fixed physical size, 2 across, for cutting. */
 @media print {
   @page { margin: 8mm; }
   body * { visibility: hidden !important; }
   .plate-print-area, .plate-print-area * { visibility: visible !important; }
-  .plate-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+  .plate-print-area { position: absolute; left: 0; top: 0; display: grid !important; grid-template-columns: repeat(2, 92mm); gap: 6mm; }
   .no-print { display: none !important; }
-  .race-plate { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; border: 1.5px solid #000 !important; }
+  .race-plate { width: 92mm !important; height: 120mm !important; max-width: none !important; aspect-ratio: auto !important; break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; border: 1.5px solid #000 !important; }
+  .plate-num { font-size: 52mm !important; }
 }
-.race-plate { width: 92mm; height: 120mm; background: #fff; color: #000; }
 `;
 
 function Plate({ plate, event, race, selected, onToggle }) {
@@ -35,7 +41,7 @@ function Plate({ plate, event, race, selected, onToggle }) {
           {plate.categoryName && <div className="text-xs font-semibold text-black/70 truncate">{plate.categoryName}</div>}
         </div>
 
-        <div className="leading-none font-black" style={{ fontSize: '58mm' }}>{plate.raceNumber}</div>
+        <div className="leading-none font-black plate-num">{plate.raceNumber}</div>
 
         <div className="w-full">
           <div className="text-lg font-bold truncate">{plate.displayName}</div>
@@ -101,7 +107,7 @@ export default function RacePlatesPage() {
       </p>
 
       {isLoading ? <p className="text-charcoal-400">Loading plates…</p> : (
-        <div className="plate-print-area grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="plate-print-area grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 justify-items-center">
           {plates.map((p) => (
             <Plate
               key={p.entryId}

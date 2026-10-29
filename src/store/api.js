@@ -488,9 +488,34 @@ export const api = createApi({
     }),
     raceBoardAction: b.mutation({
       query: ({ id, action, entryId }) => ({ url: `/race/races/${id}/board`, method: 'POST', body: { action, entryId } }),
-      // Optimistic-ish: the response IS the fresh board state, so we also refresh
-      // results/dashboard/race which the action can change.
-      invalidatesTags: (_r, _e, { id }) => ['RaceBoard', 'RaceResults', 'RaceDashboard', 'Races', { type: 'Race', id }],
+      // Instant feedback: optimistically flip the rider locally, then replace the
+      // cache with the authoritative server state when the POST returns (no extra
+      // board GET). On error, roll back. This removes the per-click lag.
+      async onQueryStarted({ id, action, entryId }, { dispatch, queryFulfilled }) {
+        const patch = dispatch(
+          api.util.updateQueryData('raceBoard', id, (draft) => {
+            if ((action === 'out' || action === 'in') && draft?.riders) {
+              const r = draft.riders.find((x) => x.entryId === entryId);
+              if (r) {
+                if (action === 'out') { r.state = 'out'; r.startedAt = new Date().toISOString(); }
+                else { r.state = 'done'; r.finishedAt = new Date().toISOString(); if (r.startedAt) r.timeMs = Date.now() - new Date(r.startedAt).getTime(); }
+                draft.counts.done = draft.riders.filter((x) => x.state === 'done').length;
+                draft.counts.out = draft.riders.filter((x) => x.state === 'out').length;
+                draft.allIn = draft.riders.length > 0 && draft.riders.every((x) => x.state === 'done');
+              }
+            }
+          })
+        );
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(api.util.updateQueryData('raceBoard', id, () => data)); // authoritative state
+        } catch {
+          patch.undo();
+        }
+      },
+      // Other pages (results/dashboard) refresh only if currently open; the board
+      // itself is updated above, so it is intentionally NOT invalidated here.
+      invalidatesTags: (_r, _e, { id }) => ['RaceResults', 'RaceDashboard', 'Races', { type: 'Race', id }],
     }),
   }),
 });

@@ -87,9 +87,16 @@ export default function RaceBoardPage() {
         /* ---- Active / Ended board ---- */
         <>
           {ended && (
-            <div className="card p-4 mb-4 border border-terra-500/30 text-center">
+            <div className="card p-5 mb-4 border border-terra-500/30 text-center">
               <span className="badge bg-terra-500/20 text-terra-400 uppercase">Race ended</span>
+              {ranked[0] && (
+                <p className="mt-2 text-base">🏆 Winner: <span className="font-display text-2xl text-gold-400">#{ranked[0].raceNumber} {ranked[0].riderName}</span> · {fmt(ranked[0].timeMs)}</p>
+              )}
               <p className="text-sm text-charcoal-400 mt-1">Final timings below · results are {race.resultsState}.</p>
+              <div className="flex flex-wrap justify-center gap-2 mt-3">
+                <Link href={`/admin/race/${id}/results`} className="btn btn-outline">🏆 Full results</Link>
+                <Link href="/admin/race" className="btn btn-gold">➕ Start a new race</Link>
+              </div>
             </div>
           )}
 

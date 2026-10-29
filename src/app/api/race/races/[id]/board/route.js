@@ -84,7 +84,9 @@ export async function POST(req, { params }) {
         if (!hasStart) throw Object.assign(new Error('Rider has not started yet.'), { status: 409 });
         if (hasFinish) throw Object.assign(new Error('Rider already finished.'), { status: 409 });
         await appendBoardEvent(race, entry, 'RIDER_FINISHED', user);
-        await recomputeRaceResults(race._id); // update timing/ranking as each rider finishes
+        // Timing shown on the board is derived directly from events (getBoardState),
+        // so we do NOT run the heavy full-results recompute on every IN — that
+        // happens once on End Race. This keeps each OUT/IN fast.
       }
       return ok(await getBoardState(params.id));
     }
