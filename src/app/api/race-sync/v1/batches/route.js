@@ -8,6 +8,8 @@ import { ok, handler, toJSON } from '@/lib/apiUtils';
 import { requireUser } from '@/lib/auth';
 import { loadSession, assertSessionAccess } from '@/lib/raceSession';
 import { eventPayloadHash } from '@/lib/raceEventHash';
+import { detectConflicts } from '@/lib/raceConflictDetect';
+import { recomputeRaceResults } from '@/lib/raceProjection';
 
 const MAX_EVENTS = 500;
 
@@ -173,13 +175,26 @@ export async function POST(req) {
       ),
     ]);
 
+    // Recompute conflicts + projections idempotently after new events land
+    // (plan §9.1.11). Best-effort: the events are already durably persisted, so
+    // a projection error must not fail ingestion — the admin can recompute.
+    if (accepted.length > 0) {
+      try {
+        await detectConflicts(session.race);
+        await recomputeRaceResults(session.race);
+      } catch (projErr) {
+        console.error('[race-sync] post-ingest recompute failed:', projErr.message);
+      }
+    }
+
     return ok(receiptToResponse(receipt.toObject ? receipt.toObject() : receipt));
   });
 }
 
 async function flagIntegrityConflict(session, existing, clientEventId) {
-  // Avoid duplicate conflict rows for the same id.
-  const already = await RaceConflict.findOne({ type: 'INTEGRITY_MISMATCH', relatedClientEventIds: clientEventId }).select('_id').lean();
+  // Deterministic key so repeated syncs of the mismatch don't pile up rows.
+  const key = `INTEGRITY_MISMATCH:${clientEventId}`;
+  const already = await RaceConflict.findOne({ race: session.race, key }).select('_id').lean();
   if (already) return;
   await RaceConflict.create({
     event: session.event,
@@ -187,6 +202,7 @@ async function flagIntegrityConflict(session, existing, clientEventId) {
     entry: existing.entry,
     type: 'INTEGRITY_MISMATCH',
     status: 'open',
+    key,
     relatedEventIds: [existing._id],
     relatedClientEventIds: [clientEventId],
     detail: 'A record with this clientEventId already exists with different content; the new submission was not applied.',

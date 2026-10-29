@@ -28,6 +28,10 @@ const raceConflictSchema = new mongoose.Schema(
     type: { type: String, enum: CONFLICT_TYPES, required: true, index: true },
     status: { type: String, enum: ['open', 'resolved', 'waived'], default: 'open', index: true },
 
+    // Deterministic dedup key (e.g. `${type}:${entry}:${sortedEventIds}`) so
+    // repeated detection passes don't create duplicate rows (plan §10.2).
+    key: { type: String, index: true },
+
     // Source events involved — preserved, never deleted.
     relatedEventIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'RaceEvent' }],
     relatedClientEventIds: [{ type: String }],
@@ -43,5 +47,6 @@ const raceConflictSchema = new mongoose.Schema(
 );
 
 raceConflictSchema.index({ race: 1, status: 1 });
+raceConflictSchema.index({ race: 1, key: 1 });
 
 export default mongoose.models.RaceConflict || mongoose.model('RaceConflict', raceConflictSchema);

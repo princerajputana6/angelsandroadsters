@@ -266,6 +266,9 @@ export default function RaceManage() {
           <Link href={`/admin/race/${race._id}/entries`} className="btn btn-outline">🎫 Riders & Entries</Link>
           <Link href={`/admin/race/${race._id}/plates`} className="btn btn-outline">🏷 Plates</Link>
           <Link href={`/admin/race/${race._id}/checkpoints`} className="btn btn-outline">📍 Checkpoints</Link>
+          <Link href={`/admin/race/${race._id}/results`} className="btn btn-outline">🏆 Results</Link>
+          <Link href={`/admin/race/${race._id}/conflicts`} className="btn btn-outline">⚠️ Conflicts</Link>
+          <Link href={`/admin/race/${race._id}/sync`} className="btn btn-outline">📡 Sync Health</Link>
           {race.status === 'draft' && (
             <button onClick={remove} className="btn btn-outline text-red-400 border-red-500/40">Delete draft</button>
           )}

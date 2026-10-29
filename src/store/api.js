@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: '/api', credentials: 'include' }),
-  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics', 'Coupons', 'Resorts', 'Resort', 'ResortBookings', 'Affiliate', 'Affiliates', 'TrailstormAnalytics', 'Races', 'Race', 'RaceCategories', 'RaceDashboard', 'RaceIndexes', 'RaceEntries', 'RacePlates', 'RaceSessions'],
+  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics', 'Coupons', 'Resorts', 'Resort', 'ResortBookings', 'Affiliate', 'Affiliates', 'TrailstormAnalytics', 'Races', 'Race', 'RaceCategories', 'RaceDashboard', 'RaceIndexes', 'RaceEntries', 'RacePlates', 'RaceSessions', 'RaceConflicts', 'RaceResults', 'RaceReconciliation'],
   endpoints: (b) => ({
     // Auth
     me: b.query({ query: () => '/auth/me', providesTags: ['Auth'] }),
@@ -450,6 +450,36 @@ export const api = createApi({
       query: (entryIds) => ({ url: '/race/plates/mark-printed', method: 'POST', body: { entryIds } }),
       invalidatesTags: ['RacePlates', 'RaceEntries'],
     }),
+
+    // Conflicts, results, reconciliation (M4)
+    raceConflicts: b.query({
+      query: ({ race, status }) => ({ url: '/race/conflicts', params: { race, ...(status ? { status } : {}) } }),
+      providesTags: ['RaceConflicts'],
+    }),
+    resolveRaceConflict: b.mutation({
+      query: ({ id, action, reason, resolutionEventId }) => ({ url: `/race/conflicts/${id}/resolve`, method: 'POST', body: { action, reason, resolutionEventId } }),
+      invalidatesTags: ['RaceConflicts', 'RaceResults', 'RaceDashboard'],
+    }),
+    raceResults: b.query({
+      query: (race) => ({ url: '/race/results', params: { race } }),
+      providesTags: ['RaceResults'],
+    }),
+    recomputeRace: b.mutation({
+      query: (id) => ({ url: `/race/races/${id}/recompute`, method: 'POST' }),
+      invalidatesTags: ['RaceResults', 'RaceConflicts', 'RaceDashboard'],
+    }),
+    finalizeRaceResults: b.mutation({
+      query: ({ id, reason, waiveOpenConflicts }) => ({ url: `/race/races/${id}/results/finalize`, method: 'POST', body: { reason, waiveOpenConflicts } }),
+      invalidatesTags: (_r, _e, { id }) => ['RaceResults', 'Races', 'RaceDashboard', { type: 'Race', id }],
+    }),
+    raceReconciliation: b.query({
+      query: (race) => ({ url: '/race/reconciliation', params: { race } }),
+      providesTags: ['RaceReconciliation'],
+    }),
+    revokeRaceSession: b.mutation({
+      query: ({ sessionId, reason }) => ({ url: `/race/sessions/${sessionId}/revoke`, method: 'POST', body: { reason } }),
+      invalidatesTags: ['RaceSessions', 'RaceReconciliation'],
+    }),
   }),
 });
 
@@ -480,4 +510,7 @@ export const {
   useListRaceEntriesQuery, useCreateRaceEntryMutation, useUpdateRaceEntryMutation, useSetRaceEntryStatusMutation, useDeleteRaceEntryMutation,
   useRacePlatesQuery, useMarkPlatesPrintedMutation,
   useRaceMySessionsQuery, useListRaceSessionsQuery, useCreateRaceSessionMutation,
+  useRaceConflictsQuery, useResolveRaceConflictMutation,
+  useRaceResultsQuery, useRecomputeRaceMutation, useFinalizeRaceResultsMutation,
+  useRaceReconciliationQuery, useRevokeRaceSessionMutation,
 } = api;

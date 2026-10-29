@@ -45,6 +45,8 @@ export async function POST(req, { params }) {
     race.status = next;
     race.updatedBy = user._id;
     if (next === 'completed') race.resultsState = race.resultsState === 'final' ? 'final' : 'provisional';
+    // Reopening a completed race for corrections drops results back to provisional.
+    if (next === 'active' && from === 'completed') race.resultsState = 'provisional';
     await race.save();
 
     // Persist the immutable offline bundle for this config version on lock.
