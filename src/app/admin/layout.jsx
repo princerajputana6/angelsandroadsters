@@ -1,6 +1,7 @@
 'use client';
 import AdminSidebar from '@/components/admin/Sidebar';
 import { useMeQuery } from '@/store/api';
+import { ThemeProvider } from '@/components/theme';
 import Link from 'next/link';
 
 export default function AdminLayout({ children }) {
@@ -45,11 +46,11 @@ export default function AdminLayout({ children }) {
   }
 
   return (
-    <div className="lg:flex">
+    <ThemeProvider defaultTheme="dark" className="lg:flex min-h-screen bg-charcoal-950 text-charcoal-100">
       <AdminSidebar />
       <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 pb-24">
         {children}
       </main>
-    </div>
+    </ThemeProvider>
   );
 }

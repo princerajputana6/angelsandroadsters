@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import BrandMark from '../common/BrandMark';
+import { ThemeToggle } from '@/components/theme';
 import { useLogoutMutation, useMeQuery } from '@/store/api';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -71,7 +72,10 @@ export default function AdminSidebar() {
       <header className="lg:hidden sticky top-0 z-40 bg-charcoal-950/90 backdrop-blur border-b border-charcoal-800 h-14 flex items-center justify-between px-4">
         <button onClick={() => setOpen(true)} className="w-10 h-10 rounded-full border border-charcoal-800 flex items-center justify-center">☰</button>
         <BrandMark size="sm" href="/admin" />
-        <Link href="/" className="w-10 h-10 rounded-full border border-charcoal-800 flex items-center justify-center text-sm">↩</Link>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Link href="/" className="w-10 h-10 rounded-full border border-charcoal-800 flex items-center justify-center text-sm">↩</Link>
+        </div>
       </header>
 
       {/* Desktop sidebar */}
@@ -95,6 +99,7 @@ export default function AdminSidebar() {
               </div>
             </div>
           )}
+          <ThemeToggle className="w-full justify-center" />
           <Link href="/" className="block text-xs text-charcoal-400 hover:text-terra-400 px-2 py-1">← Back to store</Link>
           <button onClick={doLogout} className="block text-xs text-red-400 hover:text-red-300 px-2 py-1 text-left w-full">Logout</button>
         </div>

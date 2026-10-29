@@ -62,6 +62,16 @@ describe('result projection (plan §9.1.11, §13.4)', () => {
     expect(resultFor(results, 'e1').rank).toBeUndefined();
   });
 
+  it('uses In/Out board lap durations (payload.durationMs) for best lap + total', () => {
+    const lap = (entry, occurredAt, durationMs) => ({ _id: `${entry}-${occurredAt}`, entry, type: 'LAP_RECORDED', occurredAt, deviceId: 'd1', deviceSequence: ++seq, payload: { durationMs } });
+    const events = [lap('e1', '2026-01-01T00:01:00Z', 65000), lap('e1', '2026-01-01T00:02:30Z', 48000)];
+    const { results } = computeProjection(race, events, [{ _id: 'e1' }]);
+    const r = resultFor(results, 'e1');
+    expect(r.lapsCompleted).toBe(2);
+    expect(r.bestLapMs).toBe(48000);
+    expect(r.totalTimeMs).toBe(113000); // sum of on-track durations
+  });
+
   it('reflects provisional flag and open-conflict flag', () => {
     const final = computeProjection({ ...race, resultsState: 'final' }, [], [{ _id: 'e1' }]);
     expect(resultFor(final.results, 'e1').provisional).toBe(false);

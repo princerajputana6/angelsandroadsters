@@ -43,6 +43,15 @@ export function getDB() {
     conflicts: '&clientEventId, sessionId',
   });
 
+  // v2 — add the transient "on track" state for the In/Out timer board. Only
+  // the NEW store is listed; Dexie carries v1 stores forward (add-only, never
+  // destructive). A rider currently out-on-track is live local state; each
+  // COMPLETED lap is a durable LAP_RECORDED event written on the IN press.
+  db.version(2).stores({
+    // id = `${sessionId}:${entryId}` → { outAt } while a rider is on track
+    trackState: '&id, sessionId',
+  });
+
   _db = db;
   return db;
 }

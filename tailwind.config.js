@@ -23,18 +23,21 @@ module.exports = {
           500: '#f59e0b',
           600: '#d97706',
         },
+        // Charcoal is driven by CSS variables so a scoped [data-theme="light"]
+        // wrapper (admin + race only) can flip the whole ramp. The :root values
+        // in globals.css equal the original hex, so the public site is unchanged.
         charcoal: {
-          50: '#f6f6f6',
-          100: '#e7e7e7',
-          200: '#d1d1d1',
-          300: '#b0b0b0',
-          400: '#888888',
-          500: '#6d6d6d',
-          600: '#5d5d5d',
-          700: '#4f4f4f',
-          800: '#252525',
-          900: '#171717',
-          950: '#0a0a0a',
+          50: 'rgb(var(--c-50) / <alpha-value>)',
+          100: 'rgb(var(--c-100) / <alpha-value>)',
+          200: 'rgb(var(--c-200) / <alpha-value>)',
+          300: 'rgb(var(--c-300) / <alpha-value>)',
+          400: 'rgb(var(--c-400) / <alpha-value>)',
+          500: 'rgb(var(--c-500) / <alpha-value>)',
+          600: 'rgb(var(--c-600) / <alpha-value>)',
+          700: 'rgb(var(--c-700) / <alpha-value>)',
+          800: 'rgb(var(--c-800) / <alpha-value>)',
+          900: 'rgb(var(--c-900) / <alpha-value>)',
+          950: 'rgb(var(--c-950) / <alpha-value>)',
         },
       },
       fontFamily: {

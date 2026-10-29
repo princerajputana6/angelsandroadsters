@@ -34,18 +34,30 @@ export function computeProjection(race, allEvents, entries, openConflictEntryIds
 
     const startedAt = startEv ? new Date(startEv.occurredAt) : undefined;
     const finishedAt = finishEv ? new Date(finishEv.occurredAt) : undefined;
-    const totalTimeMs = startedAt && finishedAt ? finishedAt - startedAt : undefined;
 
-    const crossings = [
-      ...(startedAt ? [startedAt.getTime()] : []),
-      ...lapEvs.map((e) => new Date(e.occurredAt).getTime()),
-      ...(finishedAt ? [finishedAt.getTime()] : []),
-    ].sort((a, b) => a - b);
+    // Prefer authoritative per-lap durations when the In/Out board recorded them
+    // (payload.durationMs = on-track time), so results match the board exactly.
+    const lapDurations = lapEvs.map((e) => e.payload?.durationMs).filter((n) => typeof n === 'number');
+
     let bestLapMs;
-    for (let i = 1; i < crossings.length; i++) {
-      const gap = crossings[i] - crossings[i - 1];
-      if (gap > 0 && (bestLapMs === undefined || gap < bestLapMs)) bestLapMs = gap;
+    if (lapDurations.length) {
+      bestLapMs = Math.min(...lapDurations);
+    } else {
+      const crossings = [
+        ...(startedAt ? [startedAt.getTime()] : []),
+        ...lapEvs.map((e) => new Date(e.occurredAt).getTime()),
+        ...(finishedAt ? [finishedAt.getTime()] : []),
+      ].sort((a, b) => a - b);
+      for (let i = 1; i < crossings.length; i++) {
+        const gap = crossings[i] - crossings[i - 1];
+        if (gap > 0 && (bestLapMs === undefined || gap < bestLapMs)) bestLapMs = gap;
+      }
     }
+
+    // Total time: start→finish when both exist; else the summed on-track lap time.
+    const totalTimeMs = startedAt && finishedAt
+      ? finishedAt - startedAt
+      : (lapDurations.length ? lapDurations.reduce((a, b) => a + b, 0) : undefined);
 
     const result = {
       entry: entry._id,

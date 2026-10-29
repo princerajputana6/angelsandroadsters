@@ -7,6 +7,40 @@
 :root {
   --terra: #f97316;
   --gold: #f59e0b;
+
+  /* Charcoal ramp as "R G B" channels. These defaults equal the original hex,
+     so anything NOT inside a [data-theme] wrapper (the whole public site) looks
+     exactly as before. */
+  --c-50: 246 246 246;
+  --c-100: 231 231 231;
+  --c-200: 209 209 209;
+  --c-300: 176 176 176;
+  --c-400: 136 136 136;
+  --c-500: 109 109 109;
+  --c-600: 93 93 93;
+  --c-700: 79 79 79;
+  --c-800: 37 37 37;
+  --c-900: 23 23 23;
+  --c-950: 10 10 10;
+}
+
+/* Light theme — scoped: only applies inside an element with data-theme="light"
+   (the admin console + race-control shells). The ramp is inverted (950 = page
+   white, 50 = darkest text) so existing charcoal-* utilities read correctly:
+   surfaces become light, text becomes dark. */
+[data-theme='light'] {
+  --c-950: 255 255 255;
+  --c-900: 244 245 247;
+  --c-800: 228 230 235;
+  --c-700: 205 209 216;
+  --c-600: 160 165 173;
+  --c-500: 120 125 133;
+  --c-400: 90 95 103;
+  --c-300: 64 69 77;
+  --c-200: 38 42 50;
+  --c-100: 26 29 35;
+  --c-50: 15 17 22;
+  color: rgb(var(--c-100));
 }
 
 * { -webkit-tap-highlight-color: transparent; }
@@ -85,10 +119,25 @@ h1, h2, h3, h4, .display {
   }
 }
 
+/* Light-theme fixes for components that hardcode dark-only text/surfaces.
+   The attribute-scoped selector outranks the base @apply rules. */
+[data-theme='light'] .input { color: rgb(var(--c-100)); }
+[data-theme='light'] .btn-outline,
+[data-theme='light'] .btn-ghost,
+[data-theme='light'] .btn-dark { color: rgb(var(--c-100)); }
+[data-theme='light'] .btn-gold { color: #1b1b1b; }
+[data-theme='light'] .card-glass {
+  background: rgb(var(--c-900) / 0.92);
+  border-color: rgb(var(--c-800));
+}
+[data-theme='light'] .card { box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px -12px rgb(0 0 0 / 0.12); }
+
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: #0a0a0a; }
 ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 5px; }
 ::-webkit-scrollbar-thumb:hover { background: #f97316; }
+[data-theme='light'] ::-webkit-scrollbar-track { background: rgb(var(--c-900)); }
+[data-theme='light'] ::-webkit-scrollbar-thumb { background: rgb(var(--c-700)); }
 
 /* Hero video overlay gradient */
 .hero-veil {

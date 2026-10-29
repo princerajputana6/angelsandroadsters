@@ -3,11 +3,20 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useMeQuery, useRaceMySessionsQuery } from '@/store/api';
+import { ThemeProvider, ThemeToggle } from '@/components/theme';
 import { runPreflight, getLocalSession, getLocalBundle } from '@/lib/offline/preflight';
 import { writeLocalEvent, listLocalEvents, localEventCounts, countLapsForEntry, lastEventForEntry } from '@/lib/offline/eventStore';
 import { startSyncEngine, syncNow } from '@/lib/offline/sync';
 import { storageEstimate } from '@/lib/offline/db';
 import { getClock } from '@/lib/offline/clock';
+import { getBoardState, pressIn, pressOut, cancelOut } from '@/lib/offline/trackBoard';
+
+function fmtClock(ms) {
+  if (ms == null) return '—';
+  const s = Math.floor(ms / 1000);
+  const mm = Math.floor(s / 60);
+  return `${mm}:${String(s % 60).padStart(2, '0')}`;
+}
 
 const SYNC_BADGE = {
   acknowledged: { t: 'Synced', c: 'bg-emerald-500/20 text-emerald-300' },
@@ -117,6 +126,89 @@ function DeviceStatus({ sessionId, counts, lastSync, bundleVersion }) {
   );
 }
 
+// ---------------------------------------------------------------- Track In/Out board
+function TrackBoard({ sessionId, bundle, session, onChanged }) {
+  const roster = bundle?.snapshot?.roster || [];
+  const [board, setBoard] = useState({ outByEntry: {}, stats: {} });
+  const [now, setNow] = useState(Date.now());
+  const [busy, setBusy] = useState(null);
+
+  const refresh = useCallback(async () => setBoard(await getBoardState(sessionId)), [sessionId]);
+  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { const iv = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(iv); }, []);
+
+  const toggle = async (r) => {
+    const outAt = board.outByEntry[r.id];
+    setBusy(r.id);
+    try {
+      if (outAt) {
+        await pressIn(sessionId, bundle.race, r.id, { raceNumber: r.raceNumber, checkpointId: session?.checkpointId });
+        toast.success(`#${r.raceNumber} IN · lap ${fmtClock(Date.now() - outAt)}`);
+      } else {
+        await pressOut(sessionId, r.id);
+      }
+      await refresh();
+      onChanged?.();
+      if (outAt) syncNow(sessionId);
+    } catch (e) {
+      toast.error('Save failed — ' + (e.message || ''));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const undo = async (r) => { await cancelOut(sessionId, r.id); await refresh(); };
+
+  const sorted = [...roster].sort((a, b) => {
+    const ao = board.outByEntry[a.id] ? 1 : 0;
+    const bo = board.outByEntry[b.id] ? 1 : 0;
+    return bo - ao || a.raceNumber - b.raceNumber;
+  });
+
+  if (!roster.length) return <div className="card p-8 text-center text-charcoal-400">No riders in the cached roster.</div>;
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {sorted.map((r) => {
+        const outAt = board.outByEntry[r.id];
+        const s = board.stats[r.id] || { laps: 0, lastMs: null, bestMs: null };
+        const elapsed = outAt ? now - outAt : null;
+        return (
+          <div key={r.id} className={`card p-4 ${outAt ? 'ring-2 ring-emerald-500/50' : ''}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="font-display text-4xl text-terra-400 leading-none">{r.raceNumber}</span>
+                <div className="min-w-0">
+                  <div className="font-semibold truncate">{r.displayName}</div>
+                  <div className="text-[11px] text-charcoal-500">{s.laps} laps · last {fmtClock(s.lastMs)} · best {fmtClock(s.bestMs)}</div>
+                </div>
+              </div>
+              {outAt
+                ? <span className="badge bg-emerald-500/20 text-emerald-300 uppercase">on track</span>
+                : <span className="badge bg-charcoal-700/50 text-charcoal-300 uppercase">in</span>}
+            </div>
+
+            {outAt && (
+              <div className="mt-2 text-center">
+                <div className="font-display text-3xl tabular-nums text-emerald-400">{fmtClock(elapsed)}</div>
+                <button onClick={() => undo(r)} className="text-[10px] text-charcoal-500 hover:text-red-400">undo out</button>
+              </div>
+            )}
+
+            <button
+              onClick={() => toggle(r)}
+              disabled={busy === r.id}
+              className={`btn w-full mt-3 py-4 text-lg ${outAt ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'btn-gold'}`}
+            >
+              {busy === r.id ? '…' : outAt ? '● Press IN (finish lap)' : 'Press OUT ●'}
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------- Control panel
 function Control({ sessionId }) {
   const [bundle, setBundle] = useState(null);
@@ -127,6 +219,7 @@ function Control({ sessionId }) {
   const [recent, setRecent] = useState([]);
   const [lastSync, setLastSync] = useState(null);
   const [entryMeta, setEntryMeta] = useState({ laps: 0, last: null });
+  const [view, setView] = useState('board'); // 'board' (In/Out) | 'search' (single rider)
 
   const refresh = useCallback(async () => {
     setCounts(await localEventCounts(sessionId));
@@ -197,6 +290,17 @@ function Control({ sessionId }) {
     <div className="space-y-4">
       <DeviceStatus sessionId={sessionId} counts={counts} lastSync={lastSync} bundleVersion={bundle?.configVersion} />
 
+      {/* View switcher: the In/Out board (all riders) vs single-rider search. */}
+      <div className="grid grid-cols-2 gap-1 p-1 rounded-full bg-charcoal-800/60 text-sm">
+        <button onClick={() => setView('board')} className={`py-2 rounded-full font-semibold transition ${view === 'board' ? 'bg-terra-500 text-white' : 'text-charcoal-300'}`}>🏁 In / Out board</button>
+        <button onClick={() => setView('search')} className={`py-2 rounded-full font-semibold transition ${view === 'search' ? 'bg-terra-500 text-white' : 'text-charcoal-300'}`}>🔎 Single rider</button>
+      </div>
+
+      {view === 'board' && (
+        <TrackBoard sessionId={sessionId} bundle={bundle} session={session} onChanged={refresh} />
+      )}
+
+      {view === 'search' && (
       <div className="card p-4">
         <input
           autoFocus
@@ -220,8 +324,9 @@ function Control({ sessionId }) {
           </div>
         )}
       </div>
+      )}
 
-      {selected && (
+      {view === 'search' && selected && (
         <div className="card p-5 text-center space-y-4">
           <div className="flex items-center justify-center gap-4">
             {selected.riderPhoto
@@ -290,15 +395,19 @@ export default function RaceControlPage() {
   const user = me?.user;
 
   return (
-    <div className="min-h-screen bg-charcoal-950 text-charcoal-100 p-4 max-w-2xl mx-auto">
-      <header className="flex items-center justify-between mb-5">
+    <ThemeProvider defaultTheme="light" className="min-h-screen bg-charcoal-950 text-charcoal-100">
+     <div className="p-4 max-w-2xl mx-auto">
+      <header className="flex items-center justify-between mb-5 gap-3">
         <div>
           <p className="eyebrow">RACE CONTROL</p>
           <h1 className="text-2xl font-display">Checkpoint</h1>
         </div>
-        {activeSession && (
-          <button onClick={() => { setActiveSession(null); setReadySessionId(null); refetch?.(); }} className="btn btn-ghost text-sm">← Sessions</button>
-        )}
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {activeSession && (
+            <button onClick={() => { setActiveSession(null); setReadySessionId(null); refetch?.(); }} className="btn btn-ghost text-sm">← Sessions</button>
+          )}
+        </div>
       </header>
 
       {meLoading ? (
@@ -319,6 +428,7 @@ export default function RaceControlPage() {
       <p className="text-[10px] text-charcoal-600 text-center mt-8">
         Local saves are durable on this device. Results are provisional until synced &amp; reviewed.
       </p>
-    </div>
+     </div>
+    </ThemeProvider>
   );
 }

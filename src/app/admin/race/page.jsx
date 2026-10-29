@@ -20,10 +20,14 @@ const STATUS_STYLE = {
   archived: 'bg-charcoal-800/60 text-charcoal-500',
 };
 
-function Tile({ label, value, accent }) {
+function Tile({ label, value, accent, icon }) {
   return (
-    <div className="card p-4">
-      <div className="text-[11px] uppercase tracking-wider text-charcoal-500">{label}</div>
+    <div className="card p-4 relative overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-terra-500/70 to-gold-500/70" />
+      <div className="flex items-center justify-between">
+        <div className="text-[11px] uppercase tracking-wider text-charcoal-500">{label}</div>
+        <span className="text-lg opacity-70">{icon}</span>
+      </div>
       <div className={`text-3xl font-display mt-1 ${accent || ''}`}>{value}</div>
     </div>
   );
@@ -177,10 +181,10 @@ export default function RaceDashboard() {
 
       {/* Summary tiles */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-        <Tile label="Races" value={isLoading ? '—' : summary?.totalRaces ?? 0} />
-        <Tile label="Entries" value={isLoading ? '—' : summary?.totalEntries ?? 0} accent="text-terra-400" />
-        <Tile label="Open conflicts" value={isLoading ? '—' : summary?.totalOpenConflicts ?? 0} accent={summary?.totalOpenConflicts ? 'text-red-400' : ''} />
-        <Tile label="Devices" value={isLoading ? '—' : summary?.totalDevices ?? 0} />
+        <Tile label="Races" icon="🏁" value={isLoading ? '—' : summary?.totalRaces ?? 0} />
+        <Tile label="Entries" icon="🎫" value={isLoading ? '—' : summary?.totalEntries ?? 0} accent="text-terra-400" />
+        <Tile label="Open conflicts" icon="⚠️" value={isLoading ? '—' : summary?.totalOpenConflicts ?? 0} accent={summary?.totalOpenConflicts ? 'text-red-400' : ''} />
+        <Tile label="Devices" icon="📱" value={isLoading ? '—' : summary?.totalDevices ?? 0} />
       </div>
 
       <div className="mb-6"><IndexHealthCard /></div>
