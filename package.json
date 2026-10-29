@@ -13,6 +13,7 @@
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.7",
     "bcryptjs": "^2.4.3",
+    "dexie": "^4.0.8",
     "framer-motion": "^11.3.19",
     "groq-sdk": "^0.7.0",
     "jsonwebtoken": "^9.0.2",

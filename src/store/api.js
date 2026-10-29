@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: '/api', credentials: 'include' }),
-  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics', 'Coupons', 'Resorts', 'Resort', 'ResortBookings', 'Affiliate', 'Affiliates', 'TrailstormAnalytics'],
+  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics', 'Coupons', 'Resorts', 'Resort', 'ResortBookings', 'Affiliate', 'Affiliates', 'TrailstormAnalytics', 'Races', 'Race', 'RaceCategories', 'RaceDashboard', 'RaceIndexes', 'RaceEntries', 'RacePlates', 'RaceSessions'],
   endpoints: (b) => ({
     // Auth
     me: b.query({ query: () => '/auth/me', providesTags: ['Auth'] }),
@@ -344,6 +344,112 @@ export const api = createApi({
       query: ({ id, body }) => ({ url: `/resort-bookings/${id}`, method: 'PATCH', body }),
       invalidatesTags: ['ResortBookings'],
     }),
+
+    // ---------------------------------------------------------- Race module
+    raceDashboard: b.query({
+      query: () => '/race/dashboard',
+      providesTags: ['RaceDashboard'],
+    }),
+
+    // Races
+    listRaces: b.query({
+      query: (params = {}) => ({ url: '/race/races', params }),
+      providesTags: ['Races'],
+    }),
+    getRace: b.query({
+      query: (id) => `/race/races/${id}`,
+      providesTags: (_r, _e, id) => [{ type: 'Race', id }],
+    }),
+    createRace: b.mutation({
+      query: (body) => ({ url: '/race/races', method: 'POST', body }),
+      invalidatesTags: ['Races', 'RaceDashboard'],
+    }),
+    updateRace: b.mutation({
+      query: ({ id, body }) => ({ url: `/race/races/${id}`, method: 'PUT', body }),
+      invalidatesTags: (_r, _e, { id }) => ['Races', 'RaceDashboard', { type: 'Race', id }],
+    }),
+    deleteRace: b.mutation({
+      query: (id) => ({ url: `/race/races/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Races', 'RaceDashboard'],
+    }),
+    setRaceStatus: b.mutation({
+      query: ({ id, status, reason }) => ({ url: `/race/races/${id}/status`, method: 'POST', body: { status, reason } }),
+      invalidatesTags: (_r, _e, { id }) => ['Races', 'RaceDashboard', { type: 'Race', id }],
+    }),
+
+    // Race categories
+    listRaceCategories: b.query({
+      query: (race) => ({ url: '/race/categories', params: { race } }),
+      providesTags: ['RaceCategories'],
+    }),
+    createRaceCategory: b.mutation({
+      query: (body) => ({ url: '/race/categories', method: 'POST', body }),
+      invalidatesTags: ['RaceCategories', 'RaceDashboard'],
+    }),
+    updateRaceCategory: b.mutation({
+      query: ({ id, body }) => ({ url: `/race/categories/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['RaceCategories'],
+    }),
+    deleteRaceCategory: b.mutation({
+      query: (id) => ({ url: `/race/categories/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['RaceCategories', 'RaceDashboard'],
+    }),
+
+    // Index maintenance (admin)
+    raceIndexReport: b.query({
+      query: () => '/admin/race/ensure-indexes',
+      providesTags: ['RaceIndexes'],
+    }),
+    ensureRaceIndexes: b.mutation({
+      query: () => ({ url: '/admin/race/ensure-indexes', method: 'POST' }),
+      invalidatesTags: ['RaceIndexes'],
+    }),
+
+    // Race entries (riders)
+    listRaceEntries: b.query({
+      query: (race) => ({ url: '/race/entries', params: { race } }),
+      providesTags: ['RaceEntries'],
+    }),
+    createRaceEntry: b.mutation({
+      query: (body) => ({ url: '/race/entries', method: 'POST', body }),
+      invalidatesTags: ['RaceEntries', 'RaceDashboard'],
+    }),
+    updateRaceEntry: b.mutation({
+      query: ({ id, body }) => ({ url: `/race/entries/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['RaceEntries'],
+    }),
+    setRaceEntryStatus: b.mutation({
+      query: ({ id, status, reason }) => ({ url: `/race/entries/${id}/status`, method: 'POST', body: { status, reason } }),
+      invalidatesTags: ['RaceEntries', 'RaceDashboard'],
+    }),
+    deleteRaceEntry: b.mutation({
+      query: (id) => ({ url: `/race/entries/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['RaceEntries', 'RaceDashboard'],
+    }),
+
+    // Checkpoint sessions
+    raceMySessions: b.query({
+      query: () => '/race/sessions/mine',
+      providesTags: ['RaceSessions'],
+    }),
+    listRaceSessions: b.query({
+      query: (race) => ({ url: '/race/sessions', params: { race } }),
+      providesTags: ['RaceSessions'],
+    }),
+    createRaceSession: b.mutation({
+      query: (body) => ({ url: '/race/sessions', method: 'POST', body }),
+      invalidatesTags: ['RaceSessions'],
+    }),
+
+    // Race plates
+    racePlates: b.query({
+      query: ({ race, entryIds }) => ({ url: '/race/plates', params: { race, ...(entryIds ? { entryIds: entryIds.join(',') } : {}) } }),
+      providesTags: ['RacePlates'],
+    }),
+    markPlatesPrinted: b.mutation({
+      query: (entryIds) => ({ url: '/race/plates/mark-printed', method: 'POST', body: { entryIds } }),
+      invalidatesTags: ['RacePlates', 'RaceEntries'],
+    }),
   }),
 });
 
@@ -367,4 +473,11 @@ export const {
   useListResortsQuery, useGetResortQuery, useCreateResortMutation, useUpdateResortMutation, useDeleteResortMutation,
   useCreateResortBookingMutation, useMyResortBookingsQuery, useListResortBookingsQuery, useUpdateResortBookingMutation,
   useListTeamRegistrationsQuery, useIssueTeamRegistrationMutation, useValidateRegistrationMutation,
+  useRaceDashboardQuery,
+  useListRacesQuery, useGetRaceQuery, useCreateRaceMutation, useUpdateRaceMutation, useDeleteRaceMutation, useSetRaceStatusMutation,
+  useListRaceCategoriesQuery, useCreateRaceCategoryMutation, useUpdateRaceCategoryMutation, useDeleteRaceCategoryMutation,
+  useRaceIndexReportQuery, useEnsureRaceIndexesMutation,
+  useListRaceEntriesQuery, useCreateRaceEntryMutation, useUpdateRaceEntryMutation, useSetRaceEntryStatusMutation, useDeleteRaceEntryMutation,
+  useRacePlatesQuery, useMarkPlatesPrintedMutation,
+  useRaceMySessionsQuery, useListRaceSessionsQuery, useCreateRaceSessionMutation,
 } = api;

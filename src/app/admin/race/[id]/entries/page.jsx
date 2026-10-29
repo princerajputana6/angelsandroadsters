@@ -1,0 +1,248 @@
+'use client';
+import { useState } from 'react';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
+import toast from 'react-hot-toast';
+import {
+  useGetRaceQuery,
+  useListRaceCategoriesQuery,
+  useListRaceEntriesQuery,
+  useCreateRaceEntryMutation,
+  useUpdateRaceEntryMutation,
+  useSetRaceEntryStatusMutation,
+  useDeleteRaceEntryMutation,
+} from '@/store/api';
+import RacePhotoInput from '@/components/race/RacePhotoInput';
+
+const STATUS_STYLE = {
+  active: 'bg-emerald-500/20 text-emerald-300',
+  withdrawn: 'bg-orange-500/20 text-orange-300',
+  void: 'bg-red-500/20 text-red-300',
+};
+
+const emptyForm = {
+  raceNumber: '', riderName: '', displayName: '', category: '',
+  bike: { make: '', model: '', cc: '', description: '' },
+  photos: { rider: {}, bike: {}, plate: {} },
+};
+
+function EntryModal({ raceId, categories, editing, lockedLifecycle, onClose }) {
+  const [create, { isLoading: creating }] = useCreateRaceEntryMutation();
+  const [update, { isLoading: updating }] = useUpdateRaceEntryMutation();
+  const [form, setForm] = useState(
+    editing
+      ? {
+          raceNumber: editing.raceNumber,
+          riderName: editing.riderName || '',
+          displayName: editing.displayName || '',
+          category: editing.category?._id || editing.category || '',
+          bike: { make: '', model: '', cc: '', description: '', ...(editing.bike || {}) },
+          photos: {
+            rider: editing.photos?.rider || {},
+            bike: editing.photos?.bike || {},
+            plate: editing.photos?.plate || {},
+          },
+        }
+      : emptyForm
+  );
+
+  const numberChanged = editing && Number(form.raceNumber) !== editing.raceNumber;
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.riderName.trim() || form.raceNumber === '') return toast.error('Rider name and number are required');
+
+    // Only send asset refs that actually have a URL.
+    const photos = {};
+    for (const k of ['rider', 'bike', 'plate']) {
+      if (form.photos[k]?.url) photos[k] = form.photos[k];
+    }
+
+    const body = {
+      riderName: form.riderName.trim(),
+      displayName: form.displayName.trim() || undefined,
+      raceNumber: Number(form.raceNumber),
+      category: form.category || undefined,
+      bike: form.bike,
+      photos: Object.keys(photos).length ? photos : undefined,
+    };
+
+    try {
+      if (editing) {
+        if (numberChanged && lockedLifecycle) {
+          const reason = prompt('Reason for changing the race number (required after lock):');
+          if (reason == null || !reason.trim()) return;
+          body.reason = reason;
+        }
+        await update({ id: editing._id, body }).unwrap();
+        toast.success('Entry updated');
+      } else {
+        await create({ race: raceId, ...body }).unwrap();
+        toast.success('Entry added');
+      }
+      onClose();
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to save entry');
+    }
+  };
+
+  const setBike = (k) => (e) => setForm({ ...form, bike: { ...form.bike, [k]: e.target.value } });
+  const setPhoto = (k) => (ref) => setForm({ ...form, photos: { ...form.photos, [k]: ref } });
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-charcoal-950/80 backdrop-blur overflow-y-auto">
+      <form onSubmit={submit} className="card-glass p-6 w-full max-w-2xl space-y-4 my-8">
+        <div className="flex items-center justify-between">
+          <h3 className="text-2xl font-display">{editing ? `Edit #${editing.raceNumber}` : 'New entry'}</h3>
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-full border border-charcoal-700">✕</button>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-xs text-charcoal-400">Race number *</span>
+            <input type="number" min={0} className="input mt-1 w-full" value={form.raceNumber} onChange={(e) => setForm({ ...form, raceNumber: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="text-xs text-charcoal-400">Category</span>
+            <select className="input mt-1 w-full" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+              <option value="">— none —</option>
+              {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-xs text-charcoal-400">Rider name *</span>
+            <input className="input mt-1 w-full" value={form.riderName} onChange={(e) => setForm({ ...form, riderName: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="text-xs text-charcoal-400">Display name (for plate)</span>
+            <input className="input mt-1 w-full" value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder="optional" />
+          </label>
+        </div>
+
+        <div className="grid sm:grid-cols-4 gap-3">
+          <label className="block"><span className="text-xs text-charcoal-400">Make</span><input className="input mt-1 w-full" value={form.bike.make} onChange={setBike('make')} /></label>
+          <label className="block"><span className="text-xs text-charcoal-400">Model</span><input className="input mt-1 w-full" value={form.bike.model} onChange={setBike('model')} /></label>
+          <label className="block"><span className="text-xs text-charcoal-400">CC</span><input className="input mt-1 w-full" value={form.bike.cc} onChange={setBike('cc')} /></label>
+          <label className="block"><span className="text-xs text-charcoal-400">Note</span><input className="input mt-1 w-full" value={form.bike.description} onChange={setBike('description')} /></label>
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-3">
+          <RacePhotoInput label="Rider photo" value={form.photos.rider} onChange={setPhoto('rider')} />
+          <RacePhotoInput label="Bike photo" value={form.photos.bike} onChange={setPhoto('bike')} />
+          <RacePhotoInput label="Plate photo" value={form.photos.plate} onChange={setPhoto('plate')} />
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="btn btn-outline">Cancel</button>
+          <button type="submit" disabled={creating || updating} className="btn btn-gold">{creating || updating ? 'Saving…' : 'Save entry'}</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+export default function RaceEntriesPage() {
+  const { id } = useParams();
+  const { data: raceData } = useGetRaceQuery(id);
+  const { data: catData } = useListRaceCategoriesQuery(id);
+  const { data: entryData, isLoading } = useListRaceEntriesQuery(id);
+  const [setStatus] = useSetRaceEntryStatusMutation();
+  const [del] = useDeleteRaceEntryMutation();
+
+  const [modal, setModal] = useState(null); // 'new' | entry object
+  const race = raceData?.race;
+  const categories = catData?.categories || [];
+  const entries = entryData?.entries || [];
+  const lockedLifecycle = race && !['draft', 'configured'].includes(race.status);
+
+  const changeStatus = async (entry, status) => {
+    let reason;
+    if (status === 'withdrawn' || status === 'void') {
+      reason = prompt(`Reason to ${status} #${entry.raceNumber}:`);
+      if (reason == null || !reason.trim()) return;
+    }
+    try { await setStatus({ id: entry._id, status, reason }).unwrap(); toast.success(`Entry ${status}`); }
+    catch (err) { toast.error(err?.data?.message || 'Failed'); }
+  };
+
+  const remove = async (entry) => {
+    if (!confirm(`Delete #${entry.raceNumber}? Only allowed for a draft race with no events.`)) return;
+    try { await del(entry._id).unwrap(); toast.success('Deleted'); }
+    catch (err) { toast.error(err?.data?.message || 'Use withdraw/void instead'); }
+  };
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
+        <div>
+          <Link href={`/admin/race/${id}`} className="text-xs text-charcoal-400 hover:text-terra-400">← {race?.name || 'Race'}</Link>
+          <h1 className="text-3xl font-display mt-1">Riders & Entries</h1>
+          <p className="text-sm text-charcoal-400">Number uniqueness: per {race?.numberUniquenessScope || 'race'} · {entries.filter((e) => e.status === 'active').length} active</p>
+        </div>
+        <div className="flex gap-2">
+          <Link href={`/admin/race/${id}/plates`} className="btn btn-outline">🏷 Plates</Link>
+          <button onClick={() => setModal('new')} className="btn btn-gold">+ Add entry</button>
+        </div>
+      </div>
+
+      {isLoading ? <p className="text-charcoal-400">Loading entries…</p> : (
+        <div className="card overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-charcoal-800/60 text-xs text-charcoal-400 uppercase tracking-wider">
+              <tr>
+                <th className="text-left p-3">#</th>
+                <th className="text-left p-3">Rider</th>
+                <th className="text-left p-3">Category</th>
+                <th className="text-left p-3">Photos</th>
+                <th className="text-left p-3">Status</th>
+                <th className="text-left p-3">Plate</th>
+                <th className="text-right p-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-charcoal-800">
+              {entries.map((e) => {
+                const photoCount = ['rider', 'bike', 'plate'].filter((k) => e.photos?.[k]?.url).length;
+                return (
+                  <tr key={e._id} className="hover:bg-white/[0.02]">
+                    <td className="p-3 font-display text-lg text-terra-400">{e.raceNumber}</td>
+                    <td className="p-3">
+                      <div className="font-semibold">{e.riderName}</div>
+                      {e.bike?.make && <div className="text-xs text-charcoal-500">{e.bike.make} {e.bike.model}</div>}
+                    </td>
+                    <td className="p-3 text-charcoal-300">{e.category?.name || '—'}</td>
+                    <td className="p-3 text-charcoal-400">{photoCount}/3</td>
+                    <td className="p-3"><span className={`badge ${STATUS_STYLE[e.status]} uppercase`}>{e.status}</span></td>
+                    <td className="p-3">{e.platePrinted ? <span className="text-emerald-400 text-xs">printed</span> : <span className="text-charcoal-500 text-xs">—</span>}</td>
+                    <td className="p-3 text-right space-x-2 whitespace-nowrap">
+                      <button onClick={() => setModal(e)} className="text-xs text-terra-400">Edit</button>
+                      {e.status === 'active' ? (
+                        <>
+                          <button onClick={() => changeStatus(e, 'withdrawn')} className="text-xs text-orange-400">Withdraw</button>
+                          <button onClick={() => changeStatus(e, 'void')} className="text-xs text-red-400">Void</button>
+                        </>
+                      ) : (
+                        <button onClick={() => changeStatus(e, 'active')} className="text-xs text-emerald-400">Reactivate</button>
+                      )}
+                      <button onClick={() => remove(e)} className="text-xs text-charcoal-500">Del</button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {entries.length === 0 && <tr><td colSpan={7} className="p-12 text-center text-charcoal-400">No entries yet. <button onClick={() => setModal('new')} className="text-terra-400">Add one</button>.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {modal && (
+        <EntryModal
+          raceId={id}
+          categories={categories}
+          editing={modal === 'new' ? null : modal}
+          lockedLifecycle={lockedLifecycle}
+          onClose={() => setModal(null)}
+        />
+      )}
+    </div>
+  );
+}
