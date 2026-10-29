@@ -269,6 +269,7 @@ export default function RaceManage() {
           <Link href={`/admin/race/${race._id}/results`} className="btn btn-outline">🏆 Results</Link>
           <Link href={`/admin/race/${race._id}/conflicts`} className="btn btn-outline">⚠️ Conflicts</Link>
           <Link href={`/admin/race/${race._id}/sync`} className="btn btn-outline">📡 Sync Health</Link>
+          <a href={`/api/race/races/${race._id}/export`} download className="btn btn-outline">⬇ Export backup</a>
           {race.status === 'draft' && (
             <button onClick={remove} className="btn btn-outline text-red-400 border-red-500/40">Delete draft</button>
           )}

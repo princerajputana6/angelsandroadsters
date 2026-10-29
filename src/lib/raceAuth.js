@@ -1,6 +1,9 @@
 import { requireUser } from './auth';
 import { connectDB } from './db';
 import RaceAuditLog from './models/RaceAuditLog';
+import { isRaceManager } from './raceAccess';
+
+export { isRaceManager };
 
 /**
  * Race authorization helpers. These build on the app's existing identity/role
@@ -15,12 +18,6 @@ import RaceAuditLog from './models/RaceAuditLog';
  * Checkpoint officials authenticate as users and are additionally authorized
  * per checkpoint session (added with the offline race-control slice, M3).
  */
-
-const RACE_MANAGER_ROLES = ['admin', 'eventManager'];
-
-export function isRaceManager(user) {
-  return !!user && RACE_MANAGER_ROLES.includes(user.role);
-}
 
 /** Require a signed-in user allowed to manage race configuration. */
 export async function requireRaceManager() {

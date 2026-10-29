@@ -16,7 +16,7 @@ const MAX_ATTEMPTS = 8;
 const MAX_BACKOFF_MS = 60_000;
 const inFlight = new Set(); // sessionIds currently syncing
 
-function backoff(attempts) {
+export function backoff(attempts) {
   const base = Math.min(1000 * 2 ** attempts, MAX_BACKOFF_MS);
   return base / 2 + Math.random() * (base / 2); // jitter in [base/2, base]
 }
