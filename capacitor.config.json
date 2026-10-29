@@ -1,0 +1,13 @@
+{
+  "appId": "com.angelsandroadsters.app",
+  "appName": "Angels & Roadsters",
+  "webDir": "mobile/www",
+  "server": {
+    "url": "https://angelsandroadsters.vercel.app",
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
