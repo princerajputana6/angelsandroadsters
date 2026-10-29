@@ -218,7 +218,8 @@ export default function RaceDashboard() {
                     <td className="p-3 text-right">{r.counts.categories}</td>
                     <td className="p-3 text-right">{r.counts.activeEntries}</td>
                     <td className={`p-3 text-right ${r.counts.openConflicts ? 'text-red-400 font-bold' : ''}`}>{r.counts.openConflicts}</td>
-                    <td className="p-3 text-right">
+                    <td className="p-3 text-right space-x-3 whitespace-nowrap">
+                      <Link href={`/admin/race/${r._id}/board`} className="text-xs text-gold-400 hover:text-gold-300">▶ Board</Link>
                       <Link href={`/admin/race/${r._id}`} className="text-xs text-terra-400 hover:text-terra-300">Manage →</Link>
                     </td>
                   </tr>

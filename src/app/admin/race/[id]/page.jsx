@@ -263,6 +263,7 @@ export default function RaceManage() {
           <p className="text-sm text-charcoal-400">{race.event?.title}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link href={`/admin/race/${race._id}/board`} className="btn btn-gold">▶ Race Board</Link>
           <Link href={`/admin/race/${race._id}/entries`} className="btn btn-outline">🎫 Riders & Entries</Link>
           <Link href={`/admin/race/${race._id}/plates`} className="btn btn-outline">🏷 Plates</Link>
           <Link href={`/admin/race/${race._id}/checkpoints`} className="btn btn-outline">📍 Checkpoints</Link>

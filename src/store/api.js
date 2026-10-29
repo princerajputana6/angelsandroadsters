@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: '/api', credentials: 'include' }),
-  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics', 'Coupons', 'Resorts', 'Resort', 'ResortBookings', 'Affiliate', 'Affiliates', 'TrailstormAnalytics', 'Races', 'Race', 'RaceCategories', 'RaceDashboard', 'RaceIndexes', 'RaceEntries', 'RacePlates', 'RaceSessions', 'RaceConflicts', 'RaceResults', 'RaceReconciliation'],
+  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics', 'Coupons', 'Resorts', 'Resort', 'ResortBookings', 'Affiliate', 'Affiliates', 'TrailstormAnalytics', 'Races', 'Race', 'RaceCategories', 'RaceDashboard', 'RaceIndexes', 'RaceEntries', 'RacePlates', 'RaceSessions', 'RaceConflicts', 'RaceResults', 'RaceReconciliation', 'RaceBoard'],
   endpoints: (b) => ({
     // Auth
     me: b.query({ query: () => '/auth/me', providesTags: ['Auth'] }),
@@ -480,6 +480,18 @@ export const api = createApi({
       query: ({ sessionId, reason }) => ({ url: `/race/sessions/${sessionId}/revoke`, method: 'POST', body: { reason } }),
       invalidatesTags: ['RaceSessions', 'RaceReconciliation'],
     }),
+
+    // Admin race board (simple start → out/in → end flow)
+    raceBoard: b.query({
+      query: (id) => `/race/races/${id}/board`,
+      providesTags: ['RaceBoard'],
+    }),
+    raceBoardAction: b.mutation({
+      query: ({ id, action, entryId }) => ({ url: `/race/races/${id}/board`, method: 'POST', body: { action, entryId } }),
+      // Optimistic-ish: the response IS the fresh board state, so we also refresh
+      // results/dashboard/race which the action can change.
+      invalidatesTags: (_r, _e, { id }) => ['RaceBoard', 'RaceResults', 'RaceDashboard', 'Races', { type: 'Race', id }],
+    }),
   }),
 });
 
@@ -513,4 +525,5 @@ export const {
   useRaceConflictsQuery, useResolveRaceConflictMutation,
   useRaceResultsQuery, useRecomputeRaceMutation, useFinalizeRaceResultsMutation,
   useRaceReconciliationQuery, useRevokeRaceSessionMutation,
+  useRaceBoardQuery, useRaceBoardActionMutation,
 } = api;
