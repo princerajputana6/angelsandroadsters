@@ -1,5 +1,5 @@
-import { requireAdmin } from '@/lib/auth';
 import { ok, handler } from '@/lib/apiUtils';
+import { requireRaceManager } from '@/lib/raceAuth';
 import { backfillParticipantNumbers, reseedParticipantNumbers } from '@/lib/raceParticipants';
 
 /**
@@ -14,7 +14,7 @@ import { backfillParticipantNumbers, reseedParticipantNumbers } from '@/lib/race
  */
 export async function POST(req) {
   return handler(async () => {
-    const user = await requireAdmin();
+    const user = await requireRaceManager();
     let body = {};
     try { body = (await req.json()) || {}; } catch { body = {}; }
 
