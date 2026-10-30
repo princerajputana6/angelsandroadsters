@@ -428,8 +428,9 @@ export const api = createApi({
       invalidatesTags: ['RidersPool'],
     }),
     backfillParticipantNos: b.mutation({
-      query: () => ({ url: '/admin/race/backfill-participant-numbers', method: 'POST' }),
-      invalidatesTags: ['RidersPool', 'RaceEntries'],
+      // No arg → gap-fill; { start } → reseed everyone contiguously from start.
+      query: (body) => ({ url: '/admin/race/backfill-participant-numbers', method: 'POST', body: body || {} }),
+      invalidatesTags: ['RidersPool', 'RaceEntries', 'RaceDashboard', 'RaceBoard'],
     }),
     bulkAddEntries: b.mutation({
       query: (body) => ({ url: '/race/entries/bulk', method: 'POST', body }),

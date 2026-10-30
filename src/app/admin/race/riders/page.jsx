@@ -97,6 +97,19 @@ export default function RiderPoolPage() {
     } catch (err) { toast.error(err?.data?.message || 'Failed to assign IDs'); }
   };
 
+  const renumber = async () => {
+    const input = prompt('Renumber ALL participants starting from which number? (e.g. 4 → 004). This overwrites every existing ID and pulls in anyone added inside a race.', '4');
+    if (input == null) return;
+    const start = Number(input.trim());
+    if (!Number.isInteger(start) || start < 0) return toast.error('Enter a whole number ≥ 0');
+    if (!confirm(`Renumber everyone from ${String(start).padStart(3, '0')}? This changes existing participant IDs.`)) return;
+    try {
+      const res = await backfill({ start }).unwrap();
+      const range = res.count ? `${String(res.first).padStart(3, '0')}–${String(res.last).padStart(3, '0')}` : 'none';
+      toast.success(`Numbered ${res.count} participant(s) (${range})` + (res.linkedFromRaces ? `, incl. ${res.linkedFromRaces} from races` : ''));
+    } catch (err) { toast.error(err?.data?.message || 'Failed to renumber'); }
+  };
+
   const remove = async (r) => {
     if (!confirm(`Remove ${r.name} from the pool?`)) return;
     try {
@@ -119,6 +132,9 @@ export default function RiderPoolPage() {
               <FiHash /> {backfilling ? 'Assigning…' : `Assign IDs (${missingIds})`}
             </button>
           )}
+          <button onClick={renumber} disabled={backfilling} className="btn btn-outline" title="Renumber everyone from a chosen start (e.g. 004)">
+            <FiHash /> {backfilling ? 'Working…' : 'Renumber from…'}
+          </button>
           <button onClick={() => setModal('new')} className="btn btn-gold"><FiPlus /> Add rider</button>
         </div>
       </div>
