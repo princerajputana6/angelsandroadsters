@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { FiPlay, FiUsers, FiTag, FiMapPin, FiAward, FiAlertTriangle, FiActivity, FiDownload, FiTrash2 } from 'react-icons/fi';
 import {
   useGetRaceQuery,
   useUpdateRaceMutation,
@@ -256,23 +257,23 @@ export default function RaceManage() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
-        <div>
-          <Link href="/admin/race" className="text-xs text-charcoal-400 hover:text-terra-400">← Race Dashboard</Link>
-          <h1 className="text-3xl font-display mt-1">{race.name}</h1>
-          <p className="text-sm text-charcoal-400">{race.event?.title}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href={`/admin/race/${race._id}/board`} className="btn btn-gold">▶ Race Board</Link>
-          <Link href={`/admin/race/${race._id}/entries`} className="btn btn-outline">🎫 Riders & Entries</Link>
-          <Link href={`/admin/race/${race._id}/plates`} className="btn btn-outline">🏷 Plates</Link>
-          <Link href={`/admin/race/${race._id}/checkpoints`} className="btn btn-outline">📍 Checkpoints</Link>
-          <Link href={`/admin/race/${race._id}/results`} className="btn btn-outline">🏆 Results</Link>
-          <Link href={`/admin/race/${race._id}/conflicts`} className="btn btn-outline">⚠️ Conflicts</Link>
-          <Link href={`/admin/race/${race._id}/sync`} className="btn btn-outline">📡 Sync Health</Link>
-          <a href={`/api/race/races/${race._id}/export`} download className="btn btn-outline">⬇ Export backup</a>
+      <div className="mb-6">
+        <Link href="/admin/race" className="text-xs text-charcoal-400 hover:text-terra-400">← Race Dashboard</Link>
+        <h1 className="text-3xl font-display mt-1">{race.name}</h1>
+        <p className="text-sm text-charcoal-400">{race.event?.title}</p>
+
+        {/* Horizontal slider — one row, swipe/scroll sideways (no wrapping). */}
+        <div className="mt-4 flex gap-2 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1">
+          <Link href={`/admin/race/${race._id}/board`} className="btn btn-gold shrink-0"><FiPlay /> Race Board</Link>
+          <Link href={`/admin/race/${race._id}/entries`} className="btn btn-outline shrink-0"><FiUsers /> Riders &amp; Entries</Link>
+          <Link href={`/admin/race/${race._id}/plates`} className="btn btn-outline shrink-0"><FiTag /> Plates</Link>
+          <Link href={`/admin/race/${race._id}/checkpoints`} className="btn btn-outline shrink-0"><FiMapPin /> Checkpoints</Link>
+          <Link href={`/admin/race/${race._id}/results`} className="btn btn-outline shrink-0"><FiAward /> Results</Link>
+          <Link href={`/admin/race/${race._id}/conflicts`} className="btn btn-outline shrink-0"><FiAlertTriangle /> Conflicts</Link>
+          <Link href={`/admin/race/${race._id}/sync`} className="btn btn-outline shrink-0"><FiActivity /> Sync Health</Link>
+          <a href={`/api/race/races/${race._id}/export`} download className="btn btn-outline shrink-0"><FiDownload /> Export backup</a>
           {race.status === 'draft' && (
-            <button onClick={remove} className="btn btn-outline text-red-400 border-red-500/40">Delete draft</button>
+            <button onClick={remove} className="btn btn-outline text-red-400 border-red-500/40 shrink-0"><FiTrash2 /> Delete draft</button>
           )}
         </div>
       </div>
