@@ -9,6 +9,7 @@ import {
   useListRaceEntriesQuery,
   useCreateRaceEntryMutation,
   useUpdateRaceEntryMutation,
+  useSetEntryParticipantNoMutation,
   useSetRaceEntryStatusMutation,
   useDeleteRaceEntryMutation,
   useSearchRaceUsersQuery,
@@ -136,6 +137,9 @@ const emptyForm = {
 function EntryModal({ raceId, categories, editing, lockedLifecycle, onClose }) {
   const [create, { isLoading: creating }] = useCreateRaceEntryMutation();
   const [update, { isLoading: updating }] = useUpdateRaceEntryMutation();
+  const [setPartNo] = useSetEntryParticipantNoMutation();
+  const initialPartNo = editing?.poolRider?.participantNo ?? '';
+  const [participantNo, setParticipantNo] = useState(initialPartNo === '' ? '' : String(initialPartNo));
   const [form, setForm] = useState(
     editing
       ? {
@@ -184,6 +188,11 @@ function EntryModal({ raceId, categories, editing, lockedLifecycle, onClose }) {
           body.reason = reason;
         }
         await update({ id: editing._id, body }).unwrap();
+        // Persist a hand-set participant ID if it changed (lives on the pool rider).
+        const trimmed = participantNo.trim();
+        if (trimmed !== String(initialPartNo)) {
+          await setPartNo({ id: editing._id, participantNo: trimmed === '' ? null : Number(trimmed) }).unwrap();
+        }
         toast.success('Entry updated');
       } else {
         await create({ race: raceId, ...body }).unwrap();
@@ -228,6 +237,20 @@ function EntryModal({ raceId, categories, editing, lockedLifecycle, onClose }) {
             <span className="text-xs text-charcoal-400">Display name (for plate)</span>
             <input className="input mt-1 w-full" value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder="optional" />
           </label>
+          {editing && (
+            <label className="block">
+              <span className="text-xs text-charcoal-400">Participant ID (permanent)</span>
+              <input
+                type="number"
+                min={0}
+                className="input mt-1 w-full"
+                value={participantNo}
+                onChange={(e) => setParticipantNo(e.target.value)}
+                placeholder="e.g. 4 → shows as 004"
+              />
+              <span className="text-[11px] text-charcoal-500">Blank to clear · must be unique across all participants</span>
+            </label>
+          )}
         </div>
 
         <div className="grid sm:grid-cols-4 gap-3">

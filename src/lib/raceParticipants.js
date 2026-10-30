@@ -15,6 +15,33 @@ import RaceEntry from './models/RaceEntry';
 import Counter from './models/Counter';
 
 const norm = (s) => (s || '').trim().toLowerCase();
+const escapeRx = (s) => (s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Find (or create) the de-duped pool rider for a single entry — by linked user
+ * account, else by case-insensitive exact name. Used when an entry needs a pool
+ * link on demand (e.g. setting its participant ID manually). Returns the id.
+ */
+export async function ensurePoolRiderForEntry(entry, userId) {
+  await connectDB();
+  if (entry.rider) {
+    const ex = await Rider.findOne({ user: entry.rider }).select('_id').lean();
+    if (ex) return ex._id;
+  } else {
+    const rx = new RegExp(`^${escapeRx(entry.riderName)}$`, 'i');
+    const ex = await Rider.findOne({ name: rx }).select('_id').lean();
+    if (ex) return ex._id;
+  }
+  const created = await Rider.create({
+    name: entry.riderName,
+    displayName: entry.displayName || '',
+    user: entry.rider || undefined,
+    bike: entry.bike || {},
+    photo: entry.photos?.rider?.url ? entry.photos.rider : undefined,
+    createdBy: userId,
+  });
+  return created._id;
+}
 
 /**
  * Pull every active race entry that has no pool link into the global pool, so
