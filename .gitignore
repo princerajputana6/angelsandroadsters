@@ -10,3 +10,9 @@ out
 # Uploads
 public/uploads/*
 !public/uploads/.gitkeep
+
+# Built mobile binaries (keep the APK out of git)
+*.apk
+*.aab
+# Capacitor Android local SDK path
+android/local.properties

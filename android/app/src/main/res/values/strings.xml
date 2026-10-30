@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Angels &amp; Roadsters</string>
+    <string name="title_activity_main">Angels &amp; Roadsters</string>
+    <string name="package_name">com.angelsandroadsters.app</string>
+    <string name="custom_url_scheme">com.angelsandroadsters.app</string>
+</resources>

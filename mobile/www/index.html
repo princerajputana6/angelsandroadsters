@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Angels &amp; Roadsters</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body {
+      margin: 0; height: 100%;
+      background: #0a0a0a; color: #f5f5f5;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .wrap { text-align: center; padding: 24px; }
+    .title { font-size: 26px; font-weight: 800; letter-spacing: .04em; }
+    .accent { color: #f97316; }
+    .sub { color: #888; font-size: 13px; margin-top: 8px; }
+    .spinner {
+      margin: 28px auto 0; width: 34px; height: 34px; border-radius: 50%;
+      border: 3px solid rgba(249,115,22,.25); border-top-color: #f97316;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hint { color:#5d5d5d; font-size:11px; margin-top:22px; }
+  </style>
+</head>
+<body>
+  <!-- Shown only briefly while the WebView loads the live app (server.url in
+       capacitor.config.json). Also the offline fallback if the app can't be
+       reached on first launch. -->
+  <div class="wrap">
+    <div class="title">ANGELS &amp; <span class="accent">ROADSTERS</span></div>
+    <div class="sub">Loading…</div>
+    <div class="spinner"></div>
+    <div class="hint">If this screen stays, check your internet connection.</div>
+  </div>
+</body>
+</html>
