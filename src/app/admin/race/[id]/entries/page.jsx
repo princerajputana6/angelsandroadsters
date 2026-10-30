@@ -13,6 +13,7 @@ import {
   useDeleteRaceEntryMutation,
   useSearchRaceUsersQuery,
   useBulkAddEntriesMutation,
+  useBackfillParticipantNosMutation,
 } from '@/store/api';
 import { FiUserPlus, FiPlus, FiTag } from 'react-icons/fi';
 import RacePhotoInput from '@/components/race/RacePhotoInput';
@@ -258,6 +259,7 @@ export default function RaceEntriesPage() {
   const { data: entryData, isLoading } = useListRaceEntriesQuery(id);
   const [setStatus] = useSetRaceEntryStatusMutation();
   const [del] = useDeleteRaceEntryMutation();
+  const [renumberIds, { isLoading: renumbering }] = useBackfillParticipantNosMutation();
 
   const [modal, setModal] = useState(null); // 'new' | entry object
   const [showPool, setShowPool] = useState(false);
@@ -282,6 +284,19 @@ export default function RaceEntriesPage() {
     catch (err) { toast.error(err?.data?.message || 'Use withdraw/void instead'); }
   };
 
+  const renumber = async () => {
+    const input = prompt('Assign participant IDs to ALL riders, starting from which number? (e.g. 4 → 004). Numbered in this list order; overwrites existing IDs.', '4');
+    if (input == null) return;
+    const start = Number(input.trim());
+    if (!Number.isInteger(start) || start < 0) return toast.error('Enter a whole number ≥ 0');
+    if (!confirm(`Renumber everyone from ${String(start).padStart(3, '0')}? This writes new IDs for every participant.`)) return;
+    try {
+      const res = await renumberIds({ start }).unwrap();
+      const range = res.count ? `${String(res.first).padStart(3, '0')}–${String(res.last).padStart(3, '0')}` : 'none';
+      toast.success(`Numbered ${res.count} participant(s) (${range})`);
+    } catch (err) { toast.error(err?.data?.message || 'Failed to renumber'); }
+  };
+
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
@@ -292,6 +307,7 @@ export default function RaceEntriesPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={`/admin/race/${id}/plates`} className="btn btn-outline"><FiTag /> Plates</Link>
+          <button onClick={renumber} disabled={renumbering} className="btn btn-outline" title="Assign participant IDs to everyone from a chosen start (e.g. 004)"><FiTag /> {renumbering ? 'Numbering…' : 'Renumber IDs'}</button>
           <button onClick={() => setShowPool(true)} className="btn btn-outline"><FiUserPlus /> Add from pool</button>
           <button onClick={() => setModal('new')} className="btn btn-gold"><FiPlus /> Add entry</button>
         </div>

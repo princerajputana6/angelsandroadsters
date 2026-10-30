@@ -103,16 +103,33 @@ export async function reseedParticipantNumbers(start, userId) {
   await connectDB();
   const from = Number.isFinite(start) && start >= 0 ? Math.floor(start) : 4;
 
-  // Make sure race-only participants are in the pool before numbering.
-  // Riders first added inside a race get their pool record here, so they sort
-  // to the END by createdAt — i.e. the last-added rider gets the last number.
+  // Make sure every race participant is in the pool before numbering (links the
+  // older entries that have no pool record yet).
   const link = await linkRaceEntriesToPool(userId);
 
-  // Number in ADDITION order: the order riders joined the pool, oldest first.
-  const riders = await Rider.find({})
-    .sort({ createdAt: 1, _id: 1 })
-    .select('_id')
-    .lean();
+  // Number in RACE-NUMBER ORDER — the order shown in Riders & Entries: the
+  // lowest race number gets `start` (004), the next 005, and so on, so a rider
+  // added later (higher race number) always gets a later id. Pool-only riders
+  // that are in no race are numbered last, in the order they were added.
+  const agg = await RaceEntry.aggregate([
+    { $match: { poolRider: { $ne: null }, status: 'active' } },
+    { $group: { _id: '$poolRider', minNum: { $min: '$raceNumber' } } },
+  ]);
+  const raceOrder = new Map(agg.map((a) => [String(a._id), a.minNum]));
+
+  const all = await Rider.find({}).select('_id createdAt').lean();
+  const orderKey = (r) => {
+    const rn = raceOrder.get(String(r._id));
+    return rn != null ? rn : Infinity; // racers first (by race number), pool-only after
+  };
+  const riders = all.sort((a, b) => {
+    const ka = orderKey(a);
+    const kb = orderKey(b);
+    if (ka !== kb) return ka - kb;
+    const ca = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const cb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return ca - cb || String(a._id).localeCompare(String(b._id));
+  });
 
   // Phase 1 — clear every number so reassignment can't transiently collide.
   await Rider.collection.updateMany({}, { $unset: { participantNo: '' } });
