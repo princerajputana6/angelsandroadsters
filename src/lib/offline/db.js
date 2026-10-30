@@ -52,6 +52,13 @@ export function getDB() {
     trackState: '&id, sessionId',
   });
 
+  // v3 — fully-offline Race Board: a race's roster/config downloaded while
+  // online so the board runs with no connectivity (survives app restart).
+  db.version(3).stores({
+    // keyed by raceId: { raceId, name, event, roster:[...], startedAt, endedAt, downloadedAt }
+    boardRaces: '&raceId',
+  });
+
   _db = db;
   return db;
 }

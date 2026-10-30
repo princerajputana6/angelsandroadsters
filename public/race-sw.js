@@ -10,7 +10,7 @@
  * It never caches API responses or anything authenticated (plan §7.3, §7.2).
  * It never deletes IndexedDB or queued events on activation (plan §7.3).
  */
-const CACHE = 'race-shell-v1';
+const CACHE = 'race-shell-v2';
 
 self.addEventListener('install', () => {
   // Activate immediately; there is nothing we must precache (the roster/config
@@ -30,7 +30,8 @@ self.addEventListener('activate', (event) => {
 });
 
 function isRaceNavigation(request, url) {
-  return request.mode === 'navigate' && url.pathname.startsWith('/race-control');
+  return request.mode === 'navigate' &&
+    (url.pathname.startsWith('/race-control') || url.pathname.startsWith('/race-board'));
 }
 function isStaticAsset(url) {
   return url.pathname.startsWith('/_next/static/') || url.pathname === '/race-sw.js' || url.pathname === '/manifest.webmanifest';

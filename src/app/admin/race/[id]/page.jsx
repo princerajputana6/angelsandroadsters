@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { FiPlay, FiUsers, FiTag, FiMapPin, FiAward, FiAlertTriangle, FiActivity, FiDownload, FiTrash2 } from 'react-icons/fi';
+import { FiPlay, FiUsers, FiTag, FiMapPin, FiAward, FiAlertTriangle, FiActivity, FiDownload, FiTrash2, FiWifiOff } from 'react-icons/fi';
 import {
   useGetRaceQuery,
   useUpdateRaceMutation,
@@ -265,6 +265,7 @@ export default function RaceManage() {
         {/* Horizontal slider — one row, swipe/scroll sideways (no wrapping). */}
         <div className="mt-4 flex gap-2 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1">
           <Link href={`/admin/race/${race._id}/board`} className="btn btn-gold shrink-0"><FiPlay /> Race Board</Link>
+          <Link href={`/race-board?race=${race._id}`} className="btn btn-outline shrink-0"><FiWifiOff /> Offline Board</Link>
           <Link href={`/admin/race/${race._id}/entries`} className="btn btn-outline shrink-0"><FiUsers /> Riders &amp; Entries</Link>
           <Link href={`/admin/race/${race._id}/plates`} className="btn btn-outline shrink-0"><FiTag /> Plates</Link>
           <Link href={`/admin/race/${race._id}/checkpoints`} className="btn btn-outline shrink-0"><FiMapPin /> Checkpoints</Link>
