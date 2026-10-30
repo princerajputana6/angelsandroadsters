@@ -261,29 +261,61 @@ function AddEntriesModal({ races, defaultRaceId, onClose }) {
   );
 }
 
+/** In-app delete confirmation (replaces window.confirm, unreliable in the
+ * PWA / Android webview). A force delete needs the race name typed back. */
+function DeleteRaceModal({ race, onClose }) {
+  const [deleteRace, { isLoading }] = useDeleteRaceMutation();
+  const [typed, setTyped] = useState('');
+  const hasData = (race.counts?.activeEntries || 0) > 0 || race.status !== 'draft';
+  const ready = !hasData || typed.trim() === race.name.trim();
+
+  const go = async () => {
+    if (!ready) return;
+    try {
+      await deleteRace({ id: race._id, force: hasData }).unwrap();
+      toast.success('Race deleted');
+      onClose();
+    } catch (e) { toast.error(e?.data?.message || 'Failed to delete race'); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-start sm:items-center justify-center p-3 sm:p-4 bg-charcoal-950/80 backdrop-blur overflow-y-auto">
+      <div className="card-glass p-4 sm:p-6 w-full max-w-md space-y-4 my-4 sm:my-8">
+        <h3 className="text-xl font-display text-red-300">Delete “{race.name}”?</h3>
+        {hasData ? (
+          <>
+            <p className="text-sm text-charcoal-300">
+              This permanently removes the race and <span className="text-red-300 font-semibold">all its data</span> — entries,
+              timing, results and standings points. It cannot be undone. The global rider pool is kept.
+            </p>
+            <label className="block">
+              <span className="text-xs text-charcoal-400">Type the race name to confirm</span>
+              <input className="input mt-1 w-full" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={race.name} />
+            </label>
+          </>
+        ) : (
+          <p className="text-sm text-charcoal-300">This draft race has no recorded data and will be removed.</p>
+        )}
+        <div className="flex justify-end gap-2 pt-1">
+          <button type="button" onClick={onClose} className="btn btn-outline">Cancel</button>
+          <button type="button" onClick={go} disabled={isLoading || !ready}
+            className={`btn ${ready ? 'bg-red-600 hover:bg-red-500 text-white' : 'btn-outline opacity-50'}`}>
+            {isLoading ? 'Deleting…' : 'Delete race'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RaceDashboard() {
   // Light polling so a race created by one admin shows up for the others.
   const { data, isLoading } = useRaceDashboardQuery(undefined, { pollingInterval: 15000, refetchOnFocus: true });
   const [showNew, setShowNew] = useState(false);
   const [addEntriesFor, setAddEntriesFor] = useState(null); // null | '' (any race) | raceId
-  const [deleteRace, { isLoading: deleting }] = useDeleteRaceMutation();
+  const [deleteTarget, setDeleteTarget] = useState(null); // race pending deletion
   const summary = data?.summary;
   const races = data?.races || [];
-
-  const onDeleteRace = async (race) => {
-    const hasData = (race.counts?.activeEntries || 0) > 0 || race.status !== 'draft';
-    const msg = hasData
-      ? `Permanently DELETE "${race.name}" and ALL its data — entries, timing, results, standings points? This cannot be undone. The rider pool is kept.`
-      : `Delete "${race.name}"?`;
-    if (!confirm(msg)) return;
-    if (hasData && !confirm('Last check — this erases the race and its results for good. Continue?')) return;
-    try {
-      await deleteRace({ id: race._id, force: hasData }).unwrap();
-      toast.success('Race deleted');
-    } catch (e) {
-      toast.error(e?.data?.message || 'Failed to delete race');
-    }
-  };
 
   return (
     <div>
@@ -342,7 +374,7 @@ export default function RaceDashboard() {
                       <button onClick={() => setAddEntriesFor(r._id)} className="text-xs text-emerald-400 hover:text-emerald-300">+ Riders</button>
                       <Link href={`/admin/race/${r._id}/board`} className="text-xs text-gold-400 hover:text-gold-300">▶ Board</Link>
                       <Link href={`/admin/race/${r._id}`} className="text-xs text-terra-400 hover:text-terra-300">Manage →</Link>
-                      <button onClick={() => onDeleteRace(r)} disabled={deleting} className="text-xs text-red-400 hover:text-red-300">Delete</button>
+                      <button onClick={() => setDeleteTarget(r)} className="text-xs text-red-400 hover:text-red-300">Delete</button>
                     </td>
                   </tr>
                 ))}
@@ -371,7 +403,7 @@ export default function RaceDashboard() {
                 </Link>
                 <div className="flex gap-3 mt-3 pt-3 border-t border-charcoal-800 items-center">
                   <button onClick={() => setAddEntriesFor(r._id)} className="text-xs text-emerald-400">+ Riders</button>
-                  <button onClick={() => onDeleteRace(r)} disabled={deleting} className="text-xs text-red-400">Delete</button>
+                  <button onClick={() => setDeleteTarget(r)} className="text-xs text-red-400">Delete</button>
                   <Link href={`/admin/race/${r._id}/board`} className="text-xs text-gold-400 ml-auto">▶ Board</Link>
                   <Link href={`/admin/race/${r._id}`} className="text-xs text-terra-400">Manage →</Link>
                 </div>
@@ -382,6 +414,7 @@ export default function RaceDashboard() {
         </>
       )}
 
+      {deleteTarget && <DeleteRaceModal race={deleteTarget} onClose={() => setDeleteTarget(null)} />}
       {showNew && <NewRaceModal onClose={() => setShowNew(false)} />}
       {addEntriesFor !== null && (
         <AddEntriesModal

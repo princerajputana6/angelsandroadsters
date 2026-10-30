@@ -197,6 +197,91 @@ function AdjustModal({ raceId, result, onClose }) {
   );
 }
 
+/** In-app Auto-points confirmation (replaces window.confirm, which is
+ * unreliable inside the PWA / Android webview). Pick the table, then Assign. */
+function AutoPointsModal({ raceId, preset, setPreset, autoPoints, busy, onClose }) {
+  const p = SCORING_PRESETS[preset] || SCORING_PRESETS[DEFAULT_PRESET];
+  const assign = async () => {
+    try {
+      const r = await autoPoints({ id: raceId, preset }).unwrap();
+      toast.success(`Points assigned to ${r.assigned} finisher(s)`);
+      onClose();
+    } catch (e) { toast.error(e?.data?.message || 'Auto-assign failed'); }
+  };
+  return (
+    <div className="fixed inset-0 z-[80] flex items-start sm:items-center justify-center p-3 sm:p-4 bg-charcoal-950/80 backdrop-blur overflow-y-auto">
+      <div className="card-glass p-4 sm:p-6 w-full max-w-md space-y-4 my-4 sm:my-8">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-display">Assign points by ranking</h3>
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-full border border-charcoal-700">✕</button>
+        </div>
+
+        <label className="block">
+          <span className="text-xs text-charcoal-400">Scoring table</span>
+          <select value={preset} onChange={(e) => setPreset(e.target.value)} className="input mt-1 w-full">
+            {Object.values(SCORING_PRESETS).map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
+          </select>
+        </label>
+
+        <div className="rounded-lg border border-charcoal-800 p-3 text-xs text-charcoal-300">
+          <div className="grid grid-cols-5 gap-y-1 gap-x-2 tabular-nums">
+            {p.table.map((v, i) => (
+              <span key={i}><span className="text-charcoal-500">{i + 1}</span> {v}</span>
+            ))}
+          </div>
+          <div className="mt-2 text-charcoal-400">Every other finisher: <span className="text-charcoal-200">{p.participation}</span></div>
+        </div>
+        <p className="text-[11px] text-charcoal-500">Finishers are ranked by time; disqualified riders are skipped. This overwrites existing points.</p>
+
+        <div className="flex justify-end gap-2 pt-1">
+          <button type="button" onClick={onClose} className="btn btn-outline">Cancel</button>
+          <button type="button" onClick={assign} disabled={busy} className="btn btn-gold">{busy ? 'Assigning…' : 'Assign points'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** In-app Finalize confirmation (replaces window.prompt/confirm). */
+function FinalizeModal({ raceId, finalize, busy, onClose }) {
+  const [reason, setReason] = useState('');
+  const [waive, setWaive] = useState(false);
+  const go = async () => {
+    if (!reason.trim()) return toast.error('A reason is required');
+    try {
+      await finalize({ id: raceId, reason, waiveOpenConflicts: waive }).unwrap();
+      toast.success('Results finalized');
+      onClose();
+    } catch (e) {
+      const msg = e?.data?.message || 'Finalize failed';
+      if (/open conflict/i.test(msg) && !waive) toast.error(`${msg} — tick “waive conflicts” to finalize anyway.`);
+      else toast.error(msg);
+    }
+  };
+  return (
+    <div className="fixed inset-0 z-[80] flex items-start sm:items-center justify-center p-3 sm:p-4 bg-charcoal-950/80 backdrop-blur overflow-y-auto">
+      <div className="card-glass p-4 sm:p-6 w-full max-w-md space-y-4 my-4 sm:my-8">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-display">Finalize results</h3>
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-full border border-charcoal-700">✕</button>
+        </div>
+        <label className="block">
+          <span className="text-xs text-charcoal-400">Reason (recorded in the audit log)</span>
+          <input className="input mt-1 w-full" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Reviewed and approved" />
+        </label>
+        <label className="flex items-center gap-2 text-sm text-charcoal-300 cursor-pointer">
+          <input type="checkbox" checked={waive} onChange={(e) => setWaive(e.target.checked)} className="accent-terra-500" />
+          Waive any open conflicts and finalize anyway
+        </label>
+        <div className="flex justify-end gap-2 pt-1">
+          <button type="button" onClick={onClose} className="btn btn-outline">Cancel</button>
+          <button type="button" onClick={go} disabled={busy} className="btn btn-gold">{busy ? 'Finalizing…' : 'Finalize'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ResultsPage() {
   const { id } = useParams();
   const { data, isLoading } = useRaceResultsQuery(id);
@@ -214,30 +299,8 @@ export default function ResultsPage() {
     catch (e) { toast.error(e?.data?.message || 'Recompute failed'); }
   };
 
-  const doAutoPoints = async () => {
-    const p = SCORING_PRESETS[preset];
-    const summary = p.table.map((v, i) => `${i + 1}:${v}`).join(' ');
-    if (!confirm(`Assign ${p.label} points by finishing position?\n\n${summary}, every other finisher ${p.participation}.\n\nThis overwrites existing points.`)) return;
-    try { const r = await autoPoints({ id, preset }).unwrap(); toast.success(`Points assigned to ${r.assigned} finisher(s)`); }
-    catch (e) { toast.error(e?.data?.message || 'Auto-assign failed'); }
-  };
-
-  const doFinalize = async () => {
-    const reason = prompt('Reason for finalizing results (recorded in the audit log):');
-    if (reason == null || !reason.trim()) return;
-    try {
-      await finalize({ id, reason }).unwrap();
-      toast.success('Results finalized');
-    } catch (e) {
-      const msg = e?.data?.message || 'Finalize failed';
-      if (/open conflict/i.test(msg)) {
-        if (confirm(`${msg}\n\nWaive the open conflicts and finalize anyway?`)) {
-          try { await finalize({ id, reason, waiveOpenConflicts: true }).unwrap(); toast.success('Finalized (conflicts waived)'); }
-          catch (e2) { toast.error(e2?.data?.message || 'Finalize failed'); }
-        }
-      } else toast.error(msg);
-    }
-  };
+  const [showAuto, setShowAuto] = useState(false);
+  const [showFinalize, setShowFinalize] = useState(false);
 
   return (
     <div>
@@ -252,13 +315,8 @@ export default function ResultsPage() {
         </div>
         <div className="flex flex-wrap gap-2 items-center">
           <button onClick={doRecompute} disabled={recomputing} className="btn btn-outline">{recomputing ? 'Recomputing…' : '↻ Recompute'}</button>
-          <div className="flex items-center gap-1">
-            <select value={preset} onChange={(e) => setPreset(e.target.value)} className="input py-2 text-xs" title="Scoring table">
-              {Object.values(SCORING_PRESETS).map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
-            </select>
-            <button onClick={doAutoPoints} disabled={autoAssigning} className="btn btn-outline">{autoAssigning ? 'Assigning…' : '⚡ Auto-points'}</button>
-          </div>
-          {race?.resultsState !== 'final' && <button onClick={doFinalize} disabled={finalizing} className="btn btn-gold">{finalizing ? 'Finalizing…' : 'Finalize results'}</button>}
+          <button onClick={() => setShowAuto(true)} disabled={autoAssigning} className="btn btn-outline">{autoAssigning ? 'Assigning…' : '⚡ Auto-points'}</button>
+          {race?.resultsState !== 'final' && <button onClick={() => setShowFinalize(true)} disabled={finalizing} className="btn btn-gold">{finalizing ? 'Finalizing…' : 'Finalize results'}</button>}
         </div>
       </div>
       <p className="text-xs text-charcoal-500 mb-3">Tip: use “Adjust” to assign/deduct points or edit a rider’s time. Riders are ranked by points first (more wins), then by time. Manual edits stay put through ↻ Recompute.</p>
@@ -318,6 +376,8 @@ export default function ResultsPage() {
       )}
 
       {adjusting && <AdjustModal raceId={id} result={adjusting} onClose={() => setAdjusting(null)} />}
+      {showAuto && <AutoPointsModal raceId={id} preset={preset} setPreset={setPreset} autoPoints={autoPoints} busy={autoAssigning} onClose={() => setShowAuto(false)} />}
+      {showFinalize && <FinalizeModal raceId={id} finalize={finalize} busy={finalizing} onClose={() => setShowFinalize(false)} />}
     </div>
   );
 }
