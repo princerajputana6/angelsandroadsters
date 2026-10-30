@@ -164,7 +164,8 @@ function IndexHealthCard() {
 }
 
 export default function RaceDashboard() {
-  const { data, isLoading } = useRaceDashboardQuery();
+  // Light polling so a race created by one admin shows up for the others.
+  const { data, isLoading } = useRaceDashboardQuery(undefined, { pollingInterval: 15000, refetchOnFocus: true });
   const [showNew, setShowNew] = useState(false);
   const summary = data?.summary;
   const races = data?.races || [];

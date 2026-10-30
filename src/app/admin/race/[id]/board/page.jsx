@@ -21,7 +21,14 @@ const STATE = {
 
 export default function RaceBoardPage() {
   const { id } = useParams();
-  const { data, isLoading } = useRaceBoardQuery(id, { pollingInterval: 0 });
+  // Auto-refresh so 2–3 people monitoring the same board stay in sync, and also
+  // refresh when a tab regains focus / reconnects. Optimistic clicks still feel
+  // instant; polling just keeps everyone's view current.
+  const { data, isLoading } = useRaceBoardQuery(id, {
+    pollingInterval: 4000,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
   const [act, { isLoading: acting }] = useRaceBoardActionMutation();
   const [now, setNow] = useState(Date.now());
 
@@ -54,7 +61,9 @@ export default function RaceBoardPage() {
         <div>
           <Link href={`/admin/race/${id}`} className="text-xs text-charcoal-400 hover:text-terra-400">← {race?.name || 'Race'}</Link>
           <h1 className="text-3xl font-display mt-1">Race Board</h1>
-          <p className="text-sm text-charcoal-400">{counts.total} riders · {counts.done} finished · {counts.out} on track</p>
+          <p className="text-sm text-charcoal-400">
+            <span className="text-emerald-400 animate-pulse">● Live</span> · {counts.total} riders · {counts.done} finished · {counts.out} on track
+          </p>
         </div>
         <Link href={`/admin/race/${id}/results`} className="btn btn-outline">🏆 Full results</Link>
       </div>
