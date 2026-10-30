@@ -8,6 +8,7 @@ import {
   useRecomputeRaceMutation,
   useFinalizeRaceResultsMutation,
   useAdjustRaceResultMutation,
+  useAutoAssignPointsMutation,
 } from '@/store/api';
 
 function fmt(ms) {
@@ -113,6 +114,7 @@ export default function ResultsPage() {
   const { data, isLoading } = useRaceResultsQuery(id);
   const [recompute, { isLoading: recomputing }] = useRecomputeRaceMutation();
   const [finalize, { isLoading: finalizing }] = useFinalizeRaceResultsMutation();
+  const [autoPoints, { isLoading: autoAssigning }] = useAutoAssignPointsMutation();
   const [adjusting, setAdjusting] = useState(null); // result row being edited
 
   const race = data?.race;
@@ -121,6 +123,12 @@ export default function ResultsPage() {
   const doRecompute = async () => {
     try { const r = await recompute(id).unwrap(); toast.success(`Recomputed · ${r.conflicts.openCount} open conflict(s)`); }
     catch (e) { toast.error(e?.data?.message || 'Recompute failed'); }
+  };
+
+  const doAutoPoints = async () => {
+    if (!confirm('Assign points by finishing position? 1st 100, 2nd 90, 3rd 80, 4th 72, 5th 65, 6th 60, 7th 55, 8th 50, 9th 46, 10th 42, every other finisher 25. This overwrites existing points.')) return;
+    try { const r = await autoPoints({ id }).unwrap(); toast.success(`Points assigned to ${r.assigned} finisher(s)`); }
+    catch (e) { toast.error(e?.data?.message || 'Auto-assign failed'); }
   };
 
   const doFinalize = async () => {
@@ -153,6 +161,7 @@ export default function ResultsPage() {
         </div>
         <div className="flex gap-2">
           <button onClick={doRecompute} disabled={recomputing} className="btn btn-outline">{recomputing ? 'Recomputing…' : '↻ Recompute'}</button>
+          <button onClick={doAutoPoints} disabled={autoAssigning} className="btn btn-outline">{autoAssigning ? 'Assigning…' : '⚡ Auto-points'}</button>
           {race?.resultsState !== 'final' && <button onClick={doFinalize} disabled={finalizing} className="btn btn-gold">{finalizing ? 'Finalizing…' : 'Finalize results'}</button>}
         </div>
       </div>

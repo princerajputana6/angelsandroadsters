@@ -302,9 +302,9 @@ export default function RaceEntriesPage() {
   };
 
   const remove = async (entry) => {
-    if (!confirm(`Delete #${entry.raceNumber}? Only allowed for a draft race with no events.`)) return;
-    try { await del(entry._id).unwrap(); toast.success('Deleted'); }
-    catch (err) { toast.error(err?.data?.message || 'Use withdraw/void instead'); }
+    if (!confirm(`Delete #${entry.raceNumber} ${entry.riderName}? This permanently removes the entry and any timing/results for them. This cannot be undone.`)) return;
+    try { await del({ id: entry._id, force: true }).unwrap(); toast.success('Deleted'); }
+    catch (err) { toast.error(err?.data?.message || 'Delete failed'); }
   };
 
   const renumber = async () => {

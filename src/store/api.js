@@ -459,8 +459,12 @@ export const api = createApi({
       invalidatesTags: ['RaceEntries', 'RaceDashboard'],
     }),
     deleteRaceEntry: b.mutation({
-      query: (id) => ({ url: `/race/entries/${id}`, method: 'DELETE' }),
-      invalidatesTags: ['RaceEntries', 'RaceDashboard'],
+      query: (arg) => {
+        const id = arg?.id ?? arg;
+        const force = arg?.force;
+        return { url: `/race/entries/${id}`, method: 'DELETE', params: force ? { force: 1 } : undefined };
+      },
+      invalidatesTags: ['RaceEntries', 'RaceDashboard', 'RaceResults', 'RaceBoard'],
     }),
 
     // Checkpoint sessions
@@ -510,6 +514,10 @@ export const api = createApi({
     }),
     adjustRaceResult: b.mutation({
       query: ({ id, ...body }) => ({ url: `/race/races/${id}/results/adjust`, method: 'PUT', body }),
+      invalidatesTags: ['RaceResults', 'RaceDashboard'],
+    }),
+    autoAssignPoints: b.mutation({
+      query: ({ id, ...body }) => ({ url: `/race/races/${id}/results/auto-points`, method: 'POST', body }),
       invalidatesTags: ['RaceResults', 'RaceDashboard'],
     }),
     raceReconciliation: b.query({
@@ -590,7 +598,7 @@ export const {
   useRacePlatesQuery, useMarkPlatesPrintedMutation,
   useRaceMySessionsQuery, useListRaceSessionsQuery, useCreateRaceSessionMutation,
   useRaceConflictsQuery, useResolveRaceConflictMutation,
-  useRaceResultsQuery, useRecomputeRaceMutation, useFinalizeRaceResultsMutation, useAdjustRaceResultMutation,
+  useRaceResultsQuery, useRecomputeRaceMutation, useFinalizeRaceResultsMutation, useAdjustRaceResultMutation, useAutoAssignPointsMutation,
   useRaceReconciliationQuery, useRevokeRaceSessionMutation,
   useRaceBoardQuery, useRaceBoardActionMutation,
 } = api;

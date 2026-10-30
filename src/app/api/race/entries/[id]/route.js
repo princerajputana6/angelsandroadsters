@@ -2,8 +2,10 @@ import { connectDB } from '@/lib/db';
 import Race from '@/lib/models/Race';
 import RaceEntry from '@/lib/models/RaceEntry';
 import RaceEvent from '@/lib/models/RaceEvent';
+import RaceResult from '@/lib/models/RaceResult';
 import { ok, handler, toJSON } from '@/lib/apiUtils';
 import { requireRaceManager, logRaceAudit } from '@/lib/raceAuth';
+import { recomputeRaceResults } from '@/lib/raceProjection';
 import { parseOrThrow, entryUpdateSchema } from '@/lib/raceValidation';
 
 async function loadEntryAndRace(id) {
@@ -84,27 +86,45 @@ export async function PUT(req, { params }) {
   });
 }
 
-// DELETE /api/race/entries/:id — hard delete ONLY for a draft race entry with no
-// recorded events. Otherwise callers must withdraw/void via the status route so
-// history is preserved (plan §4.4).
-export async function DELETE(_req, { params }) {
+// DELETE /api/race/entries/:id — remove an entry. By default a clean delete,
+// allowed only for a draft-race entry with no recorded events. With ?force=1 it
+// also removes the rider's timing events and result (and recomputes), so an
+// entry can be removed after the race. The global pool rider is NOT touched.
+export async function DELETE(req, { params }) {
   return handler(async () => {
     const user = await requireRaceManager();
     await connectDB();
     const { entry, race } = await loadEntryAndRace(params.id);
+    const force = new URL(req.url).searchParams.get('force') === '1';
 
     const eventCount = await RaceEvent.countDocuments({ entry: entry._id });
-    if (eventCount > 0 || race.status !== 'draft') {
+    const blocked = eventCount > 0 || race.status !== 'draft';
+
+    if (blocked && !force) {
       throw Object.assign(
-        new Error('Entry has history or race is not draft. Withdraw or void it instead.'),
+        new Error('Entry has history or race is not draft. Withdraw/void it, or delete with force.'),
         { status: 409 }
       );
     }
+
+    if (force && blocked) {
+      // Cascade: drop this rider's timing events and result row.
+      await RaceEvent.deleteMany({ entry: entry._id });
+      await RaceResult.deleteOne({ race: entry.race, entry: entry._id });
+    }
+
     await RaceEntry.deleteOne({ _id: entry._id });
     await logRaceAudit({
-      actor: user, action: 'ENTRY_DELETED', event: entry.event, race: entry.race,
-      targetType: 'RaceEntry', targetId: entry._id,
+      actor: user, action: force && blocked ? 'ENTRY_FORCE_DELETED' : 'ENTRY_DELETED',
+      event: entry.event, race: entry.race, targetType: 'RaceEntry', targetId: entry._id,
+      meta: { eventsRemoved: force && blocked ? eventCount : 0 },
     });
+
+    // Keep standings consistent after a forced removal mid/post-race.
+    if (force && blocked && race.status !== 'draft') {
+      try { await recomputeRaceResults(entry.race); } catch (e) { console.error('[entry delete] recompute failed', e.message); }
+    }
+
     return ok({ deleted: true });
   });
 }
