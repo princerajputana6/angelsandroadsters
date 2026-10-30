@@ -26,10 +26,13 @@ export async function GET(req) {
       r.effectiveTimeMs = r.adjustedTimeMs != null ? r.adjustedTimeMs : r.totalTimeMs;
     }
 
-    // finished (by effective time) first, then running, dnf, dns; stable by number.
+    // finished first, ranked by POINTS (more is better), then by effective
+    // time, then by number. Points are 0 by default, so without any manual
+    // points this stays pure time-based ranking.
     const order = { finished: 0, running: 1, dnf: 2, disqualified: 3, dns: 4 };
     results.sort((a, b) =>
       (order[a.status] - order[b.status]) ||
+      ((b.manualPoints || 0) - (a.manualPoints || 0)) ||
       ((a.effectiveTimeMs ?? 1e15) - (b.effectiveTimeMs ?? 1e15)) ||
       ((a.entry?.raceNumber ?? 1e9) - (b.entry?.raceNumber ?? 1e9))
     );

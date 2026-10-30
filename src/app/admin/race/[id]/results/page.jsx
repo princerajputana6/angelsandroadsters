@@ -156,7 +156,7 @@ export default function ResultsPage() {
           {race?.resultsState !== 'final' && <button onClick={doFinalize} disabled={finalizing} className="btn btn-gold">{finalizing ? 'Finalizing…' : 'Finalize results'}</button>}
         </div>
       </div>
-      <p className="text-xs text-charcoal-500 mb-3">Tip: use “Adjust” to assign/deduct points or edit a rider’s time. Manual edits stay put through ↻ Recompute.</p>
+      <p className="text-xs text-charcoal-500 mb-3">Tip: use “Adjust” to assign/deduct points or edit a rider’s time. Riders are ranked by points first (more wins), then by time. Manual edits stay put through ↻ Recompute.</p>
 
       {isLoading ? <p className="text-charcoal-400">Loading results…</p> : (
         <div className="card overflow-x-auto">
