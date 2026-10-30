@@ -37,6 +37,16 @@ export const metadata = {
   },
 };
 
+// viewport-fit=cover exposes the device safe-area insets (notch / status bar /
+// home indicator) to CSS via env(safe-area-inset-*), which globals.css uses so
+// content isn't tucked under the system bars in the installed (Capacitor) app.
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#0a0a0a',
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">

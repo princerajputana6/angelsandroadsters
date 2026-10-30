@@ -52,6 +52,14 @@ html, body {
   overflow-x: hidden;
 }
 
+/* Keep content clear of the status bar / home indicator inside the installed
+   app and on notched phones (0 on desktop). Needs viewport-fit=cover, set in
+   layout.jsx. Top/bottom only, so full-bleed sections aren't letterboxed. */
+body {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 h1, h2, h3, h4, .display {
   font-family: 'Bebas Neue', 'Barlow Condensed', system-ui, sans-serif;
   letter-spacing: 0.01em;
