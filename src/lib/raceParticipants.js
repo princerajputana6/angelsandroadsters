@@ -2,73 +2,87 @@
  * Participant-pool maintenance: keep the global rider pool complete and give
  * every participant a permanent, non-duplicate number.
  *
- * Numbers are written through the raw driver (Rider.collection) on purpose:
- * participantNo is schema-immutable, which would block a Mongoose save/update
- * from setting or changing it on an existing document.
+ * Everything here uses BULK driver operations (a handful of round-trips total)
+ * rather than per-document awaits, so it finishes well inside the serverless
+ * function limit even for a full field of riders. Numbers are written through
+ * the raw driver because participantNo is schema-immutable, which would block a
+ * Mongoose save/update from setting or changing it.
  */
+import mongoose from 'mongoose';
 import { connectDB } from './db';
 import Rider from './models/Rider';
 import RaceEntry from './models/RaceEntry';
-import Counter, { nextSequence } from './models/Counter';
+import Counter from './models/Counter';
 
-const escapeRx = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-/**
- * Find (or create) the pool rider for a would-be entry, de-duped so the same
- * person is never stored twice: by linked user account when present, else by
- * case-insensitive exact name. Returns the pool rider's _id.
- */
-export async function findOrCreatePoolRider({ riderName, rider, displayName, bike, photo }, userId) {
-  if (rider) {
-    const existing = await Rider.findOne({ user: rider }).select('_id').lean();
-    if (existing) return existing._id;
-  } else {
-    const rx = new RegExp(`^${escapeRx(riderName)}$`, 'i');
-    const existing = await Rider.findOne({ name: rx }).select('_id').lean();
-    if (existing) return existing._id;
-  }
-  const created = await Rider.create({
-    name: riderName,
-    displayName: displayName || '',
-    user: rider || undefined,
-    bike: bike || {},
-    photo: photo?.url ? photo : undefined,
-    createdBy: userId,
-  });
-  return created._id;
-}
+const norm = (s) => (s || '').trim().toLowerCase();
 
 /**
- * Pull every active race entry that predates the pool-mirror into the global
- * pool: create/link a de-duped pool rider so race-only participants also appear
- * in the pool and can receive a participant number. Idempotent.
+ * Pull every active race entry that has no pool link into the global pool, so
+ * race-only participants (entries created before the pool mirror) also appear
+ * in the pool and can be numbered. De-duped by linked user account, else by
+ * case-insensitive name — both against existing riders and within this batch —
+ * so the same person is never stored twice. Idempotent; bulk-writes.
  */
 export async function linkRaceEntriesToPool(userId) {
   await connectDB();
   const orphans = await RaceEntry.find({ status: 'active', poolRider: { $in: [null, undefined] } })
     .select('_id riderName rider displayName bike photos')
-    .sort({ createdAt: 1, _id: 1 })
+    .sort({ raceNumber: 1, createdAt: 1, _id: 1 })
     .lean();
+  if (!orphans.length) return { linked: 0, orphans: 0, created: 0 };
 
-  let linked = 0;
-  for (const e of orphans) {
-    const poolRiderId = await findOrCreatePoolRider(
-      { riderName: e.riderName, rider: e.rider, displayName: e.displayName, bike: e.bike, photo: e.photos?.rider },
-      userId
-    );
-    const res = await RaceEntry.collection.updateOne(
-      { _id: e._id, poolRider: { $in: [null, undefined] } },
-      { $set: { poolRider: poolRiderId } }
-    );
-    if (res.modifiedCount) linked += 1;
+  // Load existing riders once for in-memory de-dupe.
+  const existing = await Rider.find({}).select('_id name user').lean();
+  const byUser = new Map();
+  const byName = new Map();
+  for (const r of existing) {
+    if (r.user) byUser.set(String(r.user), r._id);
+    if (!byName.has(norm(r.name))) byName.set(norm(r.name), r._id);
   }
-  return { linked, orphans: orphans.length };
+
+  const now = new Date();
+  const riderInserts = [];
+  const entryUpdates = [];
+  for (const e of orphans) {
+    let riderId = null;
+    if (e.rider && byUser.has(String(e.rider))) {
+      riderId = byUser.get(String(e.rider));
+    } else if (!e.rider && byName.has(norm(e.riderName))) {
+      riderId = byName.get(norm(e.riderName));
+    } else {
+      riderId = new mongoose.Types.ObjectId();
+      riderInserts.push({
+        insertOne: {
+          document: {
+            _id: riderId,
+            name: e.riderName,
+            displayName: e.displayName || '',
+            ...(e.rider ? { user: e.rider } : {}),
+            bike: e.bike || {},
+            photo: e.photos?.rider?.url ? e.photos.rider : {},
+            active: true,
+            createdBy: userId,
+            createdAt: now,
+            updatedAt: now,
+          },
+        },
+      });
+      // Register so later orphans in this batch de-dupe against it.
+      byName.set(norm(e.riderName), riderId);
+      if (e.rider) byUser.set(String(e.rider), riderId);
+    }
+    entryUpdates.push({ updateOne: { filter: { _id: e._id }, update: { $set: { poolRider: riderId } } } });
+  }
+
+  if (riderInserts.length) await Rider.collection.bulkWrite(riderInserts, { ordered: false });
+  if (entryUpdates.length) await RaceEntry.collection.bulkWrite(entryUpdates, { ordered: false });
+
+  return { linked: entryUpdates.length, orphans: orphans.length, created: riderInserts.length };
 }
 
 /**
- * Gap-fill: assign a permanent number to any pool rider missing one, continuing
- * from the shared atomic Counter so a rider created between deploy and run can
- * never collide. Oldest rider first. Safe to re-run.
+ * Gap-fill: give a permanent number to any pool rider that has none, numbering
+ * from the current highest so existing numbers are never disturbed. Bulk-writes.
  */
 export async function backfillParticipantNumbers() {
   await connectDB();
@@ -76,41 +90,35 @@ export async function backfillParticipantNumbers() {
     .sort({ createdAt: 1, _id: 1 })
     .select('_id')
     .lean();
+  if (!pending.length) return { assigned: 0, pending: 0 };
 
-  let assigned = 0;
-  for (const r of pending) {
-    const seq = await nextSequence('riderParticipantNo');
-    const res = await Rider.collection.updateOne(
-      { _id: r._id, participantNo: { $in: [null, undefined] } },
-      { $set: { participantNo: seq } }
-    );
-    if (res.modifiedCount) assigned += 1;
-  }
-  return { assigned, pending: pending.length };
+  const top = await Rider.findOne({ participantNo: { $ne: null } }).sort({ participantNo: -1 }).select('participantNo').lean();
+  let next = (top?.participantNo || 0) + 1;
+
+  const ops = pending.map((r) => ({ updateOne: { filter: { _id: r._id }, update: { $set: { participantNo: next++ } } } }));
+  await Rider.collection.bulkWrite(ops, { ordered: false });
+  await Counter.collection.updateOne({ _id: 'riderParticipantNo' }, { $set: { seq: next - 1 } }, { upsert: true });
+
+  return { assigned: pending.length, pending: pending.length };
 }
 
 /**
  * One-time re-seed: give EVERY participant a fresh, contiguous, duplicate-free
- * number starting at `start` (e.g. 4 → 004, to match plates printed from 004).
- * First links any race-only participants into the pool so they're included.
- *
- * Done in two phases to stay safe under the unique index: clear all numbers,
- * then assign sequentially oldest-first. The Counter is set past the highest
- * number so new participants continue after it. Overwrites existing numbers by
- * design — this is the deliberate alignment to the printed codes.
+ * number starting at `start` (e.g. 4 → 004), in RACE-NUMBER ORDER — the order
+ * shown in Riders & Entries. The lowest race number gets `start`, the next
+ * start+1, and so on, so a rider added later (higher race number) always gets a
+ * later id and none are left blank. Pool-only riders in no race are numbered
+ * last, oldest first. Overwrites existing numbers by design. Bulk-writes.
  */
 export async function reseedParticipantNumbers(start, userId) {
   await connectDB();
   const from = Number.isFinite(start) && start >= 0 ? Math.floor(start) : 4;
 
-  // Make sure every race participant is in the pool before numbering (links the
-  // older entries that have no pool record yet).
+  // Make sure every race participant is in the pool before numbering.
   const link = await linkRaceEntriesToPool(userId);
 
-  // Number in RACE-NUMBER ORDER — the order shown in Riders & Entries: the
-  // lowest race number gets `start` (004), the next 005, and so on, so a rider
-  // added later (higher race number) always gets a later id. Pool-only riders
-  // that are in no race are numbered last, in the order they were added.
+  // Order each rider by the lowest race number they hold (racers first), then
+  // pool-only riders by when they were added.
   const agg = await RaceEntry.aggregate([
     { $match: { poolRider: { $ne: null }, status: 'active' } },
     { $group: { _id: '$poolRider', minNum: { $min: '$raceNumber' } } },
@@ -120,7 +128,7 @@ export async function reseedParticipantNumbers(start, userId) {
   const all = await Rider.find({}).select('_id createdAt').lean();
   const orderKey = (r) => {
     const rn = raceOrder.get(String(r._id));
-    return rn != null ? rn : Infinity; // racers first (by race number), pool-only after
+    return rn != null ? rn : Infinity;
   };
   const riders = all.sort((a, b) => {
     const ka = orderKey(a);
@@ -131,17 +139,11 @@ export async function reseedParticipantNumbers(start, userId) {
     return ca - cb || String(a._id).localeCompare(String(b._id));
   });
 
-  // Phase 1 — clear every number so reassignment can't transiently collide.
+  // Clear all numbers, then assign contiguous ones — two bulk ops.
   await Rider.collection.updateMany({}, { $unset: { participantNo: '' } });
+  const ops = riders.map((r, i) => ({ updateOne: { filter: { _id: r._id }, update: { $set: { participantNo: from + i } } } }));
+  if (ops.length) await Rider.collection.bulkWrite(ops, { ordered: false });
 
-  // Phase 2 — assign contiguous numbers from `start`.
-  let n = from;
-  for (const r of riders) {
-    await Rider.collection.updateOne({ _id: r._id }, { $set: { participantNo: n } });
-    n += 1;
-  }
-
-  // Keep the live counter ahead of the highest assigned number.
   const highest = riders.length ? from + riders.length - 1 : from - 1;
   await Counter.collection.updateOne(
     { _id: 'riderParticipantNo' },
