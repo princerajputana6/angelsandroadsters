@@ -43,6 +43,49 @@ export async function downloadRaceForBoard(raceId) {
   return row;
 }
 
+/**
+ * Pull a fresh roster from the server and merge it into the cached board race,
+ * so riders ADDED to the race after it was downloaded show up on the board.
+ * Online-only and non-destructive: preserves local flags (startedAt/endedAt/
+ * completionSynced) and never drops a rider already in the local roster (anyone
+ * an official may have started/finished). Returns the current cached row on
+ * failure or when offline — the board keeps working from what it has.
+ */
+export async function refreshBoardRoster(raceId) {
+  const db = getDB();
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return db.boardRaces.get(raceId);
+  let data;
+  try {
+    const res = await fetch(`/api/race/races/${raceId}/board`, { cache: 'no-store' });
+    if (!res.ok) return db.boardRaces.get(raceId);
+    data = await res.json();
+  } catch {
+    return db.boardRaces.get(raceId);
+  }
+
+  const existing = await db.boardRaces.get(raceId);
+  const serverRoster = (data.riders || []).map((r) => ({ entryId: r.entryId, raceNumber: r.raceNumber, riderName: r.riderName }));
+  // Server roster wins, but keep any local-only rider so we never drop someone
+  // already timed on this device.
+  const byId = new Map(serverRoster.map((r) => [r.entryId, r]));
+  for (const r of existing?.roster || []) if (!byId.has(r.entryId)) byId.set(r.entryId, r);
+  const roster = [...byId.values()].sort((a, b) => a.raceNumber - b.raceNumber);
+
+  const row = {
+    ...(existing || {}),
+    raceId,
+    name: data.race?.name || existing?.name || 'Race',
+    status: data.race?.status ?? existing?.status,
+    roster,
+    downloadedAt: existing?.downloadedAt || new Date().toISOString(),
+    rosterSyncedAt: new Date().toISOString(),
+    startedAt: existing?.startedAt || null,
+    endedAt: existing?.endedAt || null,
+  };
+  await db.boardRaces.put(row);
+  return row;
+}
+
 export async function setBoardFlags(raceId, patch) {
   const db = getDB();
   const row = await db.boardRaces.get(raceId);

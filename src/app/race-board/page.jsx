@@ -7,7 +7,7 @@ import { ThemeProvider, ThemeToggle } from '@/components/theme';
 import { useMeQuery, useListRacesQuery } from '@/store/api';
 import { writeLocalEvent, localEventCounts } from '@/lib/offline/eventStore';
 import {
-  listBoardRaces, getBoardRace, downloadRaceForBoard, setBoardFlags, deriveBoardState, boardSessionId,
+  listBoardRaces, getBoardRace, downloadRaceForBoard, refreshBoardRoster, setBoardFlags, deriveBoardState, boardSessionId,
 } from '@/lib/offline/boardStore';
 import { startBoardSyncEngine, syncBoardNow } from '@/lib/offline/boardSync';
 
@@ -117,7 +117,14 @@ function Board({ raceId }) {
   useEffect(() => { refresh(); }, [refresh]);
   useEffect(() => { const iv = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(iv); }, []);
   useEffect(() => {
-    const stop = startBoardSyncEngine(raceId, { onResult: (res) => { if (res?.ok) setLastSync(new Date().toLocaleTimeString()); refresh(); } });
+    const stop = startBoardSyncEngine(raceId, {
+      onResult: async (res) => {
+        if (res?.ok) setLastSync(new Date().toLocaleTimeString());
+        // Pull in any riders added to the race since download (online-only, safe offline).
+        try { await refreshBoardRoster(raceId); } catch { /* keep cached roster */ }
+        refresh();
+      },
+    });
     return stop;
   }, [raceId, refresh]);
 
@@ -165,7 +172,7 @@ function Board({ raceId }) {
           <h2 className="font-display text-2xl">{race.name}</h2>
           <p className="text-xs text-charcoal-400">{state.counts.total} riders · {state.counts.done} finished · {state.counts.out} on track</p>
         </div>
-        <button onClick={() => syncBoardNow(raceId).then((r) => { if (r?.ok) setLastSync(new Date().toLocaleTimeString()); refresh(); })} className="btn btn-outline text-xs"><FiRefreshCw /> Sync</button>
+        <button onClick={async () => { const r = await syncBoardNow(raceId); if (r?.ok) setLastSync(new Date().toLocaleTimeString()); try { await refreshBoardRoster(raceId); } catch { /* keep cached roster */ } refresh(); }} className="btn btn-outline text-xs"><FiRefreshCw /> Sync</button>
       </div>
 
       {!started ? (
