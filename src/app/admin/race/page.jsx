@@ -6,9 +6,11 @@ import {
   useRaceDashboardQuery,
   useListEventsQuery,
   useCreateRaceMutation,
+  useBulkAddEntriesMutation,
   useRaceIndexReportQuery,
   useEnsureRaceIndexesMutation,
 } from '@/store/api';
+import RiderMultiSelect from '@/components/race/RiderMultiSelect';
 
 const STATUS_STYLE = {
   draft: 'bg-charcoal-700/40 text-charcoal-300',
@@ -36,23 +38,41 @@ function Tile({ label, value, accent, icon }) {
 function NewRaceModal({ onClose }) {
   const { data: eventsData } = useListEventsQuery();
   const [createRace, { isLoading }] = useCreateRaceMutation();
+  const [bulkAdd, { isLoading: adding }] = useBulkAddEntriesMutation();
   const events = eventsData?.events || [];
   const [form, setForm] = useState({
     event: '', name: '', startModel: 'individual', finishType: 'laps', expectedLaps: 1,
+  });
+  const [picked, setPicked] = useState(() => new Set());
+  const toggle = (riderId) => setPicked((prev) => {
+    const next = new Set(prev);
+    next.has(riderId) ? next.delete(riderId) : next.add(riderId);
+    return next;
   });
 
   const submit = async (e) => {
     e.preventDefault();
     if (!form.event || !form.name.trim()) return toast.error('Event and name are required');
     try {
-      await createRace({
+      const res = await createRace({
         event: form.event,
         name: form.name.trim(),
         startModel: form.startModel,
         finishType: form.finishType,
         expectedLaps: Number(form.expectedLaps) || 0,
       }).unwrap();
-      toast.success('Race created');
+
+      // Optionally onboard the picked pool riders as entries in the same step.
+      if (picked.size && res?.race?._id) {
+        try {
+          const add = await bulkAdd({ race: res.race._id, riderIds: [...picked] }).unwrap();
+          toast.success(`Race created · ${add.created} rider(s) added`);
+        } catch {
+          toast.error('Race created, but adding riders failed — add them from Entries');
+        }
+      } else {
+        toast.success('Race created');
+      }
       onClose();
     } catch (err) {
       toast.error(err?.data?.message || 'Failed to create race');
@@ -115,9 +135,20 @@ function NewRaceModal({ onClose }) {
           </label>
         )}
 
+        <div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-charcoal-400">Participants (optional)</span>
+            <span className="text-[11px] text-charcoal-500">{picked.size} selected · numbers auto-assigned</span>
+          </div>
+          <p className="text-[11px] text-charcoal-500 mt-0.5 mb-2">Pick riders from the pool to enter them in this race now. You can always add more later.</p>
+          <RiderMultiSelect picked={picked} onToggle={toggle} />
+        </div>
+
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="btn btn-outline">Cancel</button>
-          <button type="submit" disabled={isLoading} className="btn btn-gold">{isLoading ? 'Creating…' : 'Create race'}</button>
+          <button type="submit" disabled={isLoading || adding} className="btn btn-gold">
+            {isLoading || adding ? 'Creating…' : picked.size ? `Create race + ${picked.size} rider(s)` : 'Create race'}
+          </button>
         </div>
       </form>
     </div>
@@ -163,10 +194,70 @@ function IndexHealthCard() {
   );
 }
 
+/**
+ * Global "Add entries" — pick any race, multi-select pool riders, bulk-add.
+ * Reachable from the dashboard header and from each race row, so officials can
+ * build a start list without drilling into Manage → Entries.
+ */
+function AddEntriesModal({ races, defaultRaceId, onClose }) {
+  const [raceId, setRaceId] = useState(defaultRaceId || '');
+  const [picked, setPicked] = useState(() => new Set());
+  const [bulkAdd, { isLoading }] = useBulkAddEntriesMutation();
+
+  const toggle = (riderId) => setPicked((prev) => {
+    const next = new Set(prev);
+    next.has(riderId) ? next.delete(riderId) : next.add(riderId);
+    return next;
+  });
+
+  const add = async () => {
+    if (!raceId) return toast.error('Pick a race first');
+    if (picked.size === 0) return toast.error('Select at least one rider');
+    try {
+      const res = await bulkAdd({ race: raceId, riderIds: [...picked] }).unwrap();
+      toast.success(`Added ${res.created} rider(s)` + (res.skipped?.length ? `, skipped ${res.skipped.length}` : ''));
+      onClose();
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to add');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-start sm:items-center justify-center p-3 sm:p-4 bg-charcoal-950/80 backdrop-blur overflow-y-auto">
+      <div className="card-glass p-4 sm:p-6 w-full max-w-lg space-y-3 my-4 sm:my-8 max-h-[92vh] overflow-y-auto flex flex-col">
+        <div className="flex items-center justify-between">
+          <h3 className="text-2xl font-display">Add entries</h3>
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-full border border-charcoal-700">✕</button>
+        </div>
+
+        <label className="block">
+          <span className="text-xs text-charcoal-400">Race</span>
+          <select className="input mt-1 w-full" value={raceId} onChange={(e) => setRaceId(e.target.value)}>
+            <option value="">Select race…</option>
+            {races.map((r) => (
+              <option key={r._id} value={r._id}>{r.name}{r.event?.title ? ` — ${r.event.title}` : ''}</option>
+            ))}
+          </select>
+        </label>
+
+        <RiderMultiSelect picked={picked} onToggle={toggle} height="max-h-72" />
+
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <span className="text-sm text-charcoal-400">{picked.size} selected · numbers auto-assigned</span>
+          <button onClick={add} disabled={isLoading || picked.size === 0 || !raceId} className="btn btn-gold">
+            {isLoading ? 'Adding…' : `Add ${picked.size || ''}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RaceDashboard() {
   // Light polling so a race created by one admin shows up for the others.
   const { data, isLoading } = useRaceDashboardQuery(undefined, { pollingInterval: 15000, refetchOnFocus: true });
   const [showNew, setShowNew] = useState(false);
+  const [addEntriesFor, setAddEntriesFor] = useState(null); // null | '' (any race) | raceId
   const summary = data?.summary;
   const races = data?.races || [];
 
@@ -177,7 +268,10 @@ export default function RaceDashboard() {
           <p className="eyebrow mb-1">RACE MANAGEMENT</p>
           <h1 className="text-3xl sm:text-4xl font-display">Race Dashboard</h1>
         </div>
-        <button onClick={() => setShowNew(true)} className="btn btn-gold w-full sm:w-auto">+ New Race</button>
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <button onClick={() => setAddEntriesFor('')} className="btn btn-outline flex-1 sm:flex-none">＋ Add entries</button>
+          <button onClick={() => setShowNew(true)} className="btn btn-gold flex-1 sm:flex-none">+ New Race</button>
+        </div>
       </div>
 
       {/* Summary tiles */}
@@ -220,6 +314,7 @@ export default function RaceDashboard() {
                     <td className="p-3 text-right">{r.counts.activeEntries}</td>
                     <td className={`p-3 text-right ${r.counts.openConflicts ? 'text-red-400 font-bold' : ''}`}>{r.counts.openConflicts}</td>
                     <td className="p-3 text-right space-x-3 whitespace-nowrap">
+                      <button onClick={() => setAddEntriesFor(r._id)} className="text-xs text-emerald-400 hover:text-emerald-300">+ Riders</button>
                       <Link href={`/admin/race/${r._id}/board`} className="text-xs text-gold-400 hover:text-gold-300">▶ Board</Link>
                       <Link href={`/admin/race/${r._id}`} className="text-xs text-terra-400 hover:text-terra-300">Manage →</Link>
                     </td>
@@ -235,18 +330,25 @@ export default function RaceDashboard() {
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
             {races.map((r) => (
-              <Link key={r._id} href={`/admin/race/${r._id}`} className="card p-4 block">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold">{r.name}</span>
-                  <span className={`badge ${STATUS_STYLE[r.status] || ''} uppercase text-[10px]`}>{r.status}</span>
+              <div key={r._id} className="card p-4">
+                <Link href={`/admin/race/${r._id}`} className="block">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold">{r.name}</span>
+                    <span className={`badge ${STATUS_STYLE[r.status] || ''} uppercase text-[10px]`}>{r.status}</span>
+                  </div>
+                  <div className="text-xs text-charcoal-400 mt-1">{r.event?.title}</div>
+                  <div className="flex gap-4 text-xs text-charcoal-300 mt-2">
+                    <span>{r.counts.categories} cats</span>
+                    <span>{r.counts.activeEntries} entries</span>
+                    <span className={r.counts.openConflicts ? 'text-red-400' : ''}>{r.counts.openConflicts} conflicts</span>
+                  </div>
+                </Link>
+                <div className="flex gap-2 mt-3 pt-3 border-t border-charcoal-800">
+                  <button onClick={() => setAddEntriesFor(r._id)} className="text-xs text-emerald-400">+ Riders</button>
+                  <Link href={`/admin/race/${r._id}/board`} className="text-xs text-gold-400 ml-auto">▶ Board</Link>
+                  <Link href={`/admin/race/${r._id}`} className="text-xs text-terra-400">Manage →</Link>
                 </div>
-                <div className="text-xs text-charcoal-400 mt-1">{r.event?.title}</div>
-                <div className="flex gap-4 text-xs text-charcoal-300 mt-2">
-                  <span>{r.counts.categories} cats</span>
-                  <span>{r.counts.activeEntries} entries</span>
-                  <span className={r.counts.openConflicts ? 'text-red-400' : ''}>{r.counts.openConflicts} conflicts</span>
-                </div>
-              </Link>
+              </div>
             ))}
             {races.length === 0 && <p className="text-center text-charcoal-400 py-8">No races yet.</p>}
           </div>
@@ -254,6 +356,13 @@ export default function RaceDashboard() {
       )}
 
       {showNew && <NewRaceModal onClose={() => setShowNew(false)} />}
+      {addEntriesFor !== null && (
+        <AddEntriesModal
+          races={races}
+          defaultRaceId={addEntriesFor || ''}
+          onClose={() => setAddEntriesFor(null)}
+        />
+      )}
     </div>
   );
 }
