@@ -21,13 +21,24 @@ export async function GET(req) {
       .populate('entry', 'raceNumber riderName displayName category')
       .lean();
 
-    // finished (by rank) first, then running, dnf, dns; stable by number.
+    // Effective time = manual override when set, else the computed total.
+    for (const r of results) {
+      r.effectiveTimeMs = r.adjustedTimeMs != null ? r.adjustedTimeMs : r.totalTimeMs;
+    }
+
+    // finished (by effective time) first, then running, dnf, dns; stable by number.
     const order = { finished: 0, running: 1, dnf: 2, disqualified: 3, dns: 4 };
     results.sort((a, b) =>
       (order[a.status] - order[b.status]) ||
-      ((a.rank ?? 1e9) - (b.rank ?? 1e9)) ||
+      ((a.effectiveTimeMs ?? 1e15) - (b.effectiveTimeMs ?? 1e15)) ||
       ((a.entry?.raceNumber ?? 1e9) - (b.entry?.raceNumber ?? 1e9))
     );
+
+    // Display rank over finished riders, reflecting any edited times.
+    let rank = 0;
+    for (const r of results) {
+      if (r.status === 'finished') { rank += 1; r.displayRank = rank; }
+    }
 
     return ok({ race: toJSON(race), results: toJSON(results) });
   });

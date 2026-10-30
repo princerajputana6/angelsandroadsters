@@ -508,6 +508,10 @@ export const api = createApi({
       query: ({ id, reason, waiveOpenConflicts }) => ({ url: `/race/races/${id}/results/finalize`, method: 'POST', body: { reason, waiveOpenConflicts } }),
       invalidatesTags: (_r, _e, { id }) => ['RaceResults', 'Races', 'RaceDashboard', { type: 'Race', id }],
     }),
+    adjustRaceResult: b.mutation({
+      query: ({ id, ...body }) => ({ url: `/race/races/${id}/results/adjust`, method: 'PUT', body }),
+      invalidatesTags: ['RaceResults', 'RaceDashboard'],
+    }),
     raceReconciliation: b.query({
       query: (race) => ({ url: '/race/reconciliation', params: { race } }),
       providesTags: ['RaceReconciliation'],
@@ -586,7 +590,7 @@ export const {
   useRacePlatesQuery, useMarkPlatesPrintedMutation,
   useRaceMySessionsQuery, useListRaceSessionsQuery, useCreateRaceSessionMutation,
   useRaceConflictsQuery, useResolveRaceConflictMutation,
-  useRaceResultsQuery, useRecomputeRaceMutation, useFinalizeRaceResultsMutation,
+  useRaceResultsQuery, useRecomputeRaceMutation, useFinalizeRaceResultsMutation, useAdjustRaceResultMutation,
   useRaceReconciliationQuery, useRevokeRaceSessionMutation,
   useRaceBoardQuery, useRaceBoardActionMutation,
 } = api;

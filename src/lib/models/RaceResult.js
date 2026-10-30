@@ -27,6 +27,16 @@ const raceResultSchema = new mongoose.Schema(
 
     hasOpenConflicts: { type: Boolean, default: false },
 
+    // Manual, official post-race adjustments. NOT touched by recompute (which
+    // only $sets the derived fields), so they survive a re-run. `manualPoints`
+    // is an assigned/deducted points tally; `adjustedTimeMs`, when set,
+    // overrides the computed total time for display and ranking.
+    manualPoints: { type: Number, default: 0 },
+    adjustedTimeMs: { type: Number, default: null },
+    adjustNote: { type: String, default: '' },
+    adjustedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    adjustedAt: { type: Date },
+
     // Monotonically increasing projection version so stale recomputes can be
     // detected/ignored.
     projectionVersion: { type: Number, default: 0 },
