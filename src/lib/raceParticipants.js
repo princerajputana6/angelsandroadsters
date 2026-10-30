@@ -106,10 +106,24 @@ export async function reseedParticipantNumbers(start, userId) {
   // Make sure race-only participants are in the pool before numbering.
   const link = await linkRaceEntriesToPool(userId);
 
-  const riders = await Rider.find({})
-    .sort({ createdAt: 1, _id: 1 })
-    .select('_id')
-    .lean();
+  // Order by JOIN ORDER: the first time each participant appeared in ANY race,
+  // falling back to when they were added to the pool (for pool-only riders).
+  // We must NOT sort by the pool record's createdAt alone — a rider first added
+  // inside a race only gets a pool record when linked here, which would wrongly
+  // shove early racers to the end.
+  const agg = await RaceEntry.aggregate([
+    { $match: { poolRider: { $ne: null } } },
+    { $group: { _id: '$poolRider', firstAt: { $min: '$createdAt' } } },
+  ]);
+  const firstEntryAt = new Map(agg.map((a) => [String(a._id), new Date(a.firstAt).getTime()]));
+
+  const all = await Rider.find({}).select('_id createdAt').lean();
+  const effectiveAt = (r) => {
+    const poolAt = r.createdAt ? new Date(r.createdAt).getTime() : Infinity;
+    const raceAt = firstEntryAt.get(String(r._id)) ?? Infinity;
+    return Math.min(poolAt, raceAt);
+  };
+  const riders = all.sort((a, b) => effectiveAt(a) - effectiveAt(b) || String(a._id).localeCompare(String(b._id)));
 
   // Phase 1 — clear every number so reassignment can't transiently collide.
   await Rider.collection.updateMany({}, { $unset: { participantNo: '' } });
