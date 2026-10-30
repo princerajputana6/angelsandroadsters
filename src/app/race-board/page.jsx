@@ -8,6 +8,7 @@ import { useMeQuery, useListRacesQuery } from '@/store/api';
 import { writeLocalEvent, localEventCounts } from '@/lib/offline/eventStore';
 import {
   listBoardRaces, getBoardRace, downloadRaceForBoard, refreshBoardRoster, setBoardFlags, deriveBoardState, boardSessionId,
+  resetBoardRider, resetBoardAll, flushPendingResets,
 } from '@/lib/offline/boardStore';
 import { startBoardSyncEngine, syncBoardNow } from '@/lib/offline/boardSync';
 
@@ -120,7 +121,8 @@ function Board({ raceId }) {
     const stop = startBoardSyncEngine(raceId, {
       onResult: async (res) => {
         if (res?.ok) setLastSync(new Date().toLocaleTimeString());
-        // Pull in any riders added to the race since download (online-only, safe offline).
+        // Push any queued timing resets, then pull riders added since download.
+        try { await flushPendingResets(raceId); } catch { /* retries next tick */ }
         try { await refreshBoardRoster(raceId); } catch { /* keep cached roster */ }
         refresh();
       },
@@ -150,6 +152,20 @@ function Board({ raceId }) {
     await setBoardFlags(raceId, { endedAt: new Date().toISOString() });
     await refresh();
     syncBoardNow(raceId).then((r) => { if (r?.ok) setLastSync(new Date().toLocaleTimeString()); });
+  };
+
+  const resetRider = async (entryId, raceNumber, riderName) => {
+    if (!confirm(`Reset timing for #${raceNumber} ${riderName}? This clears their start/finish so you can time them again.`)) return;
+    setBusy(entryId);
+    try { await resetBoardRider(raceId, entryId); await refresh(); }
+    catch (e) { toast.error('Reset failed — ' + (e.message || '')); }
+    finally { setBusy(null); }
+  };
+
+  const resetAll = async () => {
+    if (!confirm('Reset ALL timings on the board? Every rider goes back to not started.')) return;
+    try { await resetBoardAll(raceId); await refresh(); toast.success('All timings reset'); }
+    catch (e) { toast.error('Reset failed — ' + (e.message || '')); }
   };
 
   const ranked = roster
@@ -208,6 +224,7 @@ function Board({ raceId }) {
                   {!ended && st.state === 'idle' && <button onClick={() => mark(r.entryId, 'RIDER_STARTED', r.raceNumber)} disabled={busy === r.entryId} className="btn btn-gold w-full mt-3 py-3">OUT — start</button>}
                   {!ended && st.state === 'out' && <button onClick={() => mark(r.entryId, 'RIDER_FINISHED', r.raceNumber)} disabled={busy === r.entryId} className="btn w-full mt-3 py-3 bg-emerald-500 text-white hover:bg-emerald-600">IN — finish</button>}
                   {st.state === 'done' && <div className="mt-3 text-center font-display text-2xl tabular-nums text-terra-400">⏱ {fmt(st.timeMs)}</div>}
+                  {!ended && st.state !== 'idle' && <button onClick={() => resetRider(r.entryId, r.raceNumber, r.riderName)} disabled={busy === r.entryId} className="mt-2 w-full text-center text-xs text-charcoal-400 hover:text-red-400">↺ Reset timing</button>}
                 </div>
               );
             })}
@@ -216,7 +233,10 @@ function Board({ raceId }) {
           {!ended && (
             <div className="sticky bottom-4 card p-4 flex items-center justify-between gap-3">
               <span className="text-sm text-charcoal-400">{state.allIn ? 'All riders are in.' : `Waiting for ${state.counts.total - state.counts.done} rider(s).`}</span>
-              <button onClick={end} className={`btn px-6 ${state.allIn ? 'btn-gold' : 'btn-outline text-sm'}`}>🏁 End Race</button>
+              <div className="flex items-center gap-2">
+                {(state.counts.out + state.counts.done) > 0 && <button onClick={resetAll} className="btn btn-outline text-sm">↺ Reset all</button>}
+                <button onClick={end} className={`btn px-6 ${state.allIn ? 'btn-gold' : 'btn-outline text-sm'}`}>🏁 End Race</button>
+              </div>
             </div>
           )}
         </>

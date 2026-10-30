@@ -99,6 +99,81 @@ export async function removeBoardRace(raceId) {
   await getDB().boardRaces.delete(raceId);
 }
 
+// ---------------------------------------------------------------- reset timing
+const TIMING_TYPES = ['RIDER_STARTED', 'RIDER_FINISHED'];
+
+/** Delete this device's local timing events (+ their outbox items) for a race,
+ *  optionally just one entry. Immediate: the board re-derives to "not started". */
+async function clearLocalTiming(sessionId, entryId) {
+  const db = getDB();
+  await db.transaction('rw', db.localEvents, db.outbox, async () => {
+    const rows = await db.localEvents
+      .where('sessionId').equals(sessionId)
+      .filter((r) => TIMING_TYPES.includes(r.type) && (!entryId || r.entryId === entryId))
+      .toArray();
+    for (const r of rows) {
+      await db.localEvents.delete(r.clientEventId);
+      await db.outbox.delete(r.clientEventId);
+    }
+  });
+}
+
+async function postBoardReset(raceId, bodyObj) {
+  const res = await fetch(`/api/race/races/${raceId}/board`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(bodyObj),
+  });
+  if (!res.ok) throw new Error(`reset failed (${res.status})`);
+}
+
+/**
+ * Send any queued resets to the server so already-synced timing events are
+ * cleared there too. Online-only and best-effort: if it can't reach the server
+ * the resets stay queued and retry on the next sync tick. Called from the
+ * board's sync loop and right after a reset.
+ */
+export async function flushPendingResets(raceId) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+  const db = getDB();
+  const row = await db.boardRaces.get(raceId);
+  if (!row) return;
+  const { pendingResetAll, pendingResetEntryIds = [] } = row;
+  if (!pendingResetAll && pendingResetEntryIds.length === 0) return;
+  try {
+    if (pendingResetAll) {
+      await postBoardReset(raceId, { action: 'reset-all' });
+    } else {
+      for (const entryId of pendingResetEntryIds) {
+        await postBoardReset(raceId, { action: 'reset', entryId });
+      }
+    }
+  } catch {
+    return; // stay queued; next tick retries
+  }
+  await db.boardRaces.update(raceId, { pendingResetAll: false, pendingResetEntryIds: [] });
+}
+
+/** Reset one rider's timing on the offline board (local now, server when online). */
+export async function resetBoardRider(raceId, entryId) {
+  await clearLocalTiming(boardSessionId(raceId), entryId);
+  const db = getDB();
+  const row = await db.boardRaces.get(raceId);
+  if (row && !row.pendingResetAll) {
+    const ids = new Set(row.pendingResetEntryIds || []);
+    ids.add(entryId);
+    await db.boardRaces.update(raceId, { pendingResetEntryIds: [...ids] });
+  }
+  await flushPendingResets(raceId);
+}
+
+/** Reset every rider's timing on the offline board (local now, server when online). */
+export async function resetBoardAll(raceId) {
+  await clearLocalTiming(boardSessionId(raceId), null);
+  await getDB().boardRaces.update(raceId, { pendingResetAll: true, pendingResetEntryIds: [] });
+  await flushPendingResets(raceId);
+}
+
 /**
  * Derive each rider's board state from this device's local events:
  *   idle → not started, out → started (on track), done → finished.
