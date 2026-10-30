@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -11,8 +11,59 @@ import {
   useUpdateRaceEntryMutation,
   useSetRaceEntryStatusMutation,
   useDeleteRaceEntryMutation,
+  useSearchRaceUsersQuery,
 } from '@/store/api';
 import RacePhotoInput from '@/components/race/RacePhotoInput';
+
+/**
+ * Rider name field that doubles as a search box over existing users. Pick a
+ * match to link the entry to that user; or just type a new name to add a rider
+ * who isn't an existing user (rider link stays empty).
+ */
+function RiderPicker({ name, riderId, onType, onPick }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState(name || '');
+  useEffect(() => { const t = setTimeout(() => setQ(name), 250); return () => clearTimeout(t); }, [name]);
+  const { data, isFetching } = useSearchRaceUsersQuery(q, { skip: !q || q.trim().length < 2 });
+  const results = data?.users || [];
+
+  return (
+    <div className="block relative">
+      <span className="text-xs text-charcoal-400">
+        Rider * {riderId && <span className="text-emerald-400">· linked to existing user</span>}
+      </span>
+      <input
+        className="input mt-1 w-full"
+        value={name}
+        placeholder="Search existing riders or type a new name…"
+        autoComplete="off"
+        onChange={(e) => { onType(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+      />
+      {open && q.trim().length >= 2 && (
+        <div className="absolute z-20 left-0 right-0 mt-1 card max-h-56 overflow-y-auto">
+          {results.map((u) => (
+            <button
+              key={u._id}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => { onPick(u); setOpen(false); }}
+              className="w-full text-left px-3 py-2 hover:bg-white/5 border-b border-charcoal-800/60 last:border-0"
+            >
+              <div className="text-sm">{u.name}</div>
+              <div className="text-[11px] text-charcoal-500">{u.email}{u.phone ? ` · ${u.phone}` : ''}</div>
+            </button>
+          ))}
+          {isFetching && <div className="px-3 py-2 text-xs text-charcoal-500">Searching…</div>}
+          {!isFetching && results.length === 0 && (
+            <div className="px-3 py-2 text-xs text-charcoal-500">No match — “{name}” will be added as a new rider.</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const STATUS_STYLE = {
   active: 'bg-emerald-500/20 text-emerald-300',
@@ -21,7 +72,7 @@ const STATUS_STYLE = {
 };
 
 const emptyForm = {
-  raceNumber: '', riderName: '', displayName: '', category: '',
+  raceNumber: '', riderName: '', rider: undefined, displayName: '', category: '',
   bike: { make: '', model: '', cc: '', description: '' },
   photos: { rider: {}, bike: {}, plate: {} },
 };
@@ -34,6 +85,7 @@ function EntryModal({ raceId, categories, editing, lockedLifecycle, onClose }) {
       ? {
           raceNumber: editing.raceNumber,
           riderName: editing.riderName || '',
+          rider: editing.rider || undefined,
           displayName: editing.displayName || '',
           category: editing.category?._id || editing.category || '',
           bike: { make: '', model: '', cc: '', description: '', ...(editing.bike || {}) },
@@ -60,6 +112,7 @@ function EntryModal({ raceId, categories, editing, lockedLifecycle, onClose }) {
 
     const body = {
       riderName: form.riderName.trim(),
+      rider: form.rider || undefined,
       displayName: form.displayName.trim() || undefined,
       raceNumber: Number(form.raceNumber),
       category: form.category || undefined,
@@ -109,10 +162,12 @@ function EntryModal({ raceId, categories, editing, lockedLifecycle, onClose }) {
               {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
             </select>
           </label>
-          <label className="block">
-            <span className="text-xs text-charcoal-400">Rider name *</span>
-            <input className="input mt-1 w-full" value={form.riderName} onChange={(e) => setForm({ ...form, riderName: e.target.value })} />
-          </label>
+          <RiderPicker
+            name={form.riderName}
+            riderId={form.rider}
+            onType={(v) => setForm({ ...form, riderName: v, rider: undefined })}
+            onPick={(u) => setForm({ ...form, riderName: u.name, rider: u._id })}
+          />
           <label className="block">
             <span className="text-xs text-charcoal-400">Display name (for plate)</span>
             <input className="input mt-1 w-full" value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder="optional" />

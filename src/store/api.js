@@ -405,6 +405,11 @@ export const api = createApi({
       invalidatesTags: ['RaceIndexes'],
     }),
 
+    // User search for the rider picker
+    searchRaceUsers: b.query({
+      query: (q) => ({ url: '/race/user-search', params: { q } }),
+    }),
+
     // Race entries (riders)
     listRaceEntries: b.query({
       query: (race) => ({ url: '/race/entries', params: { race } }),
@@ -545,6 +550,7 @@ export const {
   useListRaceCategoriesQuery, useCreateRaceCategoryMutation, useUpdateRaceCategoryMutation, useDeleteRaceCategoryMutation,
   useRaceIndexReportQuery, useEnsureRaceIndexesMutation,
   useListRaceEntriesQuery, useCreateRaceEntryMutation, useUpdateRaceEntryMutation, useSetRaceEntryStatusMutation, useDeleteRaceEntryMutation,
+  useSearchRaceUsersQuery,
   useRacePlatesQuery, useMarkPlatesPrintedMutation,
   useRaceMySessionsQuery, useListRaceSessionsQuery, useCreateRaceSessionMutation,
   useRaceConflictsQuery, useResolveRaceConflictMutation,
