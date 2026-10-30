@@ -29,7 +29,12 @@ export async function POST(req, { params }) {
     const table = Array.isArray(body?.table) && body.table.length ? body.table.map(Number) : DEFAULT_TABLE;
     const participation = Number.isFinite(Number(body?.participation)) ? Number(body.participation) : DEFAULT_PARTICIPATION;
 
-    const results = await RaceResult.find({ race: race._id, status: 'finished' })
+    // Finished riders, but never a manually disqualified one.
+    const results = await RaceResult.find({
+      race: race._id,
+      status: 'finished',
+      manualStatus: { $ne: 'disqualified' },
+    })
       .select('_id adjustedTimeMs totalTimeMs')
       .lean();
 

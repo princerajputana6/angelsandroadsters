@@ -30,9 +30,16 @@ const raceResultSchema = new mongoose.Schema(
     // Manual, official post-race adjustments. NOT touched by recompute (which
     // only $sets the derived fields), so they survive a re-run. `manualPoints`
     // is an assigned/deducted points tally; `adjustedTimeMs`, when set,
-    // overrides the computed total time for display and ranking.
+    // overrides the computed total time for display and ranking;
+    // `manualStatus`, when set, overrides the computed status (e.g. a
+    // disqualification) for display and ranking.
     manualPoints: { type: Number, default: 0 },
     adjustedTimeMs: { type: Number, default: null },
+    manualStatus: {
+      type: String,
+      enum: ['dns', 'running', 'finished', 'dnf', 'disqualified', null],
+      default: null,
+    },
     adjustNote: { type: String, default: '' },
     adjustedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     adjustedAt: { type: Date },
