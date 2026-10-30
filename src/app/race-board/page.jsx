@@ -168,6 +168,21 @@ function Board({ raceId }) {
     catch (e) { toast.error('Reset failed — ' + (e.message || '')); }
   };
 
+  const startAll = async () => {
+    const idle = roster.filter((r) => (state.byEntry[r.entryId]?.state || 'idle') === 'idle');
+    if (!idle.length) return;
+    if (!confirm(`Start all ${idle.length} remaining rider(s) now, at the same time?`)) return;
+    setBusy('all');
+    try {
+      for (const r of idle) {
+        await writeLocalEvent({ sessionId: boardSessionId(raceId), raceId, entryId: r.entryId, type: 'RIDER_STARTED', payload: { raceNumber: r.raceNumber } });
+      }
+      await refresh();
+      syncBoardNow(raceId).then((res) => { if (res?.ok) setLastSync(new Date().toLocaleTimeString()); });
+    } catch (e) { toast.error('Start all failed — ' + (e.message || '')); }
+    finally { setBusy(null); }
+  };
+
   const ranked = roster
     .map((r) => ({ ...r, ...state.byEntry[r.entryId] }))
     .filter((r) => r.timeMs != null)
@@ -234,6 +249,7 @@ function Board({ raceId }) {
             <div className="sticky bottom-4 card p-4 flex items-center justify-between gap-3">
               <span className="text-sm text-charcoal-400">{state.allIn ? 'All riders are in.' : `Waiting for ${state.counts.total - state.counts.done} rider(s).`}</span>
               <div className="flex items-center gap-2">
+                {(state.counts.out + state.counts.done) < state.counts.total && <button onClick={startAll} disabled={busy === 'all'} className="btn btn-gold text-sm">OUT all</button>}
                 {(state.counts.out + state.counts.done) > 0 && <button onClick={resetAll} className="btn btn-outline text-sm">↺ Reset all</button>}
                 <button onClick={end} className={`btn px-6 ${state.allIn ? 'btn-gold' : 'btn-outline text-sm'}`}>🏁 End Race</button>
               </div>

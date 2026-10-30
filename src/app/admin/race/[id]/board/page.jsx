@@ -161,6 +161,9 @@ export default function RaceBoardPage() {
                   {allIn ? 'All riders are in — you can end the race.' : `Waiting for ${counts.total - counts.done} rider(s) to finish.`}
                 </span>
                 <div className="flex items-center gap-2">
+                  {(counts.started ?? (counts.out + counts.done)) < counts.total && (
+                    <button onClick={() => run('out-all', null, `Start all ${counts.total - (counts.started ?? (counts.out + counts.done))} remaining rider(s) now, at the same time?`)} disabled={acting} className="btn btn-gold text-sm">OUT all</button>
+                  )}
                   {counts.done + counts.out > 0 && (
                     <button onClick={() => run('reset-all', null, 'Reset ALL timings on the board? Every rider goes back to not started.')} disabled={acting} className="btn btn-outline text-sm">↺ Reset all</button>
                   )}

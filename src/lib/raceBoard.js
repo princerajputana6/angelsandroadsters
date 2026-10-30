@@ -54,6 +54,37 @@ export async function appendBoardEvent(race, entry, type, user) {
   throw Object.assign(new Error('Could not allocate event sequence'), { status: 500 });
 }
 
+/**
+ * Mass start: append a RIDER_STARTED for many entries at ONE shared timestamp
+ * (a common/gun start). Allocates a contiguous block of device sequences once
+ * and inserts them together, so all riders share the exact same start time.
+ */
+export async function appendBoardStartAll(race, entries, user) {
+  await connectDB();
+  if (!entries.length) return 0;
+  const deviceId = boardDeviceId(race._id);
+  const occurredAt = new Date();
+  const last = await RaceEvent.findOne({ deviceId }).sort({ deviceSequence: -1 }).select('deviceSequence').lean();
+  let seq = last?.deviceSequence || 0;
+
+  const docs = entries.map((entry) => {
+    seq += 1;
+    const deviceSequence = seq;
+    const payload = { raceNumber: entry.raceNumber, source: 'admin-board', massStart: true };
+    const payloadHash = eventPayloadHash({
+      type: 'RIDER_STARTED', raceId: race._id, entryId: entry._id, deviceId, deviceSequence,
+      occurredAt: occurredAt.toISOString(), payload,
+    });
+    return {
+      clientEventId: randomUUID(), event: race.event, race: race._id, entry: entry._id,
+      deviceId, checkpointSessionId: deviceId, officialId: user._id, deviceSequence,
+      type: 'RIDER_STARTED', occurredAt, payload, payloadHash, schemaVersion: 1,
+    };
+  });
+  await RaceEvent.insertMany(docs, { ordered: false });
+  return docs.length;
+}
+
 /** Derive the board view for a race: each active rider's state + timing. */
 export async function getBoardState(raceId) {
   await connectDB();

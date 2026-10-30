@@ -4,7 +4,7 @@ import RaceEntry from '@/lib/models/RaceEntry';
 import RaceEvent from '@/lib/models/RaceEvent';
 import { ok, handler, toJSON } from '@/lib/apiUtils';
 import { requireRaceManager, logRaceAudit } from '@/lib/raceAuth';
-import { getBoardState, appendBoardEvent } from '@/lib/raceBoard';
+import { getBoardState, appendBoardEvent, appendBoardStartAll } from '@/lib/raceBoard';
 import { recomputeRaceResults } from '@/lib/raceProjection';
 
 // GET /api/race/races/:id/board — current board state.
@@ -81,6 +81,24 @@ export async function POST(req, { params }) {
       await RaceEvent.deleteMany({ race: race._id, type: { $in: ['RIDER_STARTED', 'RIDER_FINISHED'] } });
       await logRaceAudit({ actor: user, action: 'RACE_BOARD_RESET_ALL', event: race.event, race: race._id, targetType: 'Race', targetId: race._id });
       if (race.status === 'completed') await recomputeRaceResults(race._id);
+      return ok(await getBoardState(params.id));
+    }
+
+    // Mass start — mark every not-yet-started rider OUT at one shared time.
+    if (action === 'out-all') {
+      const race = await Race.findById(params.id);
+      if (!race) throw Object.assign(new Error('Race not found'), { status: 404 });
+      if (race.status !== 'active') {
+        throw Object.assign(new Error('Start the race before marking riders out.'), { status: 409 });
+      }
+      const [entries, started] = await Promise.all([
+        RaceEntry.find({ race: race._id, status: 'active' }).select('_id raceNumber').sort({ raceNumber: 1 }).lean(),
+        RaceEvent.find({ race: race._id, type: 'RIDER_STARTED' }).select('entry').lean(),
+      ]);
+      const startedSet = new Set(started.map((e) => String(e.entry)));
+      const toStart = entries.filter((e) => !startedSet.has(String(e._id)));
+      const n = await appendBoardStartAll(race, toStart, user);
+      await logRaceAudit({ actor: user, action: 'RACE_BOARD_START_ALL', event: race.event, race: race._id, targetType: 'Race', targetId: race._id, meta: { started: n } });
       return ok(await getBoardState(params.id));
     }
 
