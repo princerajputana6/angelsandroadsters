@@ -373,7 +373,13 @@ export const api = createApi({
       invalidatesTags: ['Races', 'RaceDashboard', 'RaceResults'],
     }),
     combinedStandings: b.query({
-      query: (event) => ({ url: '/race/combined', params: { event } }),
+      // arg: { races: string[] } to combine specific races, or { event } for all in an event
+      query: (arg) => {
+        const params = {};
+        if (arg?.races?.length) params.races = arg.races.join(',');
+        else if (arg?.event) params.event = arg.event;
+        return { url: '/race/combined', params };
+      },
       providesTags: ['RaceResults'],
     }),
     setRaceStatus: b.mutation({
