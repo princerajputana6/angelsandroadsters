@@ -142,6 +142,13 @@ export default function RaceBoardPage() {
                   {r.state === 'done' && (
                     <div className="mt-3 text-center font-display text-2xl tabular-nums text-terra-400">⏱ {fmt(r.timeMs)}</div>
                   )}
+                  {active && r.state !== 'idle' && (
+                    <button
+                      onClick={() => run('reset', r.entryId, `Reset timing for #${r.raceNumber} ${r.riderName}? This clears their start/finish so you can time them again.`)}
+                      disabled={acting}
+                      className="mt-2 w-full text-center text-xs text-charcoal-400 hover:text-red-400"
+                    >↺ Reset timing</button>
+                  )}
                 </div>
               );
             })}
@@ -153,11 +160,16 @@ export default function RaceBoardPage() {
                 <span className="text-sm text-charcoal-400">
                   {allIn ? 'All riders are in — you can end the race.' : `Waiting for ${counts.total - counts.done} rider(s) to finish.`}
                 </span>
-                {allIn ? (
-                  <button onClick={() => run('end', null, 'End the race and lock in timings?')} disabled={acting} className="btn btn-gold px-6">🏁 End Race</button>
-                ) : (
-                  <button onClick={() => run('end', null, 'Some riders are not in yet. End the race anyway?')} disabled={acting} className="btn btn-outline text-sm">End anyway</button>
-                )}
+                <div className="flex items-center gap-2">
+                  {counts.done + counts.out > 0 && (
+                    <button onClick={() => run('reset-all', null, 'Reset ALL timings on the board? Every rider goes back to not started.')} disabled={acting} className="btn btn-outline text-sm">↺ Reset all</button>
+                  )}
+                  {allIn ? (
+                    <button onClick={() => run('end', null, 'End the race and lock in timings?')} disabled={acting} className="btn btn-gold px-6">🏁 End Race</button>
+                  ) : (
+                    <button onClick={() => run('end', null, 'Some riders are not in yet. End the race anyway?')} disabled={acting} className="btn btn-outline text-sm">End anyway</button>
+                  )}
+                </div>
               </div>
             </div>
           )}

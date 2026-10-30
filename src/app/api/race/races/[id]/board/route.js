@@ -64,6 +64,26 @@ export async function POST(req, { params }) {
       return ok(await getBoardState(params.id));
     }
 
+    // Reset one rider's timing — clears their OUT/IN so they are idle again.
+    if (action === 'reset') {
+      if (!entryId) throw Object.assign(new Error('entryId required'), { status: 400 });
+      const { race, entry } = await loadRaceEntry(params.id, entryId);
+      await RaceEvent.deleteMany({ race: race._id, entry: entry._id, type: { $in: ['RIDER_STARTED', 'RIDER_FINISHED'] } });
+      await logRaceAudit({ actor: user, action: 'RACE_BOARD_RESET', event: race.event, race: race._id, targetType: 'RaceEntry', targetId: entry._id, meta: { raceNumber: entry.raceNumber } });
+      if (race.status === 'completed') await recomputeRaceResults(race._id);
+      return ok(await getBoardState(params.id));
+    }
+
+    // Reset the whole board — clears every rider's timing for a clean re-run.
+    if (action === 'reset-all') {
+      const race = await Race.findById(params.id);
+      if (!race) throw Object.assign(new Error('Race not found'), { status: 404 });
+      await RaceEvent.deleteMany({ race: race._id, type: { $in: ['RIDER_STARTED', 'RIDER_FINISHED'] } });
+      await logRaceAudit({ actor: user, action: 'RACE_BOARD_RESET_ALL', event: race.event, race: race._id, targetType: 'Race', targetId: race._id });
+      if (race.status === 'completed') await recomputeRaceResults(race._id);
+      return ok(await getBoardState(params.id));
+    }
+
     // Per-rider OUT / IN
     if (action === 'out' || action === 'in') {
       if (!entryId) throw Object.assign(new Error('entryId required'), { status: 400 });
