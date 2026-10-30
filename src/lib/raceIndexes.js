@@ -26,8 +26,10 @@ import RaceConflict from './models/RaceConflict';
 import RaceAuditLog from './models/RaceAuditLog';
 import RaceResult from './models/RaceResult';
 import SyncReceipt from './models/SyncReceipt';
+import Rider from './models/Rider';
 
 export const RACE_MODELS = {
+  Rider,
   Race,
   RaceCategory,
   RaceEntry,

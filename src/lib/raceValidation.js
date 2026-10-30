@@ -95,4 +95,33 @@ export const entryCreateSchema = z.object({
 
 export const entryUpdateSchema = entryCreateSchema.partial().omit({ race: true });
 
+// ---------------------------------------------------------------- Rider pool
+export const riderCreateSchema = z.object({
+  name: z.string().trim().min(1).max(160),
+  displayName: z.string().trim().max(160).optional(),
+  phone: z.string().trim().max(40).optional(),
+  email: z.string().trim().max(160).optional().or(z.literal('')),
+  user: objectId.optional(),
+  bike: z
+    .object({
+      make: z.string().max(80).optional(),
+      model: z.string().max(80).optional(),
+      cc: z.string().max(40).optional(),
+      description: z.string().max(500).optional(),
+    })
+    .optional(),
+  photo: assetRefInput,
+  notes: z.string().max(1000).optional(),
+});
+
+export const riderUpdateSchema = riderCreateSchema.partial();
+
+// Bulk onboard pool riders into a race.
+export const bulkAddSchema = z.object({
+  race: objectId,
+  riderIds: z.array(objectId).min(1).max(500),
+  startNumber: z.number().int().min(0).max(100000).optional(),
+  category: objectId.optional(),
+});
+
 export { objectId };

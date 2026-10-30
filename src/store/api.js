@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: '/api', credentials: 'include' }),
-  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics', 'Coupons', 'Resorts', 'Resort', 'ResortBookings', 'Affiliate', 'Affiliates', 'TrailstormAnalytics', 'Races', 'Race', 'RaceCategories', 'RaceDashboard', 'RaceIndexes', 'RaceEntries', 'RacePlates', 'RaceSessions', 'RaceConflicts', 'RaceResults', 'RaceReconciliation', 'RaceBoard'],
+  tagTypes: ['Auth', 'Products', 'Product', 'Categories', 'Sections', 'Companies', 'Events', 'Event', 'Orders', 'Order', 'Registrations', 'Users', 'Stats', 'Blogs', 'Blog', 'Addresses', 'CompTickets', 'TrailstormMetrics', 'Coupons', 'Resorts', 'Resort', 'ResortBookings', 'Affiliate', 'Affiliates', 'TrailstormAnalytics', 'Races', 'Race', 'RaceCategories', 'RaceDashboard', 'RaceIndexes', 'RaceEntries', 'RacePlates', 'RaceSessions', 'RaceConflicts', 'RaceResults', 'RaceReconciliation', 'RaceBoard', 'RidersPool'],
   endpoints: (b) => ({
     // Auth
     me: b.query({ query: () => '/auth/me', providesTags: ['Auth'] }),
@@ -410,6 +410,28 @@ export const api = createApi({
       query: (q) => ({ url: '/race/user-search', params: { q } }),
     }),
 
+    // Global rider pool
+    listRiders: b.query({
+      query: (params = {}) => ({ url: '/race/riders', params }),
+      providesTags: ['RidersPool'],
+    }),
+    createRider: b.mutation({
+      query: (body) => ({ url: '/race/riders', method: 'POST', body }),
+      invalidatesTags: ['RidersPool'],
+    }),
+    updateRider: b.mutation({
+      query: ({ id, body }) => ({ url: `/race/riders/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['RidersPool'],
+    }),
+    deleteRider: b.mutation({
+      query: (id) => ({ url: `/race/riders/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['RidersPool'],
+    }),
+    bulkAddEntries: b.mutation({
+      query: (body) => ({ url: '/race/entries/bulk', method: 'POST', body }),
+      invalidatesTags: ['RaceEntries', 'RaceDashboard', 'RaceBoard'],
+    }),
+
     // Race entries (riders)
     listRaceEntries: b.query({
       query: (race) => ({ url: '/race/entries', params: { race } }),
@@ -551,6 +573,7 @@ export const {
   useRaceIndexReportQuery, useEnsureRaceIndexesMutation,
   useListRaceEntriesQuery, useCreateRaceEntryMutation, useUpdateRaceEntryMutation, useSetRaceEntryStatusMutation, useDeleteRaceEntryMutation,
   useSearchRaceUsersQuery,
+  useListRidersQuery, useCreateRiderMutation, useUpdateRiderMutation, useDeleteRiderMutation, useBulkAddEntriesMutation,
   useRacePlatesQuery, useMarkPlatesPrintedMutation,
   useRaceMySessionsQuery, useListRaceSessionsQuery, useCreateRaceSessionMutation,
   useRaceConflictsQuery, useResolveRaceConflictMutation,

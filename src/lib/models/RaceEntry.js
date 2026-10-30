@@ -29,6 +29,7 @@ const raceEntrySchema = new mongoose.Schema(
     // Optional links to existing identity records.
     rider: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     registration: { type: mongoose.Schema.Types.ObjectId, ref: 'Registration' },
+    poolRider: { type: mongoose.Schema.Types.ObjectId, ref: 'Rider' }, // from the global rider pool
 
     riderName: { type: String, required: true, trim: true },
     displayName: { type: String, trim: true, default: '' }, // permitted public name for plate

@@ -12,8 +12,75 @@ import {
   useSetRaceEntryStatusMutation,
   useDeleteRaceEntryMutation,
   useSearchRaceUsersQuery,
+  useListRidersQuery,
+  useBulkAddEntriesMutation,
 } from '@/store/api';
+import { FiUserPlus, FiPlus, FiSearch, FiTag } from 'react-icons/fi';
 import RacePhotoInput from '@/components/race/RacePhotoInput';
+
+/**
+ * Multi-select riders from the global pool and onboard them into this race in
+ * one go (numbers auto-assigned server-side; riders already in the race skipped).
+ */
+function PoolModal({ raceId, onClose }) {
+  const [q, setQ] = useState('');
+  const { data, isLoading } = useListRidersQuery(q ? { q } : {});
+  const [bulkAdd, { isLoading: adding }] = useBulkAddEntriesMutation();
+  const [picked, setPicked] = useState(() => new Set());
+  const riders = data?.riders || [];
+
+  const toggle = (riderId) => setPicked((prev) => {
+    const next = new Set(prev);
+    next.has(riderId) ? next.delete(riderId) : next.add(riderId);
+    return next;
+  });
+
+  const add = async () => {
+    if (picked.size === 0) return;
+    try {
+      const res = await bulkAdd({ race: raceId, riderIds: [...picked] }).unwrap();
+      const msg = `Added ${res.created} rider(s)` + (res.skipped?.length ? `, skipped ${res.skipped.length}` : '');
+      toast.success(msg);
+      onClose();
+    } catch (err) { toast.error(err?.data?.message || 'Failed to add'); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-start sm:items-center justify-center p-3 sm:p-4 bg-charcoal-950/80 backdrop-blur overflow-y-auto">
+      <div className="card-glass p-4 sm:p-6 w-full max-w-lg space-y-3 my-4 sm:my-8 max-h-[92vh] overflow-y-auto flex flex-col">
+        <div className="flex items-center justify-between">
+          <h3 className="text-2xl font-display">Add riders from pool</h3>
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-full border border-charcoal-700">✕</button>
+        </div>
+        <div className="relative">
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-500" />
+          <input className="input w-full pl-9" placeholder="Search the rider pool…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        <div className="flex-1 overflow-y-auto divide-y divide-charcoal-800 border border-charcoal-800 rounded-xl">
+          {isLoading ? <p className="p-3 text-sm text-charcoal-400">Loading…</p> : riders.map((r) => (
+            <label key={r._id} className="flex items-center gap-3 p-2.5 cursor-pointer hover:bg-white/5">
+              <input type="checkbox" checked={picked.has(r._id)} onChange={() => toggle(r._id)} />
+              {r.photo?.url
+                ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={r.photo.url} alt="" className="w-8 h-8 rounded object-cover" />
+                : <span className="w-8 h-8 rounded bg-charcoal-800" />}
+              <span className="flex-1 min-w-0">
+                <span className="text-sm truncate block">{r.name}</span>
+                <span className="text-[11px] text-charcoal-500">{[r.bike?.make, r.bike?.model].filter(Boolean).join(' ')}</span>
+              </span>
+            </label>
+          ))}
+          {!isLoading && riders.length === 0 && (
+            <p className="p-4 text-sm text-charcoal-400 text-center">No riders in the pool. Add them under <Link href="/admin/race/riders" className="text-terra-400">Rider Pool</Link>.</p>
+          )}
+        </div>
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <span className="text-sm text-charcoal-400">{picked.size} selected · numbers auto-assigned</span>
+          <button onClick={add} disabled={adding || picked.size === 0} className="btn btn-gold">{adding ? 'Adding…' : `Add ${picked.size || ''}`}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Rider name field that doubles as a search box over existing users. Pick a
@@ -205,6 +272,7 @@ export default function RaceEntriesPage() {
   const [del] = useDeleteRaceEntryMutation();
 
   const [modal, setModal] = useState(null); // 'new' | entry object
+  const [showPool, setShowPool] = useState(false);
   const race = raceData?.race;
   const categories = catData?.categories || [];
   const entries = entryData?.entries || [];
@@ -234,11 +302,13 @@ export default function RaceEntriesPage() {
           <h1 className="text-3xl font-display mt-1">Riders & Entries</h1>
           <p className="text-sm text-charcoal-400">Number uniqueness: per {race?.numberUniquenessScope || 'race'} · {entries.filter((e) => e.status === 'active').length} active</p>
         </div>
-        <div className="flex gap-2">
-          <Link href={`/admin/race/${id}/plates`} className="btn btn-outline">🏷 Plates</Link>
-          <button onClick={() => setModal('new')} className="btn btn-gold">+ Add entry</button>
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/admin/race/${id}/plates`} className="btn btn-outline"><FiTag /> Plates</Link>
+          <button onClick={() => setShowPool(true)} className="btn btn-outline"><FiUserPlus /> Add from pool</button>
+          <button onClick={() => setModal('new')} className="btn btn-gold"><FiPlus /> Add entry</button>
         </div>
       </div>
+      {showPool && <PoolModal raceId={id} onClose={() => setShowPool(false)} />}
 
       {isLoading ? <p className="text-charcoal-400">Loading entries…</p> : (
         <div className="card overflow-x-auto">
