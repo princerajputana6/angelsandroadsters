@@ -1,14 +1,16 @@
 'use client';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { FiPlus, FiEdit2, FiTrash2, FiSearch } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiHash } from 'react-icons/fi';
 import {
   useListRidersQuery,
   useCreateRiderMutation,
   useUpdateRiderMutation,
   useDeleteRiderMutation,
+  useBackfillParticipantNosMutation,
 } from '@/store/api';
 import RacePhotoInput from '@/components/race/RacePhotoInput';
+import { fmtParticipantNo } from '@/lib/participantNo';
 
 const emptyRider = {
   name: '', displayName: '', phone: '', email: '',
@@ -83,8 +85,17 @@ export default function RiderPoolPage() {
   const [q, setQ] = useState('');
   const { data, isLoading } = useListRidersQuery(q ? { q } : {});
   const [del] = useDeleteRiderMutation();
+  const [backfill, { isLoading: backfilling }] = useBackfillParticipantNosMutation();
   const [modal, setModal] = useState(null); // 'new' | rider
   const riders = data?.riders || [];
+  const missingIds = riders.filter((r) => r.participantNo == null).length;
+
+  const assignIds = async () => {
+    try {
+      const res = await backfill().unwrap();
+      toast.success(res.assigned ? `Assigned ${res.assigned} participant ID(s)` : 'All riders already have an ID');
+    } catch (err) { toast.error(err?.data?.message || 'Failed to assign IDs'); }
+  };
 
   const remove = async (r) => {
     if (!confirm(`Remove ${r.name} from the pool?`)) return;
@@ -100,9 +111,16 @@ export default function RiderPoolPage() {
         <div>
           <p className="eyebrow mb-1">RACE MANAGEMENT</p>
           <h1 className="text-3xl sm:text-4xl font-display">Rider Pool</h1>
-          <p className="text-sm text-charcoal-400">A reusable master list — add riders here once, then onboard them into any race.</p>
+          <p className="text-sm text-charcoal-400">A reusable master list — add riders here once, then onboard them into any race. Each rider keeps a permanent ID (001, 002…) across every race.</p>
         </div>
-        <button onClick={() => setModal('new')} className="btn btn-gold"><FiPlus /> Add rider</button>
+        <div className="flex flex-wrap gap-2">
+          {missingIds > 0 && (
+            <button onClick={assignIds} disabled={backfilling} className="btn btn-outline">
+              <FiHash /> {backfilling ? 'Assigning…' : `Assign IDs (${missingIds})`}
+            </button>
+          )}
+          <button onClick={() => setModal('new')} className="btn btn-gold"><FiPlus /> Add rider</button>
+        </div>
       </div>
 
       <div className="relative mb-4 max-w-sm">
@@ -114,11 +132,16 @@ export default function RiderPoolPage() {
         <div className="card overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-charcoal-800/60 text-xs text-charcoal-400 uppercase tracking-wider">
-              <tr><th className="text-left p-3">Rider</th><th className="text-left p-3">Contact</th><th className="text-left p-3">Bike</th><th className="text-right p-3">Actions</th></tr>
+              <tr><th className="text-left p-3">ID</th><th className="text-left p-3">Rider</th><th className="text-left p-3">Contact</th><th className="text-left p-3">Bike</th><th className="text-right p-3">Actions</th></tr>
             </thead>
             <tbody className="divide-y divide-charcoal-800">
               {riders.map((r) => (
                 <tr key={r._id} className={`hover:bg-white/[0.02] ${!r.active ? 'opacity-50' : ''}`}>
+                  <td className="p-3">
+                    {r.participantNo != null
+                      ? <span className="font-mono text-sm text-terra-400">{fmtParticipantNo(r.participantNo)}</span>
+                      : <span className="text-xs text-charcoal-600">—</span>}
+                  </td>
                   <td className="p-3">
                     <div className="flex items-center gap-2">
                       {r.photo?.url
@@ -135,7 +158,7 @@ export default function RiderPoolPage() {
                   </td>
                 </tr>
               ))}
-              {riders.length === 0 && <tr><td colSpan={4} className="p-12 text-center text-charcoal-400">No riders yet. <button onClick={() => setModal('new')} className="text-terra-400">Add one</button>.</td></tr>}
+              {riders.length === 0 && <tr><td colSpan={5} className="p-12 text-center text-charcoal-400">No riders yet. <button onClick={() => setModal('new')} className="text-terra-400">Add one</button>.</td></tr>}
             </tbody>
           </table>
         </div>

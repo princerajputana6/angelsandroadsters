@@ -2,8 +2,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { FiSearch, FiUserPlus } from 'react-icons/fi';
+import { FiSearch, FiUserPlus, FiCheckSquare, FiSquare } from 'react-icons/fi';
 import { useListRidersQuery, useCreateRiderMutation } from '@/store/api';
+import { fmtParticipantNo } from '@/lib/participantNo';
 
 /**
  * Searchable, checkbox list of riders from the GLOBAL rider pool. Controlled by
@@ -11,22 +12,40 @@ import { useListRidersQuery, useCreateRiderMutation } from '@/store/api';
  *
  * The pool is shared across every race: a rider added here (or inline, below) is
  * stored once and can be entered into any number of races. This component is
- * reused by the New Race modal (pick participants) and the dashboard
- * "Add entries" modal so the selection UI stays identical everywhere.
+ * reused by the New Race modal (pick participants) and the dashboard / entries
+ * "Add entries" modals so the selection UI stays identical everywhere.
  *
  * Inline add: typing a name that isn't already in the pool reveals an
- * "Add … to the pool" button, which creates the rider globally and selects it —
- * so you never have to leave the flow to register a new participant.
+ * "Add … to the pool" button, which creates the rider globally and selects it.
+ *
+ * Props:
+ *  - alreadyIn   optional Set of rider ids already entered in the target race.
+ *                Those rows stay visible (so the full pool is always shown) but
+ *                are marked "In race" and can't be re-selected.
+ *  - showSelectAll  render the Select-all / Clear controls (default true).
  */
-export default function RiderMultiSelect({ picked, onToggle, height = 'max-h-64' }) {
+export default function RiderMultiSelect({ picked, onToggle, height = 'max-h-64', alreadyIn, showSelectAll = true }) {
   const [q, setQ] = useState('');
   const { data, isLoading } = useListRidersQuery(q ? { q } : {});
   const [createRider, { isLoading: creating }] = useCreateRiderMutation();
   const riders = data?.riders || [];
+  const inRace = alreadyIn || new Set();
 
   const query = q.trim();
   const exactMatch = riders.some((r) => (r.name || '').trim().toLowerCase() === query.toLowerCase());
   const canAddNew = query.length >= 1 && !exactMatch;
+
+  // Riders that can still be picked (not already in the race).
+  const selectable = riders.filter((r) => !inRace.has(r._id));
+  const allSelected = selectable.length > 0 && selectable.every((r) => picked.has(r._id));
+
+  const selectAll = () => {
+    // Pick every still-selectable rider that isn't picked yet.
+    selectable.forEach((r) => { if (!picked.has(r._id)) onToggle(r._id); });
+  };
+  const clearAll = () => {
+    selectable.forEach((r) => { if (picked.has(r._id)) onToggle(r._id); });
+  };
 
   const addNew = async () => {
     if (!query) return;
@@ -64,22 +83,53 @@ export default function RiderMultiSelect({ picked, onToggle, height = 'max-h-64'
         </button>
       )}
 
+      {showSelectAll && selectable.length > 0 && (
+        <div className="flex items-center justify-between text-xs text-charcoal-400 px-1">
+          <button
+            type="button"
+            onClick={allSelected ? clearAll : selectAll}
+            className="inline-flex items-center gap-1.5 text-terra-400 hover:text-terra-300"
+          >
+            {allSelected ? <FiSquare /> : <FiCheckSquare />}
+            {allSelected ? 'Clear all' : `Select all${q ? ' matching' : ''} (${selectable.length})`}
+          </button>
+          <span>{[...picked].filter((id) => !inRace.has(id)).length} selected</span>
+        </div>
+      )}
+
       <div className={`overflow-y-auto divide-y divide-charcoal-800 border border-charcoal-800 rounded-xl ${height}`}>
         {isLoading ? (
           <p className="p-3 text-sm text-charcoal-400">Loading…</p>
         ) : (
-          riders.map((r) => (
-            <label key={r._id} className="flex items-center gap-3 p-2.5 cursor-pointer hover:bg-white/5">
-              <input type="checkbox" checked={picked.has(r._id)} onChange={() => onToggle(r._id)} />
-              {r.photo?.url
-                ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={r.photo.url} alt="" className="w-8 h-8 rounded object-cover" />
-                : <span className="w-8 h-8 rounded bg-charcoal-800" />}
-              <span className="flex-1 min-w-0">
-                <span className="text-sm truncate block">{r.name}</span>
-                <span className="text-[11px] text-charcoal-500">{[r.bike?.make, r.bike?.model].filter(Boolean).join(' ')}</span>
-              </span>
-            </label>
-          ))
+          riders.map((r) => {
+            const isIn = inRace.has(r._id);
+            return (
+              <label
+                key={r._id}
+                className={`flex items-center gap-3 p-2.5 ${isIn ? 'opacity-60 cursor-default' : 'cursor-pointer hover:bg-white/5'}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={isIn || picked.has(r._id)}
+                  disabled={isIn}
+                  onChange={() => !isIn && onToggle(r._id)}
+                />
+                {r.photo?.url
+                  ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={r.photo.url} alt="" className="w-8 h-8 rounded object-cover" />
+                  : <span className="w-8 h-8 rounded bg-charcoal-800" />}
+                <span className="flex-1 min-w-0">
+                  <span className="text-sm truncate flex items-center gap-2">
+                    {r.participantNo != null && (
+                      <span className="text-[10px] font-mono text-terra-400/90 bg-terra-400/10 rounded px-1 py-0.5">{fmtParticipantNo(r.participantNo)}</span>
+                    )}
+                    <span className="truncate">{r.name}</span>
+                  </span>
+                  <span className="text-[11px] text-charcoal-500">{[r.bike?.make, r.bike?.model].filter(Boolean).join(' ')}</span>
+                </span>
+                {isIn && <span className="text-[10px] uppercase tracking-wide text-emerald-400 whitespace-nowrap">In race</span>}
+              </label>
+            );
+          })
         )}
         {!isLoading && riders.length === 0 && !canAddNew && (
           <p className="p-4 text-sm text-charcoal-400 text-center">

@@ -7,6 +7,7 @@ import {
   useListEventsQuery,
   useCreateRaceMutation,
   useBulkAddEntriesMutation,
+  useListRaceEntriesQuery,
   useRaceIndexReportQuery,
   useEnsureRaceIndexesMutation,
 } from '@/store/api';
@@ -203,6 +204,12 @@ function AddEntriesModal({ races, defaultRaceId, onClose }) {
   const [raceId, setRaceId] = useState(defaultRaceId || '');
   const [picked, setPicked] = useState(() => new Set());
   const [bulkAdd, { isLoading }] = useBulkAddEntriesMutation();
+  const { data: entryData } = useListRaceEntriesQuery(raceId, { skip: !raceId });
+  const alreadyIn = new Set(
+    (entryData?.entries || [])
+      .filter((e) => e.status === 'active' && e.poolRider)
+      .map((e) => String(e.poolRider?._id || e.poolRider))
+  );
 
   const toggle = (riderId) => setPicked((prev) => {
     const next = new Set(prev);
@@ -240,7 +247,7 @@ function AddEntriesModal({ races, defaultRaceId, onClose }) {
           </select>
         </label>
 
-        <RiderMultiSelect picked={picked} onToggle={toggle} height="max-h-72" />
+        <RiderMultiSelect picked={picked} onToggle={toggle} height="max-h-72" alreadyIn={alreadyIn} />
 
         <div className="flex items-center justify-between gap-2 pt-1">
           <span className="text-sm text-charcoal-400">{picked.size} selected · numbers auto-assigned</span>

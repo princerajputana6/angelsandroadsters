@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { nextSequence } from './Counter';
 
 /**
  * A reusable rider in the global rider pool — NOT tied to any event or race.
@@ -18,6 +19,13 @@ const assetRefSchema = new mongoose.Schema(
 
 const riderSchema = new mongoose.Schema(
   {
+    // Permanent, globally-unique participant number assigned once when the rider
+    // first joins the pool (displayed zero-padded: 001, 002…). Immutable — it
+    // identifies the participant across every race, forever, and is NEVER
+    // reused or renumbered. Sparse so pre-backfill riders (no number yet) don't
+    // collide on the unique index.
+    participantNo: { type: Number, immutable: true, index: { unique: true, sparse: true } },
+
     name: { type: String, required: true, trim: true },
     displayName: { type: String, trim: true, default: '' },
     phone: { type: String, trim: true, default: '' },
@@ -43,5 +51,14 @@ const riderSchema = new mongoose.Schema(
 );
 
 riderSchema.index({ name: 1 });
+
+// Assign the permanent participant number on first save (creation only).
+// Uses the atomic Counter so two riders created at the same instant can never
+// receive the same number. Immutable afterwards, so it never changes.
+riderSchema.pre('save', async function assignParticipantNo() {
+  if (this.isNew && this.participantNo == null) {
+    this.participantNo = await nextSequence('riderParticipantNo');
+  }
+});
 
 export default mongoose.models.Rider || mongoose.model('Rider', riderSchema);

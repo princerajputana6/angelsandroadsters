@@ -427,6 +427,10 @@ export const api = createApi({
       query: (id) => ({ url: `/race/riders/${id}`, method: 'DELETE' }),
       invalidatesTags: ['RidersPool'],
     }),
+    backfillParticipantNos: b.mutation({
+      query: () => ({ url: '/admin/race/backfill-participant-numbers', method: 'POST' }),
+      invalidatesTags: ['RidersPool', 'RaceEntries'],
+    }),
     bulkAddEntries: b.mutation({
       query: (body) => ({ url: '/race/entries/bulk', method: 'POST', body }),
       invalidatesTags: ['RaceEntries', 'RaceDashboard', 'RaceBoard'],
@@ -573,7 +577,7 @@ export const {
   useRaceIndexReportQuery, useEnsureRaceIndexesMutation,
   useListRaceEntriesQuery, useCreateRaceEntryMutation, useUpdateRaceEntryMutation, useSetRaceEntryStatusMutation, useDeleteRaceEntryMutation,
   useSearchRaceUsersQuery,
-  useListRidersQuery, useCreateRiderMutation, useUpdateRiderMutation, useDeleteRiderMutation, useBulkAddEntriesMutation,
+  useListRidersQuery, useCreateRiderMutation, useUpdateRiderMutation, useDeleteRiderMutation, useBackfillParticipantNosMutation, useBulkAddEntriesMutation,
   useRacePlatesQuery, useMarkPlatesPrintedMutation,
   useRaceMySessionsQuery, useListRaceSessionsQuery, useCreateRaceSessionMutation,
   useRaceConflictsQuery, useResolveRaceConflictMutation,

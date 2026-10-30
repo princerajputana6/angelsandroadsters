@@ -12,22 +12,30 @@ import {
   useSetRaceEntryStatusMutation,
   useDeleteRaceEntryMutation,
   useSearchRaceUsersQuery,
-  useListRidersQuery,
   useBulkAddEntriesMutation,
 } from '@/store/api';
-import { FiUserPlus, FiPlus, FiSearch, FiTag } from 'react-icons/fi';
+import { FiUserPlus, FiPlus, FiTag } from 'react-icons/fi';
 import RacePhotoInput from '@/components/race/RacePhotoInput';
+import RiderMultiSelect from '@/components/race/RiderMultiSelect';
+import { fmtParticipantNo } from '@/lib/participantNo';
 
 /**
  * Multi-select riders from the global pool and onboard them into this race in
  * one go (numbers auto-assigned server-side; riders already in the race skipped).
+ * Shows the FULL pool — riders already in this race are marked "In race" rather
+ * than hidden — plus Select-all, via the shared RiderMultiSelect.
  */
 function PoolModal({ raceId, onClose }) {
-  const [q, setQ] = useState('');
-  const { data, isLoading } = useListRidersQuery(q ? { q } : {});
+  const { data: entryData } = useListRaceEntriesQuery(raceId);
   const [bulkAdd, { isLoading: adding }] = useBulkAddEntriesMutation();
   const [picked, setPicked] = useState(() => new Set());
-  const riders = data?.riders || [];
+
+  // Pool riders already entered in this race (active entries with a pool link).
+  const alreadyIn = new Set(
+    (entryData?.entries || [])
+      .filter((e) => e.status === 'active' && e.poolRider)
+      .map((e) => String(e.poolRider?._id || e.poolRider))
+  );
 
   const toggle = (riderId) => setPicked((prev) => {
     const next = new Set(prev);
@@ -52,27 +60,7 @@ function PoolModal({ raceId, onClose }) {
           <h3 className="text-2xl font-display">Add riders from pool</h3>
           <button type="button" onClick={onClose} className="w-8 h-8 rounded-full border border-charcoal-700">✕</button>
         </div>
-        <div className="relative">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-500" />
-          <input className="input w-full pl-9" placeholder="Search the rider pool…" value={q} onChange={(e) => setQ(e.target.value)} />
-        </div>
-        <div className="flex-1 overflow-y-auto divide-y divide-charcoal-800 border border-charcoal-800 rounded-xl">
-          {isLoading ? <p className="p-3 text-sm text-charcoal-400">Loading…</p> : riders.map((r) => (
-            <label key={r._id} className="flex items-center gap-3 p-2.5 cursor-pointer hover:bg-white/5">
-              <input type="checkbox" checked={picked.has(r._id)} onChange={() => toggle(r._id)} />
-              {r.photo?.url
-                ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={r.photo.url} alt="" className="w-8 h-8 rounded object-cover" />
-                : <span className="w-8 h-8 rounded bg-charcoal-800" />}
-              <span className="flex-1 min-w-0">
-                <span className="text-sm truncate block">{r.name}</span>
-                <span className="text-[11px] text-charcoal-500">{[r.bike?.make, r.bike?.model].filter(Boolean).join(' ')}</span>
-              </span>
-            </label>
-          ))}
-          {!isLoading && riders.length === 0 && (
-            <p className="p-4 text-sm text-charcoal-400 text-center">No riders in the pool. Add them under <Link href="/admin/race/riders" className="text-terra-400">Rider Pool</Link>.</p>
-          )}
-        </div>
+        <RiderMultiSelect picked={picked} onToggle={toggle} alreadyIn={alreadyIn} height="max-h-[55vh]" />
         <div className="flex items-center justify-between gap-2 pt-1">
           <span className="text-sm text-charcoal-400">{picked.size} selected · numbers auto-assigned</span>
           <button onClick={add} disabled={adding || picked.size === 0} className="btn btn-gold">{adding ? 'Adding…' : `Add ${picked.size || ''}`}</button>
@@ -316,6 +304,7 @@ export default function RaceEntriesPage() {
             <thead className="bg-charcoal-800/60 text-xs text-charcoal-400 uppercase tracking-wider">
               <tr>
                 <th className="text-left p-3">#</th>
+                <th className="text-left p-3">ID</th>
                 <th className="text-left p-3">Rider</th>
                 <th className="text-left p-3">Category</th>
                 <th className="text-left p-3">Photos</th>
@@ -330,6 +319,11 @@ export default function RaceEntriesPage() {
                 return (
                   <tr key={e._id} className="hover:bg-white/[0.02]">
                     <td className="p-3 font-display text-lg text-terra-400">{e.raceNumber}</td>
+                    <td className="p-3">
+                      {e.poolRider?.participantNo != null
+                        ? <span className="text-xs font-mono text-charcoal-300">{fmtParticipantNo(e.poolRider.participantNo)}</span>
+                        : <span className="text-xs text-charcoal-600">—</span>}
+                    </td>
                     <td className="p-3">
                       <div className="font-semibold">{e.riderName}</div>
                       {e.bike?.make && <div className="text-xs text-charcoal-500">{e.bike.make} {e.bike.model}</div>}
@@ -353,7 +347,7 @@ export default function RaceEntriesPage() {
                   </tr>
                 );
               })}
-              {entries.length === 0 && <tr><td colSpan={7} className="p-12 text-center text-charcoal-400">No entries yet. <button onClick={() => setModal('new')} className="text-terra-400">Add one</button>.</td></tr>}
+              {entries.length === 0 && <tr><td colSpan={8} className="p-12 text-center text-charcoal-400">No entries yet. <button onClick={() => setModal('new')} className="text-terra-400">Add one</button>.</td></tr>}
             </tbody>
           </table>
         </div>

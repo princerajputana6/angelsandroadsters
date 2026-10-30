@@ -87,6 +87,7 @@ export async function GET(req) {
     if (status) filter.status = status;
     const entries = await RaceEntry.find(filter)
       .populate('category', 'name code')
+      .populate('poolRider', 'participantNo')
       .sort({ raceNumber: 1 })
       .lean();
     return ok({ entries: toJSON(entries) });
