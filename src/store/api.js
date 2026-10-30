@@ -439,7 +439,7 @@ export const api = createApi({
     }),
     createRaceEntry: b.mutation({
       query: (body) => ({ url: '/race/entries', method: 'POST', body }),
-      invalidatesTags: ['RaceEntries', 'RaceDashboard'],
+      invalidatesTags: ['RaceEntries', 'RaceDashboard', 'RidersPool'],
     }),
     updateRaceEntry: b.mutation({
       query: ({ id, body }) => ({ url: `/race/entries/${id}`, method: 'PUT', body }),
