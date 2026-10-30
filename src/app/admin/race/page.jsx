@@ -10,6 +10,7 @@ import {
   useListRaceEntriesQuery,
   useRaceIndexReportQuery,
   useEnsureRaceIndexesMutation,
+  useDeleteRaceMutation,
 } from '@/store/api';
 import RiderMultiSelect from '@/components/race/RiderMultiSelect';
 
@@ -265,8 +266,24 @@ export default function RaceDashboard() {
   const { data, isLoading } = useRaceDashboardQuery(undefined, { pollingInterval: 15000, refetchOnFocus: true });
   const [showNew, setShowNew] = useState(false);
   const [addEntriesFor, setAddEntriesFor] = useState(null); // null | '' (any race) | raceId
+  const [deleteRace, { isLoading: deleting }] = useDeleteRaceMutation();
   const summary = data?.summary;
   const races = data?.races || [];
+
+  const onDeleteRace = async (race) => {
+    const hasData = (race.counts?.activeEntries || 0) > 0 || race.status !== 'draft';
+    const msg = hasData
+      ? `Permanently DELETE "${race.name}" and ALL its data — entries, timing, results, standings points? This cannot be undone. The rider pool is kept.`
+      : `Delete "${race.name}"?`;
+    if (!confirm(msg)) return;
+    if (hasData && !confirm('Last check — this erases the race and its results for good. Continue?')) return;
+    try {
+      await deleteRace({ id: race._id, force: hasData }).unwrap();
+      toast.success('Race deleted');
+    } catch (e) {
+      toast.error(e?.data?.message || 'Failed to delete race');
+    }
+  };
 
   return (
     <div>
@@ -276,6 +293,7 @@ export default function RaceDashboard() {
           <h1 className="text-3xl sm:text-4xl font-display">Race Dashboard</h1>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <Link href="/admin/race/standings" className="btn btn-outline flex-1 sm:flex-none">🏆 Standings</Link>
           <button onClick={() => setAddEntriesFor('')} className="btn btn-outline flex-1 sm:flex-none">＋ Add entries</button>
           <button onClick={() => setShowNew(true)} className="btn btn-gold flex-1 sm:flex-none">+ New Race</button>
         </div>
@@ -324,6 +342,7 @@ export default function RaceDashboard() {
                       <button onClick={() => setAddEntriesFor(r._id)} className="text-xs text-emerald-400 hover:text-emerald-300">+ Riders</button>
                       <Link href={`/admin/race/${r._id}/board`} className="text-xs text-gold-400 hover:text-gold-300">▶ Board</Link>
                       <Link href={`/admin/race/${r._id}`} className="text-xs text-terra-400 hover:text-terra-300">Manage →</Link>
+                      <button onClick={() => onDeleteRace(r)} disabled={deleting} className="text-xs text-red-400 hover:text-red-300">Delete</button>
                     </td>
                   </tr>
                 ))}
@@ -350,8 +369,9 @@ export default function RaceDashboard() {
                     <span className={r.counts.openConflicts ? 'text-red-400' : ''}>{r.counts.openConflicts} conflicts</span>
                   </div>
                 </Link>
-                <div className="flex gap-2 mt-3 pt-3 border-t border-charcoal-800">
+                <div className="flex gap-3 mt-3 pt-3 border-t border-charcoal-800 items-center">
                   <button onClick={() => setAddEntriesFor(r._id)} className="text-xs text-emerald-400">+ Riders</button>
+                  <button onClick={() => onDeleteRace(r)} disabled={deleting} className="text-xs text-red-400">Delete</button>
                   <Link href={`/admin/race/${r._id}/board`} className="text-xs text-gold-400 ml-auto">▶ Board</Link>
                   <Link href={`/admin/race/${r._id}`} className="text-xs text-terra-400">Manage →</Link>
                 </div>

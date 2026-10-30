@@ -10,6 +10,7 @@ import {
   useAdjustRaceResultMutation,
   useAutoAssignPointsMutation,
 } from '@/store/api';
+import { SCORING_PRESETS, DEFAULT_PRESET } from '@/lib/raceScoring';
 
 function fmt(ms) {
   if (ms == null) return '—';
@@ -203,6 +204,7 @@ export default function ResultsPage() {
   const [finalize, { isLoading: finalizing }] = useFinalizeRaceResultsMutation();
   const [autoPoints, { isLoading: autoAssigning }] = useAutoAssignPointsMutation();
   const [adjusting, setAdjusting] = useState(null); // result row being edited
+  const [preset, setPreset] = useState(DEFAULT_PRESET); // scoring table for auto-points
 
   const race = data?.race;
   const results = data?.results || [];
@@ -213,8 +215,10 @@ export default function ResultsPage() {
   };
 
   const doAutoPoints = async () => {
-    if (!confirm('Assign points by finishing position? 1st 100, 2nd 90, 3rd 80, 4th 72, 5th 65, 6th 60, 7th 55, 8th 50, 9th 46, 10th 42, every other finisher 25. This overwrites existing points.')) return;
-    try { const r = await autoPoints({ id }).unwrap(); toast.success(`Points assigned to ${r.assigned} finisher(s)`); }
+    const p = SCORING_PRESETS[preset];
+    const summary = p.table.map((v, i) => `${i + 1}:${v}`).join(' ');
+    if (!confirm(`Assign ${p.label} points by finishing position?\n\n${summary}, every other finisher ${p.participation}.\n\nThis overwrites existing points.`)) return;
+    try { const r = await autoPoints({ id, preset }).unwrap(); toast.success(`Points assigned to ${r.assigned} finisher(s)`); }
     catch (e) { toast.error(e?.data?.message || 'Auto-assign failed'); }
   };
 
@@ -246,9 +250,14 @@ export default function ResultsPage() {
             {race?.resultsState !== 'final' && <span className="ml-2">— provisional until finalized</span>}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
           <button onClick={doRecompute} disabled={recomputing} className="btn btn-outline">{recomputing ? 'Recomputing…' : '↻ Recompute'}</button>
-          <button onClick={doAutoPoints} disabled={autoAssigning} className="btn btn-outline">{autoAssigning ? 'Assigning…' : '⚡ Auto-points'}</button>
+          <div className="flex items-center gap-1">
+            <select value={preset} onChange={(e) => setPreset(e.target.value)} className="input py-2 text-xs" title="Scoring table">
+              {Object.values(SCORING_PRESETS).map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+            </select>
+            <button onClick={doAutoPoints} disabled={autoAssigning} className="btn btn-outline">{autoAssigning ? 'Assigning…' : '⚡ Auto-points'}</button>
+          </div>
           {race?.resultsState !== 'final' && <button onClick={doFinalize} disabled={finalizing} className="btn btn-gold">{finalizing ? 'Finalizing…' : 'Finalize results'}</button>}
         </div>
       </div>

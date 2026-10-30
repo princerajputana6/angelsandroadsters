@@ -369,8 +369,12 @@ export const api = createApi({
       invalidatesTags: (_r, _e, { id }) => ['Races', 'RaceDashboard', { type: 'Race', id }],
     }),
     deleteRace: b.mutation({
-      query: (id) => ({ url: `/race/races/${id}`, method: 'DELETE' }),
-      invalidatesTags: ['Races', 'RaceDashboard'],
+      query: ({ id, force }) => ({ url: `/race/races/${id}${force ? '?force=1' : ''}`, method: 'DELETE' }),
+      invalidatesTags: ['Races', 'RaceDashboard', 'RaceResults'],
+    }),
+    combinedStandings: b.query({
+      query: (event) => ({ url: '/race/combined', params: { event } }),
+      providesTags: ['RaceResults'],
     }),
     setRaceStatus: b.mutation({
       query: ({ id, status, reason }) => ({ url: `/race/races/${id}/status`, method: 'POST', body: { status, reason } }),
@@ -599,6 +603,7 @@ export const {
   useRaceMySessionsQuery, useListRaceSessionsQuery, useCreateRaceSessionMutation,
   useRaceConflictsQuery, useResolveRaceConflictMutation,
   useRaceResultsQuery, useRecomputeRaceMutation, useFinalizeRaceResultsMutation, useAdjustRaceResultMutation, useAutoAssignPointsMutation,
+  useCombinedStandingsQuery,
   useRaceReconciliationQuery, useRevokeRaceSessionMutation,
   useRaceBoardQuery, useRaceBoardActionMutation,
 } = api;

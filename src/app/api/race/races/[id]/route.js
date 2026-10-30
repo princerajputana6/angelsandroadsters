@@ -4,6 +4,11 @@ import Event from '@/lib/models/Event';
 import RaceEvent from '@/lib/models/RaceEvent';
 import RaceCategory from '@/lib/models/RaceCategory';
 import RaceEntry from '@/lib/models/RaceEntry';
+import RaceResult from '@/lib/models/RaceResult';
+import RaceConflict from '@/lib/models/RaceConflict';
+import RaceConfiguration from '@/lib/models/RaceConfiguration';
+import CheckpointSession from '@/lib/models/CheckpointSession';
+import SyncReceipt from '@/lib/models/SyncReceipt';
 import { ok, handler, toJSON } from '@/lib/apiUtils';
 import { requireRaceManager, logRaceAudit } from '@/lib/raceAuth';
 import { parseOrThrow, raceUpdateSchema } from '@/lib/raceValidation';
@@ -74,27 +79,41 @@ export async function PUT(req, { params }) {
 
 // DELETE /api/race/races/:id — only safe for an empty draft race. Otherwise the
 // caller must archive via the status route (plan §4.4 — never destroy history).
-export async function DELETE(_req, { params }) {
+export async function DELETE(req, { params }) {
   return handler(async () => {
     const user = await requireRaceManager();
     await connectDB();
     const race = await getRaceOr404(params.id);
+    const force = new URL(req.url).searchParams.get('force') === '1';
 
     const eventCount = await RaceEvent.countDocuments({ race: race._id });
-    if (eventCount > 0 || race.status !== 'draft') {
+    const blocked = eventCount > 0 || race.status !== 'draft';
+    if (blocked && !force) {
       throw Object.assign(
-        new Error('Cannot delete a race with recorded events or past draft. Archive it instead.'),
+        new Error('Cannot delete a race with recorded events or past draft. Delete with force, or archive it.'),
         { status: 409 }
       );
     }
 
+    if (force) {
+      await Promise.all([
+        RaceEvent.deleteMany({ race: race._id }),
+        RaceResult.deleteMany({ race: race._id }),
+        RaceConflict.deleteMany({ race: race._id }),
+        RaceConfiguration.deleteMany({ race: race._id }),
+        CheckpointSession.deleteMany({ race: race._id }),
+        SyncReceipt.deleteMany({ race: race._id }),
+      ]);
+    }
     await RaceCategory.deleteMany({ race: race._id });
     await RaceEntry.deleteMany({ race: race._id });
     await Race.deleteOne({ _id: race._id });
 
     await logRaceAudit({
-      actor: user, action: 'RACE_DELETED', event: race.event, race: race._id,
+      actor: user, action: force && blocked ? 'RACE_FORCE_DELETED' : 'RACE_DELETED',
+      event: race.event, race: race._id,
       targetType: 'Race', targetId: race._id,
+      meta: { eventsRemoved: force ? eventCount : 0 },
     });
     return ok({ deleted: true });
   });
