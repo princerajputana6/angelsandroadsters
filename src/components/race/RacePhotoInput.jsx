@@ -10,6 +10,7 @@ import { sha256OfFile, validateImageFile } from '@/lib/assetHash';
  */
 export default function RacePhotoInput({ label, value, onChange }) {
   const inputRef = useRef(null);
+  const cameraRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const ref = value || {};
 
@@ -39,16 +40,28 @@ export default function RacePhotoInput({ label, value, onChange }) {
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = '';
+      if (cameraRef.current) cameraRef.current.value = '';
     }
   };
 
   return (
     <div>
       <span className="text-xs text-charcoal-400">{label}</span>
+      {/* From device / gallery */}
       <input
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={(e) => pick(e.target.files?.[0])}
+      />
+      {/* Live camera capture (opens the rear camera on phones; falls back to a
+          file picker on desktop, which ignores `capture`). */}
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={(e) => pick(e.target.files?.[0])}
       />
@@ -65,7 +78,10 @@ export default function RacePhotoInput({ label, value, onChange }) {
           </p>
           {ref.contentHash && <p className="text-[10px] text-charcoal-600 truncate">#{ref.contentHash.slice(0, 12)}</p>}
         </div>
-        <div className="flex gap-1 shrink-0">
+        <div className="flex gap-1 shrink-0 flex-wrap justify-end">
+          <button type="button" disabled={busy} onClick={() => cameraRef.current?.click()} className="text-[11px] text-emerald-400 border border-emerald-400/30 rounded px-2 py-1">
+            📷 {ref.url ? 'Retake' : 'Camera'}
+          </button>
           <button type="button" disabled={busy} onClick={() => inputRef.current?.click()} className="text-[11px] text-terra-400 border border-terra-400/30 rounded px-2 py-1">
             {ref.url ? 'Replace' : 'Upload'}
           </button>
