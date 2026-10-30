@@ -45,19 +45,6 @@ const ROW_STATUS = {
   finished: 'text-emerald-400', running: 'text-blue-300', dnf: 'text-orange-400', dns: 'text-charcoal-500', disqualified: 'text-red-400',
 };
 
-// Format a signed second-delta like "+30.0s" / "−1:05.0".
-function fmtDelta(sec) {
-  if (!sec) return '±0s';
-  const sign = sec > 0 ? '+' : '−';
-  const abs = Math.abs(sec);
-  if (abs >= 60) {
-    const mm = Math.floor(abs / 60);
-    const ss = (abs % 60).toFixed(1);
-    return `${sign}${mm}:${String(ss).padStart(4, '0')}`;
-  }
-  return `${sign}${abs.toFixed(1)}s`;
-}
-
 const PENALTY_CHIPS = [
   { label: '+5s', sec: 5 },
   { label: '+10s', sec: 10 },
@@ -69,33 +56,39 @@ const PENALTY_CHIPS = [
 ];
 
 /**
- * Manual post-race adjustment for one rider: disqualify, points, a time
- * penalty/bonus (add or subtract seconds/minutes), an exact time override,
- * and a note.
+ * Manual post-race adjustment for one rider: disqualify, points, and the
+ * final time. The time is a single editable field; the +/− chips and the
+ * add/subtract stepper just push that visible value up or down (penalties),
+ * so what you see is exactly what gets saved.
  */
 function AdjustModal({ raceId, result, onClose }) {
   const [adjust, { isLoading }] = useAdjustRaceResultMutation();
   const [points, setPoints] = useState(String(result.manualPoints ?? 0));
-  const [deltaSec, setDeltaSec] = useState(0);         // pending penalty/bonus
-  const [stepMin, setStepMin] = useState('');          // custom add/subtract inputs
+  // One visible final-time value, pre-filled with the current time.
+  const initialTime = result.adjustedTimeMs != null
+    ? fmt(result.adjustedTimeMs)
+    : (result.totalTimeMs != null ? fmt(result.totalTimeMs) : '');
+  const [time, setTime] = useState(initialTime);
+  const [stepMin, setStepMin] = useState('');
   const [stepSec, setStepSec] = useState('');
-  const [exact, setExact] = useState('');              // optional exact override
-  const [showExact, setShowExact] = useState(false);
   const [dsq, setDsq] = useState((result.manualStatus || result.effectiveStatus) === 'disqualified');
   const [note, setNote] = useState(result.adjustNote || '');
 
   const name = result.entry?.displayName || result.entry?.riderName || `#${result.entry?.raceNumber}`;
   const wasDsq = result.manualStatus === 'disqualified';
   const hadOverride = result.adjustedTimeMs != null;
-  const baseMs = result.adjustedTimeMs != null ? result.adjustedTimeMs : result.totalTimeMs;
-  const previewMs = baseMs != null ? Math.max(0, baseMs + Math.round(deltaSec * 1000)) : null;
+  const computedMs = result.totalTimeMs;
 
-  const addStep = (dir) => {
-    const m = Number(stepMin) || 0;
-    const s = Number(stepSec) || 0;
-    const step = m * 60 + s;
+  // Shift the visible time by `sec` seconds (penalty +, bonus −), clamped at 0.
+  const bump = (sec) => {
+    const cur = parseTimeToMs(time);
+    const base = (cur == null || Number.isNaN(cur)) ? (computedMs ?? 0) : cur;
+    setTime(fmt(Math.max(0, Math.round(base + sec * 1000))));
+  };
+  const bumpStep = (dir) => {
+    const step = (Number(stepMin) || 0) * 60 + (Number(stepSec) || 0);
     if (!step) return;
-    setDeltaSec((d) => d + dir * step);
+    bump(dir * step);
     setStepMin(''); setStepSec('');
   };
 
@@ -105,14 +98,19 @@ function AdjustModal({ raceId, result, onClose }) {
 
     const body = { id: raceId, entry: result.entry?._id || result.entry, points: p, note };
 
-    // Time: a penalty/bonus wins; else an exact override if typed.
-    if (deltaSec !== 0) {
-      if (baseMs == null) return toast.error('No base time to adjust — set an exact time instead.');
-      body.timeDeltaMs = Math.round(deltaSec * 1000);
-    } else if (showExact && exact.trim()) {
-      const timeMs = parseTimeToMs(exact);
+    // Time: empty → revert to computed; otherwise save the typed time. If it
+    // equals the computed time we drop the override instead of pinning it.
+    const t = time.trim();
+    if (!t) {
+      if (hadOverride) body.clearTime = true;
+    } else {
+      const timeMs = parseTimeToMs(t);
       if (Number.isNaN(timeMs)) return toast.error('Time must look like 1:30.500 or seconds (90.5)');
-      body.timeMs = timeMs;
+      if (computedMs != null && timeMs === computedMs) {
+        if (hadOverride) body.clearTime = true;
+      } else {
+        body.timeMs = timeMs;
+      }
     }
 
     // Status override (disqualify / un-disqualify).
@@ -122,14 +120,6 @@ function AdjustModal({ raceId, result, onClose }) {
     try {
       await adjust(body).unwrap();
       toast.success('Adjustment saved');
-      onClose();
-    } catch (e) { toast.error(e?.data?.message || 'Failed to save'); }
-  };
-
-  const clearTimeOverride = async () => {
-    try {
-      await adjust({ id: raceId, entry: result.entry?._id || result.entry, points: Number(points) || 0, clearTime: true, note }).unwrap();
-      toast.success('Time override cleared');
       onClose();
     } catch (e) { toast.error(e?.data?.message || 'Failed to save'); }
   };
@@ -159,17 +149,20 @@ function AdjustModal({ raceId, result, onClose }) {
           <input type="number" className="input mt-1 w-full" value={points} onChange={(e) => setPoints(e.target.value)} />
         </label>
 
-        {/* Time penalty / bonus */}
+        {/* Final time — directly editable, with penalty helpers */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-charcoal-400">Time penalty / bonus</span>
-            {deltaSec !== 0 && (
-              <button type="button" onClick={() => setDeltaSec(0)} className="text-[11px] text-charcoal-500 hover:text-terra-400">reset</button>
+            <span className="text-xs text-charcoal-400">Final time</span>
+            {hadOverride && (
+              <button type="button" onClick={() => setTime(computedMs != null ? fmt(computedMs) : '')} className="text-[11px] text-charcoal-500 hover:text-terra-400">reset to computed</button>
             )}
           </div>
-          <div className="flex flex-wrap gap-1.5">
+          <input className="input w-full tabular-nums" value={time} onChange={(e) => setTime(e.target.value)} placeholder="e.g. 4:32.500 or 90.5" />
+          <span className="text-[11px] text-charcoal-500">Computed: {fmt(computedMs)} — edit directly, or use the penalty buttons below.</span>
+
+          <div className="flex flex-wrap gap-1.5 pt-1">
             {PENALTY_CHIPS.map((c) => (
-              <button key={c.label} type="button" onClick={() => setDeltaSec((d) => d + c.sec)}
+              <button key={c.label} type="button" onClick={() => bump(c.sec)}
                 className="px-2.5 py-1 rounded-md border border-charcoal-700 text-xs hover:border-terra-400 hover:text-terra-400">
                 {c.label}
               </button>
@@ -184,29 +177,9 @@ function AdjustModal({ raceId, result, onClose }) {
               <span className="text-[11px] text-charcoal-500">sec</span>
               <input type="number" min="0" step="0.1" className="input mt-0.5 w-full" value={stepSec} onChange={(e) => setStepSec(e.target.value)} placeholder="0" />
             </label>
-            <button type="button" onClick={() => addStep(1)} className="btn btn-outline px-3">+ Add</button>
-            <button type="button" onClick={() => addStep(-1)} className="btn btn-outline px-3">− Sub</button>
+            <button type="button" onClick={() => bumpStep(1)} className="btn btn-outline px-3">+ Add</button>
+            <button type="button" onClick={() => bumpStep(-1)} className="btn btn-outline px-3">− Sub</button>
           </div>
-          <p className="text-[11px] text-charcoal-500">
-            {baseMs == null ? 'No computed time yet — use exact time below.' : (
-              <>Current {fmt(baseMs)} → <span className="text-charcoal-200">New {fmt(previewMs)}</span> <span className="text-terra-400">({fmtDelta(deltaSec)})</span></>
-            )}
-          </p>
-        </div>
-
-        {/* Exact override (secondary) */}
-        <div>
-          {!showExact ? (
-            <button type="button" onClick={() => { setShowExact(true); setExact(hadOverride ? fmt(result.adjustedTimeMs) : ''); }} className="text-xs text-charcoal-400 hover:text-terra-400">
-              Set exact time instead…
-            </button>
-          ) : (
-            <label className="block">
-              <span className="text-xs text-charcoal-400">Exact time override (overrides penalty)</span>
-              <input className="input mt-1 w-full" value={exact} onChange={(e) => setExact(e.target.value)} placeholder="e.g. 1:30.500 or 90.5" disabled={deltaSec !== 0} />
-              <span className="text-[11px] text-charcoal-500">{deltaSec !== 0 ? 'Clear the penalty to use an exact time.' : `Computed: ${fmt(result.totalTimeMs)}`}</span>
-            </label>
-          )}
         </div>
 
         <label className="block">
@@ -214,14 +187,9 @@ function AdjustModal({ raceId, result, onClose }) {
           <input className="input mt-1 w-full" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. +30s route cut, +45s crash" />
         </label>
 
-        <div className="flex items-center justify-between gap-2 pt-1">
-          {hadOverride
-            ? <button type="button" onClick={clearTimeOverride} disabled={isLoading} className="text-xs text-charcoal-400 hover:text-red-400">Clear time override</button>
-            : <span />}
-          <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="btn btn-outline">Cancel</button>
-            <button type="button" onClick={save} disabled={isLoading} className="btn btn-gold">{isLoading ? 'Saving…' : 'Save'}</button>
-          </div>
+        <div className="flex items-center justify-end gap-2 pt-1">
+          <button type="button" onClick={onClose} className="btn btn-outline">Cancel</button>
+          <button type="button" onClick={save} disabled={isLoading} className="btn btn-gold">{isLoading ? 'Saving…' : 'Save'}</button>
         </div>
       </div>
     </div>
