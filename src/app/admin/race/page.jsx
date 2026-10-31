@@ -11,6 +11,7 @@ import {
   useRaceIndexReportQuery,
   useEnsureRaceIndexesMutation,
   useDeleteRaceMutation,
+  useCloneRaceDataMutation,
 } from '@/store/api';
 import RiderMultiSelect from '@/components/race/RiderMultiSelect';
 
@@ -308,12 +309,81 @@ function DeleteRaceModal({ race, onClose }) {
   );
 }
 
+/** Copy participants + results from one race into another (e.g. Shadow Run →
+ * Dune Raid). Overwriting a non-empty target requires the confirm checkbox. */
+function DuplicateDataModal({ races, onClose }) {
+  const [clone, { isLoading }] = useCloneRaceDataMutation();
+  const [sourceId, setSourceId] = useState('');
+  const [targetId, setTargetId] = useState('');
+  const [replaceExisting, setReplaceExisting] = useState(true);
+
+  const target = races.find((r) => r._id === targetId);
+  const targetHasData = (target?.counts?.activeEntries || 0) > 0;
+  const ready = sourceId && targetId && sourceId !== targetId && (!targetHasData || replaceExisting);
+
+  const run = async () => {
+    if (!ready) return;
+    try {
+      const res = await clone({ targetId, sourceRaceId: sourceId, replaceExisting }).unwrap();
+      toast.success(`Copied ${res.entriesCreated} rider(s) & ${res.resultsCreated} result(s)`);
+      onClose();
+    } catch (e) { toast.error(e?.data?.message || 'Failed to duplicate race data'); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-start sm:items-center justify-center p-3 sm:p-4 bg-charcoal-950/80 backdrop-blur overflow-y-auto">
+      <div className="card-glass p-4 sm:p-6 w-full max-w-md space-y-4 my-4 sm:my-8">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-display">Duplicate participants &amp; results</h3>
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-full border border-charcoal-700">✕</button>
+        </div>
+        <p className="text-sm text-charcoal-300">Copy every participant and their result from one race into another.</p>
+
+        <label className="block">
+          <span className="text-xs text-charcoal-400">Copy from (source)</span>
+          <select className="input mt-1 w-full" value={sourceId} onChange={(e) => setSourceId(e.target.value)}>
+            <option value="">Select source race…</option>
+            {races.map((r) => (
+              <option key={r._id} value={r._id}>{r.name}{r.event?.title ? ` — ${r.event.title}` : ''} ({r.counts?.activeEntries ?? 0})</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="text-xs text-charcoal-400">Copy into (target)</span>
+          <select className="input mt-1 w-full" value={targetId} onChange={(e) => setTargetId(e.target.value)}>
+            <option value="">Select target race…</option>
+            {races.filter((r) => r._id !== sourceId).map((r) => (
+              <option key={r._id} value={r._id}>{r.name}{r.event?.title ? ` — ${r.event.title}` : ''} ({r.counts?.activeEntries ?? 0})</option>
+            ))}
+          </select>
+        </label>
+
+        {targetHasData && (
+          <label className="flex items-start gap-2 text-sm text-amber-300 cursor-pointer rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+            <input type="checkbox" checked={replaceExisting} onChange={(e) => setReplaceExisting(e.target.checked)} className="accent-amber-500 mt-0.5" />
+            <span>Target already has {target.counts.activeEntries} participant(s). Replace them — this permanently clears the target’s current entries, results and timing first.</span>
+          </label>
+        )}
+
+        <div className="flex justify-end gap-2 pt-1">
+          <button type="button" onClick={onClose} className="btn btn-outline">Cancel</button>
+          <button type="button" onClick={run} disabled={isLoading || !ready} className="btn btn-gold">
+            {isLoading ? 'Copying…' : 'Duplicate'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RaceDashboard() {
   // Light polling so a race created by one admin shows up for the others.
   const { data, isLoading } = useRaceDashboardQuery(undefined, { pollingInterval: 15000, refetchOnFocus: true });
   const [showNew, setShowNew] = useState(false);
   const [addEntriesFor, setAddEntriesFor] = useState(null); // null | '' (any race) | raceId
   const [deleteTarget, setDeleteTarget] = useState(null); // race pending deletion
+  const [showDuplicate, setShowDuplicate] = useState(false); // duplicate-data modal
   const summary = data?.summary;
   const races = data?.races || [];
 
@@ -326,6 +396,7 @@ export default function RaceDashboard() {
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <Link href="/admin/race/standings" className="btn btn-outline flex-1 sm:flex-none">🏆 Standings</Link>
+          <button onClick={() => setShowDuplicate(true)} className="btn btn-outline flex-1 sm:flex-none">⧉ Duplicate data</button>
           <button onClick={() => setAddEntriesFor('')} className="btn btn-outline flex-1 sm:flex-none">＋ Add entries</button>
           <button onClick={() => setShowNew(true)} className="btn btn-gold flex-1 sm:flex-none">+ New Race</button>
         </div>
@@ -415,6 +486,7 @@ export default function RaceDashboard() {
       )}
 
       {deleteTarget && <DeleteRaceModal race={deleteTarget} onClose={() => setDeleteTarget(null)} />}
+      {showDuplicate && <DuplicateDataModal races={races} onClose={() => setShowDuplicate(false)} />}
       {showNew && <NewRaceModal onClose={() => setShowNew(false)} />}
       {addEntriesFor !== null && (
         <AddEntriesModal

@@ -372,6 +372,15 @@ export const api = createApi({
       query: ({ id, force }) => ({ url: `/race/races/${id}${force ? '?force=1' : ''}`, method: 'DELETE' }),
       invalidatesTags: ['Races', 'RaceDashboard', 'RaceResults'],
     }),
+    // Copy participants + results from a source race into a target race.
+    cloneRaceData: b.mutation({
+      query: ({ targetId, sourceRaceId, replaceExisting }) => ({
+        url: `/race/races/${targetId}/clone-from`,
+        method: 'POST',
+        body: { sourceRaceId, replaceExisting },
+      }),
+      invalidatesTags: ['Races', 'RaceDashboard', 'RaceResults', 'RaceEntries'],
+    }),
     combinedStandings: b.query({
       // arg: { races: string[] } to combine specific races, or { event } for all in an event
       query: (arg) => {
@@ -599,7 +608,7 @@ export const {
   useCreateResortBookingMutation, useMyResortBookingsQuery, useListResortBookingsQuery, useUpdateResortBookingMutation,
   useListTeamRegistrationsQuery, useIssueTeamRegistrationMutation, useValidateRegistrationMutation,
   useRaceDashboardQuery,
-  useListRacesQuery, useGetRaceQuery, useCreateRaceMutation, useUpdateRaceMutation, useDeleteRaceMutation, useSetRaceStatusMutation,
+  useListRacesQuery, useGetRaceQuery, useCreateRaceMutation, useUpdateRaceMutation, useDeleteRaceMutation, useCloneRaceDataMutation, useSetRaceStatusMutation,
   useListRaceCategoriesQuery, useCreateRaceCategoryMutation, useUpdateRaceCategoryMutation, useDeleteRaceCategoryMutation,
   useRaceIndexReportQuery, useEnsureRaceIndexesMutation,
   useListRaceEntriesQuery, useCreateRaceEntryMutation, useUpdateRaceEntryMutation, useSetEntryParticipantNoMutation, useSetRaceEntryStatusMutation, useDeleteRaceEntryMutation,
