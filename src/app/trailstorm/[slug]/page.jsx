@@ -67,9 +67,9 @@ const SAFETY_FEATURES = [
 ];
 
 const FAQS = [
-  { q: 'Who can participate in Trailstorm?', a: 'Trailstorm is open to all motorcycle riders aged 18+ with a valid riding license. Beginners are welcome in the touring track, while the expert track requires off-road experience.' },
-  { q: 'Is off-road experience required?', a: 'Not for all tracks. We have three categories: Touring Track (beginners welcome), Expert Off-Road (experience required), and Visitor Convoy (no riding required).' },
-  { q: 'What motorcycles are allowed?', a: 'All motorcycles 150cc and above are allowed. Adventure bikes, dual-sport, and dirt bikes are recommended for off-road tracks.' },
+  { q: 'Who can participate in Trailstorm?', a: 'Trailstorm is open to all motorcycle riders aged 18+ with a valid riding license. Beginners are welcome in the touring track,professional racers and dirt bikes are not allowed. Street legal bikes are only allowed.' },
+  { q: 'Is off-road experience required?', a: 'Not for all tracks. We have two categories: Touring Track (beginners welcome) and Visitor Convoy (no riding required).' },
+  { q: 'What motorcycles are allowed?', a: 'All street legal motorcycles 150cc and above are allowed. All Adventure and touring bikes are allowed.' },
   { q: 'Can beginners join?', a: 'Absolutely! The Touring Track is designed for everyday riders and beginners. You\'ll ride with the main convoy on manageable terrain.' },
   { q: 'Is accommodation included?', a: 'Camping facilities are available at the base camp. Hotel options in Jaisalmer city are also nearby. Details provided upon registration.' },
   { q: 'Are riding gears mandatory?', a: 'Yes. Helmet, riding jacket, gloves, and boots are mandatory for all participants. Knee guards recommended for off-road tracks.' },
