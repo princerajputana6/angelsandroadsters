@@ -1,5 +1,6 @@
 'use client';
 import { useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGetEventQuery, useGetEventSlotsQuery } from '@/store/api';
 import BookingWizard from '@/components/events/BookingWizard';
@@ -79,12 +80,281 @@ const FAQS = [
   { q: 'How do I reach Jaisalmer?', a: 'Jaisalmer is accessible by train, bus, and air. Nearest airport is Jodhpur (285km). We\'ll share detailed travel guides after registration.' },
 ];
 
+// ---- Official Competition Guidelines (sourced from the Trailstorm 2026 rulebook) ----
+const GEAR_COMPULSORY = [
+  'ISI / DOT / ECE certified helmet',
+  'Riding gloves',
+  'Riding boots/shoes covering the ankles',
+  'Full sleeves & full-length pants',
+  'Knee guards or riding pants',
+  'Elbow guards or riding jacket',
+];
+const GEAR_RECOMMENDED = ['Chest protection', 'Hydration pack', 'Auxiliary lights for the night event'];
+
+const GUIDE_EVENTS = [
+  {
+    no: 'Event 1', name: 'Trailstorm Fury Circuit', type: 'Timed artificial sand circuit',
+    when: '30 Oct 2026 · 09:00 AM onwards',
+    desc: 'A man-made technical off-road sand circuit — berms, sand pits, tight turns, uneven sections and recovery zones. Fastest clean lap wins.',
+    points: [100, 90, 80, 72, 65, 60, 55, 50, 46, 42], finish: 'Participation finish: 25',
+    penalties: ['Route cut: +30 sec', 'Crash requiring marshal: +45 sec', 'Dangerous riding: disqualification possible'],
+  },
+  {
+    no: 'Event 2', name: 'Trailstorm Shadow Run', type: 'Night navigation & desert endurance',
+    when: '30 Oct 2026 · 06:30 PM onwards',
+    desc: 'Riders leave the arena for natural desert terrain with directional clues, no GPS guidance, 3 checkpoints and a finish over a 4–5 km circuit. Fastest verified completion wins.',
+    points: [120, 108, 96, 86, 78, 72, 66, 60, 54, 48], finish: 'Finishers: 30',
+    penalties: ['Missed checkpoint: +5 min', 'Outside assistance: +10 min', 'No night lights: −10 points', 'Unsafe riding: DQ possible'],
+  },
+  {
+    no: 'Event 3', name: 'Trailstorm Dune Raid', type: 'Day desert navigation & technical endurance',
+    when: '31 Oct 2026 · 09:30 AM onwards',
+    desc: 'A longer, harder run with technical dune crossings, deeper sand and tougher navigation over a 6–7 km route — the championship’s most important endurance stage.',
+    points: [150, 135, 120, 108, 96, 88, 80, 72, 64, 56], finish: 'Finishers: 35',
+    penalties: ['Missed checkpoint: +5 min', 'Outside assistance: +4 min', 'Unsafe riding: DQ possible'],
+  },
+  {
+    no: 'Event 4', name: 'Sand Survivor — Machine Recovery', type: 'Manual motorcycle recovery challenge',
+    when: '31 Oct 2026 · 03:30 PM onwards',
+    desc: 'Bikes are parked in deep sand, engine off, keys at the start line. Run for the key, reach the bike and push it through the recovery route to the finish — without starting the engine.',
+    points: [110, 100, 90, 82, 75, 68, 62, 56, 50, 45], finish: 'Finishers: 25',
+    penalties: ['Engine start: automatic disqualification', 'Outside assistance: disqualification'],
+  },
+];
+
+const MACHINE_ALLOWED = [
+  'Street-legal motorcycles 150cc and above',
+  'Adventure & touring motorcycles',
+  'Street-legal dual-sport motorcycles',
+  'Bikes that are mechanically fit and clear technical inspection',
+];
+const MACHINE_NOT_ALLOWED = [
+  'Dirt bikes / off-road-only race bikes',
+  'Heavily modified motorcycles',
+  'Motorcycles below 150cc',
+  'Electric motorcycles, scooters & mopeds',
+  'Unsafe, leaking or heavily damaged motorcycles',
+];
+
+const DQ_TRIGGERS = [
+  'Dangerous or reckless riding',
+  'Ignoring a red flag or emergency signal',
+  'Route cutting or bypassing checkpoints',
+  'Riding under the influence of alcohol/substances',
+  'Tampering with timing or checkpoint systems',
+  'Starting the engine during Sand Survivor',
+  'Physical misconduct, violence or verbal abuse of officials',
+  'Falsifying rider or motorcycle information',
+];
+
+const AWARDS = [
+  'Overall Champion', 'Fastest Rider', 'Best Recovery Specialist', 'Night Raider Award',
+  'Desert Dominator', 'Most Consistent Rider', 'Best Female Rider', 'Best Riding Club in India',
+];
+
+function Bullets({ items, tone = 'terra' }) {
+  const dot = tone === 'red' ? 'text-red-400' : tone === 'green' ? 'text-emerald-400' : 'text-terra-400';
+  return (
+    <ul className="space-y-1.5">
+      {items.map((t, i) => (
+        <li key={i} className="flex gap-2 text-sm text-charcoal-200">
+          <span className={`${dot} mt-0.5`}>{tone === 'red' ? '✕' : '✓'}</span>
+          <span>{t}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function GuideSection({ eyebrow, title, children }) {
+  return (
+    <section className="card p-5 sm:p-6">
+      {eyebrow && <p className="eyebrow mb-1">{eyebrow}</p>}
+      <h3 className="font-display text-xl sm:text-2xl mb-3">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+/** Full competition guidelines, rendered in-app (on-brand) from the official
+ * Trailstorm 2026 rulebook. Machine eligibility reflects the current policy —
+ * street-legal 150cc+ only; dirt and modified bikes are not permitted. */
+function GuidelinesModal({ onClose }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-start sm:items-center justify-center p-0 sm:p-4 bg-charcoal-950/85 backdrop-blur"
+      onClick={onClose}
+    >
+      <div
+        className="bg-charcoal-950 w-full max-w-4xl h-full sm:h-auto sm:max-h-[92vh] sm:rounded-3xl border border-charcoal-800 flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Sticky header */}
+        <div className="flex items-center justify-between gap-3 px-5 sm:px-7 py-4 border-b border-charcoal-800 bg-charcoal-950/95 backdrop-blur">
+          <div>
+            <p className="eyebrow mb-0.5">RULEBOOK · VERSION 1.0</p>
+            <h2 className="font-display text-xl sm:text-2xl">Trailstorm 2026 — Competition Guidelines</h2>
+          </div>
+          <button onClick={onClose} aria-label="Close" className="shrink-0 w-10 h-10 rounded-full border border-charcoal-700 hover:border-terra-500 hover:text-terra-400 transition">✕</button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto px-5 sm:px-7 py-6 space-y-5">
+          <GuideSection eyebrow="COMPETITION FORMAT" title="A multi-event off-road championship">
+            <Bullets items={[
+              'Trailstorm 2026 is a multi-event off-road endurance and skill championship.',
+              'Every registered riding club may nominate up to 4 riders (“Club Champions”).',
+              'Riders compete individually in all official events.',
+              'Points earned across events count toward both individual rider rankings and club championship rankings.',
+            ]} />
+          </GuideSection>
+
+          <GuideSection eyebrow="RIDER ELIGIBILITY" title="What every rider must do">
+            <Bullets items={[
+              'Possess a valid motorcycle driving license.',
+              'Wear mandatory riding safety gear at all times.',
+              'Use a mechanically fit motorcycle.',
+              'Follow marshal instructions without argument or delay.',
+              'Sign the event waiver and safety declaration before participation.',
+            ]} />
+          </GuideSection>
+
+          <GuideSection eyebrow="MANDATORY RIDING GEAR" title="Gear & protection">
+            <div className="grid sm:grid-cols-2 gap-5">
+              <div>
+                <p className="text-xs uppercase tracking-wider text-charcoal-500 mb-2">Compulsory</p>
+                <Bullets items={GEAR_COMPULSORY} />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wider text-charcoal-500 mb-2">Recommended</p>
+                <Bullets items={GEAR_RECOMMENDED} tone="green" />
+              </div>
+            </div>
+            <p className="text-xs text-charcoal-400 mt-4">Failure to comply may lead to time penalties, point deductions or disqualification. Riders without mandatory gear may not be permitted to start.</p>
+          </GuideSection>
+
+          <GuideSection eyebrow="THE EVENTS" title="Structure, scoring & penalties">
+            <div className="space-y-4">
+              {GUIDE_EVENTS.map((ev) => (
+                <div key={ev.no} className="rounded-2xl border border-charcoal-800 p-4 sm:p-5 bg-charcoal-900/40">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-1">
+                    <span className="badge bg-terra-500/20 text-terra-300 uppercase text-[10px]">{ev.no}</span>
+                    <h4 className="font-display text-lg">{ev.name}</h4>
+                  </div>
+                  <p className="text-xs text-charcoal-400">{ev.type} · {ev.when}</p>
+                  <p className="text-sm text-charcoal-200 mt-2">{ev.desc}</p>
+
+                  <p className="text-xs uppercase tracking-wider text-charcoal-500 mt-4 mb-2">Points by position</p>
+                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-1 text-center">
+                    {ev.points.map((p, i) => (
+                      <div key={i} className="rounded-md bg-charcoal-800/70 py-1.5">
+                        <div className="text-[10px] text-charcoal-500">{i + 1}{['st', 'nd', 'rd'][i] || 'th'}</div>
+                        <div className="text-sm font-semibold text-terra-300 tabular-nums">{p}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-charcoal-400 mt-2">{ev.finish}</p>
+
+                  <p className="text-xs uppercase tracking-wider text-charcoal-500 mt-4 mb-1.5">Penalties</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ev.penalties.map((p, i) => (
+                      <span key={i} className="text-[11px] px-2 py-1 rounded-md border border-charcoal-700 text-charcoal-300">{p}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </GuideSection>
+
+          <GuideSection eyebrow="MACHINE ELIGIBILITY" title="Which motorcycles can ride">
+            <div className="grid sm:grid-cols-2 gap-5">
+              <div>
+                <p className="text-xs uppercase tracking-wider text-emerald-400/80 mb-2">Allowed</p>
+                <Bullets items={MACHINE_ALLOWED} tone="green" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wider text-red-400/80 mb-2">Not allowed</p>
+                <Bullets items={MACHINE_NOT_ALLOWED} tone="red" />
+              </div>
+            </div>
+            <p className="text-xs text-charcoal-400 mt-4">All motorcycles must pass official technical inspection — brakes, tyres, throttle, controls, headlight, fuel system and electricals. A functional headlight is compulsory for the night event.</p>
+          </GuideSection>
+
+          <GuideSection eyebrow="FAIR PLAY & TIMING" title="Conduct, penalties & the clock">
+            <Bullets items={[
+              'All events are officially timed — timing starts at the start gate and stops only at the official finish line.',
+              'Route cutting, intentional obstruction, ignoring checkpoints, unapproved external assistance and tampering with the timing system lead to penalties or disqualification.',
+              'Published timings are provisional until timing verification, penalty confirmation and protest review close.',
+              'Decisions of the race marshals and chief judges are final.',
+            ]} />
+          </GuideSection>
+
+          <GuideSection eyebrow="SAFETY & MEDICAL" title="Rider safety comes first">
+            <Bullets items={[
+              'First-aid stations, on-ground medical teams, ambulance support and recovery marshals operate throughout competition hours.',
+              'Riders are personally responsible for bike fitness, fuel, brakes, tyres and hydration.',
+              'Marshals and safety teams may neutralise a stage, pause timing, divert routes or suspend an event at any time.',
+              'Zero tolerance: riding under the influence, intentionally dangerous riding, ignoring emergency signals, or tampering with safety equipment means immediate disqualification.',
+            ]} tone="red" />
+          </GuideSection>
+
+          <GuideSection eyebrow="OFFICIALS & PROTESTS" title="Marshals, protests & appeals">
+            <Bullets items={[
+              'Marshal instructions during competition, inspections, checkpoints and emergencies must be followed immediately.',
+              'Official protests are filed in person at the Control Desk within 30 minutes of a provisional result, by a registered rider, club captain or team representative, with supporting evidence.',
+              'Verbal complaints alone, social-media allegations and protests after the deadline are not accepted.',
+              'The Trailstorm Competition Committee’s ruling is final, binding and non-negotiable.',
+            ]} />
+          </GuideSection>
+
+          <GuideSection eyebrow="DISQUALIFICATION" title="What can end your championship">
+            <Bullets items={DQ_TRIGGERS} tone="red" />
+          </GuideSection>
+
+          <GuideSection eyebrow="CHAMPIONSHIP & AWARDS" title="How titles are decided">
+            <Bullets items={[
+              'Individual: highest total points across all 4 events wins the Trailstorm Overall Champion title.',
+              'Club: for each event the top 3 of a club’s 4 rider scores count; the lowest is dropped. Highest cumulative points across all events wins Best Riding Club.',
+            ]} />
+            <p className="text-xs uppercase tracking-wider text-charcoal-500 mt-4 mb-2">Awards</p>
+            <div className="flex flex-wrap gap-1.5">
+              {AWARDS.map((a, i) => (
+                <span key={i} className="text-[11px] px-2.5 py-1 rounded-full border border-gold-500/30 text-gold-300">{a}</span>
+              ))}
+            </div>
+          </GuideSection>
+
+          <GuideSection eyebrow="CONTACT & SUPPORT" title="Questions about the rules?">
+            <div className="space-y-1.5 text-sm text-charcoal-200">
+              <p>📞 <a href="tel:+918384099474" className="text-terra-400 hover:text-terra-300">+91-8384099474</a></p>
+              <p>✉️ <a href="mailto:support@angelsandroadsters.com" className="text-terra-400 hover:text-terra-300">support@angelsandroadsters.com</a></p>
+              <p>🌐 www.angelsandroadsters.com</p>
+            </div>
+          </GuideSection>
+
+          <p className="text-[11px] text-charcoal-600 text-center pt-2">
+            Trailstorm 2026 · Jaisalmer Desert Edition · Rulebook Version 1.0. Organisers reserve the right to modify schedules, routes and procedures in the interest of rider safety and event integrity.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TrailstormEventPage() {
   const { slug } = useParams();
   const { data, isLoading } = useGetEventQuery(slug);
   const { data: slotData } = useGetEventSlotsQuery(slug, { pollingInterval: 30000 });
   const event = data?.event;
   const slots = slotData?.slots || {};
+  const [showGuidelines, setShowGuidelines] = useState(false);
 
   if (isLoading) {
     return <div className="container-x pt-32 pb-20 text-charcoal-300">Loading Trailstorm...</div>;
@@ -242,6 +512,22 @@ export default function TrailstormEventPage() {
               <p className="eyebrow mb-2">ELIGIBILITY</p>
               <p className="text-sm text-charcoal-200">{event.eligibility || 'Open to all riders 18+. Visitors of all ages welcome.'}</p>
             </div>
+
+            {/* OFFICIAL GUIDELINES */}
+            <div className="card-glass p-5 sm:p-6 border-gold-500/20">
+              <p className="eyebrow mb-2">RULEBOOK</p>
+              <h3 className="font-display text-xl mb-1">Official Competition Guidelines</h3>
+              <p className="text-sm text-charcoal-300 mb-3">
+                Format, eligibility, mandatory gear, the four events and their points, safety, timing, penalties and the championship system — everything that governs Trailstorm 2026.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowGuidelines(true)}
+                className="inline-flex items-center gap-1.5 text-terra-400 hover:text-terra-300 font-semibold text-sm underline underline-offset-4 decoration-terra-500/50"
+              >
+                📖 Read our guidelines <span aria-hidden>→</span>
+              </button>
+            </div>
           </div>
 
           <div>
@@ -386,6 +672,8 @@ export default function TrailstormEventPage() {
           ))}
         </div>
       </section>
+
+      {showGuidelines && <GuidelinesModal onClose={() => setShowGuidelines(false)} />}
     </div>
   );
 }
