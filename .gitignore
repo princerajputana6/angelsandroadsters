@@ -16,3 +16,12 @@ public/uploads/*
 *.aab
 # Capacitor Android local SDK path
 android/local.properties
+/dist/
+.vinext/
+.cloudflare/
+
+.env*.local
+.dev.vars*
+next-env.d.ts
+.vercel
+.env*
